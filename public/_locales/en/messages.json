@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Flow2Note",
+    "description": "The name of the extension."
+  },
+  "extensionDescription": {
+    "message": "Extract subtitles & content from various sources and import to NotebookLM 🚀 Supports Bilibili, YouTube, podcasts, doc sites & AI chats.",
+    "description": "The description of the extension shown in Chrome Web Store and chrome://extensions."
+  },
+  "actionTitle": {
+    "message": "Flow2Note",
+    "description": "Tooltip shown when hovering over the extension icon in the toolbar."
+  }
+}

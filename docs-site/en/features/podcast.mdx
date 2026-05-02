@@ -1,0 +1,50 @@
+---
+title: 'Podcast Download'
+description: 'Download audio from Apple Podcasts and Xiaoyuzhou, then import into NotebookLM'
+---
+
+## The Problem
+
+A two-hour podcast is exhausting to summarize manually. You want NotebookLM to generate notes for you, but it doesn't support pasting a podcast link directly.
+
+## The Solution
+
+<Steps>
+  <Step title="Get the podcast link">
+    Copy a show or episode link from Apple Podcasts or Xiaoyuzhou FM.
+  </Step>
+  <Step title="Paste into Jetpack">
+    Click the Jetpack icon, switch to the "Podcast" tab, paste the link, and click "Search".
+  </Step>
+  <Step title="Select episodes">
+    The extension displays show info and an episode list. Check the episodes you want to download.
+  </Step>
+  <Step title="Download audio">
+    Click "Download Selected" and the audio files will be saved locally.
+  </Step>
+  <Step title="Import into NotebookLM">
+    Drag the downloaded audio files into your NotebookLM notebook. The AI will automatically generate complete notes.
+  </Step>
+</Steps>
+
+## Supported Platforms
+
+| Platform | Link Format | Notes |
+|---|---|---|
+| Apple Podcasts | `podcasts.apple.com/.../id123456` | Supports both show and episode links |
+| Xiaoyuzhou FM | `xiaoyuzhoufm.com/episode/...` | Supports episode links |
+| Xiaoyuzhou FM | `xiaoyuzhoufm.com/podcast/...` | Supports show links |
+
+## Query Modes
+
+- **Latest** — shows the most recently published episodes
+- **All** — shows every episode (may be a long list)
+- **Season** — filter by season or collection
+
+<Tip>
+  Downloaded audio files are typically in `.m4a` or `.mp3` format, both of which NotebookLM supports.
+</Tip>
+
+<Warning>
+  Audio files can be large (50-100 MB per episode). Make sure you have enough disk space and bandwidth.
+</Warning>

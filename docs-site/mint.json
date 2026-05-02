@@ -1,0 +1,131 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "NotebookLM Jetpack",
+  "logo": {
+    "dark": "/logo/icon-128.png",
+    "light": "/logo/icon-128.png"
+  },
+  "favicon": "/logo/icon-128.png",
+  "colors": {
+    "primary": "#4285F4",
+    "light": "#EBF3FE",
+    "dark": "#1A73E8",
+    "anchors": {
+      "from": "#4285F4",
+      "to": "#1A73E8"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/crazynomad/notebooklm-jetpack"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Install",
+    "url": "https://chromewebstore.google.com/detail/notebooklm-jetpack/jgjgpfgcbdblgejodmooigkhlciejjhg"
+  },
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/crazynomad/notebooklm-jetpack"
+    },
+    {
+      "name": "Changelog",
+      "icon": "clock-rotate-left",
+      "url": "/changelog"
+    }
+  ],
+  "navigation": {
+    "languages": [
+      {
+        "language": "zh",
+        "groups": [
+          {
+            "group": "开始使用",
+            "pages": [
+              "introduction",
+              "getting-started/install",
+              "getting-started/first-import"
+            ]
+          },
+          {
+            "group": "核心功能",
+            "pages": [
+              "features/bookmarks",
+              "features/web-import",
+              "features/docs-import",
+              "features/podcast",
+              "features/youtube",
+              "features/ai-chat",
+              "features/rss",
+              "features/rescue"
+            ]
+          },
+          {
+            "group": "使用指南",
+            "pages": [
+              "guides/substack",
+              "guides/wechat",
+              "guides/source-limit"
+            ]
+          },
+          {
+            "group": "其他",
+            "pages": [
+              "faq",
+              "changelog",
+              "privacy"
+            ]
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "en/introduction",
+              "en/getting-started/install",
+              "en/getting-started/first-import"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "en/features/bookmarks",
+              "en/features/web-import",
+              "en/features/docs-import",
+              "en/features/podcast",
+              "en/features/youtube",
+              "en/features/ai-chat",
+              "en/features/rss",
+              "en/features/rescue"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "en/guides/substack",
+              "en/guides/wechat",
+              "en/guides/source-limit"
+            ]
+          },
+          {
+            "group": "More",
+            "pages": [
+              "en/faq",
+              "en/changelog",
+              "en/privacy"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footerSocials": {
+    "github": "https://github.com/crazynomad/notebooklm-jetpack"
+  }
+}

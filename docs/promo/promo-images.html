@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NotebookLM Jetpack — Chrome Web Store Promotional Images</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #e8e3db;
+    font-family: 'EB Garamond', 'Noto Serif SC', serif;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+  }
+
+  h2.section-label {
+    color: #5c5147;
+    font-family: 'EB Garamond', serif;
+    font-size: 13px;
+    font-weight: 400;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: -40px;
+    align-self: flex-start;
+    max-width: 1400px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ========== SHARED PROMO STYLES ========== */
+  .promo {
+    position: relative;
+    overflow: hidden;
+    background: #f6f1ea;
+  }
+
+  /* Paper texture overlay */
+  .promo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.07'/%3E%3C/svg%3E");
+  }
+
+  /* Warm vignette */
+  .promo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(180, 155, 125, 0.12) 100%);
+  }
+
+  .promo-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Decorative horizontal rule element */
+  .rule-line {
+    position: absolute;
+    background: #d4c9ba;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Text styles */
+  .promo-title {
+    color: #1a1612;
+    font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1.1;
+  }
+  .promo-tagline {
+    color: #5c5147;
+    font-family: 'EB Garamond', 'Noto Serif SC', serif;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* Feature icons */
+  .feature-icons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(196, 85, 58, 0.08);
+    border: 1px solid rgba(196, 85, 58, 0.18);
+  }
+  .feature-icon svg {
+    color: #c4553a;
+  }
+
+  /* ========== SMALL TILE 440×280 ========== */
+  .small-tile {
+    width: 440px;
+    height: 280px;
+  }
+  .small-tile .promo-content {
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px;
+  }
+
+  /* Top rule on small tile */
+  .small-tile .rule-line {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #c4553a;
+  }
+
+  .small-tile .jetpack-icon {
+    width: 72px;
+    height: 72px;
+  }
+  .small-tile .text-group {
+    text-align: center;
+  }
+  .small-tile .promo-title {
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+  .small-tile .promo-tagline {
+    font-size: 14px;
+  }
+  .small-tile .feature-icons {
+    margin-top: 4px;
+  }
+  .small-tile .feature-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+  .small-tile .feature-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ========== MARQUEE 1400×560 ========== */
+  .marquee {
+    width: 1400px;
+    height: 560px;
+  }
+  .marquee .promo-content {
+    padding: 60px 80px;
+    gap: 60px;
+  }
+
+  /* Top rule on marquee */
+  .marquee .rule-line {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #c4553a;
+  }
+
+  /* Left vertical rule accent */
+  .marquee .rule-v {
+    position: absolute;
+    left: 80px;
+    top: 60px;
+    bottom: 60px;
+    width: 1px;
+    background: #d4c9ba;
+    z-index: 2;
+    opacity: 0.6;
+  }
+
+  .marquee .left-section {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex: 1;
+  }
+  .marquee .jetpack-icon {
+    width: 140px;
+    height: 140px;
+    flex-shrink: 0;
+  }
+  .marquee .text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .marquee .promo-title {
+    font-size: 52px;
+  }
+  .marquee .promo-tagline {
+    font-size: 21px;
+    max-width: 460px;
+  }
+  .marquee .right-section {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: flex-end;
+  }
+  .marquee .feature-row {
+    display: flex;
+    gap: 14px;
+  }
+  .marquee .feature-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 6px;
+    background: rgba(196, 85, 58, 0.06);
+    border: 1px solid #d4c9ba;
+  }
+  .marquee .feature-card svg {
+    width: 22px;
+    height: 22px;
+    color: #c4553a;
+    flex-shrink: 0;
+  }
+  .marquee .feature-card span {
+    color: #1a1612;
+    font-family: 'EB Garamond', 'Noto Serif SC', serif;
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ========== SCREENSHOT 1280×800 ========== */
+  .screenshot {
+    width: 1280px;
+    height: 800px;
+  }
+  .screenshot .promo-content {
+    flex-direction: column;
+    gap: 28px;
+    padding: 56px 80px;
+  }
+
+  /* Top rule on screenshot */
+  .screenshot .rule-line {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #c4553a;
+  }
+
+  .screenshot .top-section {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    width: 100%;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #d4c9ba;
+  }
+  .screenshot .jetpack-icon {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }
+  .screenshot .text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .screenshot .promo-title {
+    font-size: 46px;
+  }
+  .screenshot .promo-tagline {
+    font-size: 20px;
+  }
+  .screenshot .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .screenshot .feature-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 22px 20px;
+    border-radius: 6px;
+    background: rgba(212, 201, 186, 0.25);
+    border: 1px solid #d4c9ba;
+    text-align: left;
+  }
+  .screenshot .feature-block .icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(196, 85, 58, 0.1);
+    border: 1px solid rgba(196, 85, 58, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .screenshot .feature-block .icon-circle svg {
+    width: 22px;
+    height: 22px;
+    color: #c4553a;
+  }
+  .screenshot .feature-block h3 {
+    color: #1a1612;
+    font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .screenshot .feature-block p {
+    color: #5c5147;
+    font-family: 'EB Garamond', 'Noto Serif SC', serif;
+    font-size: 13.5px;
+    line-height: 1.55;
+    font-style: italic;
+  }
+
+  /* Bottom branding bar */
+  .screenshot .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: auto;
+    width: 100%;
+    padding-top: 14px;
+    border-top: 1px solid #d4c9ba;
+  }
+  .screenshot .bottom-bar span {
+    color: #8a7e70;
+    font-family: 'EB Garamond', serif;
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .screenshot .bottom-bar .dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #d4c9ba;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SMALL TILE — ENGLISH 440×280 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Small Promotional Tile — English (440×280)</h2>
+<div class="promo small-tile" id="small-tile-en">
+  <div class="rule-line"></div>
+  <div class="promo-content">
+    <!-- Jetpack icon — warm tones on cream -->
+    <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="64" cy="64" r="64" fill="rgba(196, 85, 58, 0.08)"/>
+      <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="#c4553a" stroke="#c4553a" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+        <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+        <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+        <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+        <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+      </g>
+    </svg>
+    <div class="text-group">
+      <div class="promo-title">NotebookLM Jetpack</div>
+      <div class="promo-tagline">Supercharge NotebookLM</div>
+    </div>
+    <div class="feature-icons">
+      <!-- Doc site -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div>
+      <!-- Podcast -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+      <!-- AI Chat -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <!-- Bookmark -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+      <!-- YouTube -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+      <!-- RSS -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SMALL TILE — CHINESE 440×280 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Small Promotional Tile — Chinese (440×280)</h2>
+<div class="promo small-tile" id="small-tile-cn">
+  <div class="rule-line"></div>
+  <div class="promo-content">
+    <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="64" cy="64" r="64" fill="rgba(196, 85, 58, 0.08)"/>
+      <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="#c4553a" stroke="#c4553a" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+        <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+        <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+        <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+        <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+      </g>
+    </svg>
+    <div class="text-group">
+      <div class="promo-title">NotebookLM Jetpack</div>
+      <div class="promo-tagline" style="font-family:'Noto Serif SC','EB Garamond',serif;">给 NotebookLM 装上喷射背包</div>
+    </div>
+    <div class="feature-icons">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MARQUEE — ENGLISH 1400×560 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Marquee Banner — English (1400×560)</h2>
+<div class="promo marquee" id="marquee-en">
+  <div class="rule-line"></div>
+  <div class="rule-v"></div>
+  <div class="promo-content">
+    <div class="left-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(196, 85, 58, 0.08)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="#c4553a" stroke="#c4553a" stroke-width="2.5" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline">Supercharge NotebookLM with one-click imports from any source</div>
+      </div>
+    </div>
+    <div class="right-section">
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          <span>Doc Sites</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span>Podcasts</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>AI Chats</span>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span>Bookmarks</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          <span>RSS Feeds</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>YouTube</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MARQUEE — CHINESE 1400×560 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Marquee Banner — Chinese (1400×560)</h2>
+<div class="promo marquee" id="marquee-cn">
+  <div class="rule-line"></div>
+  <div class="rule-v"></div>
+  <div class="promo-content">
+    <div class="left-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(196, 85, 58, 0.08)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="#c4553a" stroke="#c4553a" stroke-width="2.5" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline" style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">给 NotebookLM 装上喷射背包，一键导入任何来源</div>
+      </div>
+    </div>
+    <div class="right-section">
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          <span style="font-family:'Noto Serif SC','EB Garamond',serif;">文档站</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span style="font-family:'Noto Serif SC','EB Garamond',serif;">播客</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span style="font-family:'Noto Serif SC','EB Garamond',serif;">AI 对话</span>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span style="font-family:'Noto Serif SC','EB Garamond',serif;">收藏夹</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          <span>RSS</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>YouTube</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREENSHOT — ENGLISH 1280×800 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Screenshot / Hero — English (1280×800)</h2>
+<div class="promo screenshot" id="screenshot-en">
+  <div class="rule-line"></div>
+  <div class="promo-content">
+    <div class="top-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(196, 85, 58, 0.08)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="#c4553a" stroke="#c4553a" stroke-width="2.5" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline">Supercharge NotebookLM with one-click imports from any source</div>
+      </div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        </div>
+        <h3>Doc Sites</h3>
+        <p>Import entire documentation sites. Supports 14+ frameworks including Docusaurus, VitePress, MkDocs, GitBook, and more.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <h3>Podcasts</h3>
+        <p>Download audio from Apple Podcasts and more. Drag into NotebookLM for AI-generated notes and summaries.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>AI Conversations</h3>
+        <p>Extract Q&amp;A from Claude, ChatGPT, and Gemini. Selectively import the most valuable exchanges.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Read Later &amp; Merge</h3>
+        <p>Save articles to read later. Merge 10–20 articles into one PDF — use only 1 source slot instead of 20.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <h3>YouTube</h3>
+        <p>Import videos, playlists, and channels. Auto-detect current YouTube tab for one-click import.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Smart Rescue</h3>
+        <p>Auto-detect failed &amp; silently broken imports on NotebookLM. One-click batch rescue for Substack, WeChat &amp; more.</p>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <span>Free &amp; Open Source</span>
+      <div class="dot"></div>
+      <span>No Account Required</span>
+      <div class="dot"></div>
+      <span>100% Client-Side</span>
+      <div class="dot"></div>
+      <span>Manifest V3</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREENSHOT — CHINESE 1280×800 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Screenshot / Hero — Chinese (1280×800)</h2>
+<div class="promo screenshot" id="screenshot-cn">
+  <div class="rule-line"></div>
+  <div class="promo-content">
+    <div class="top-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(196, 85, 58, 0.08)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="#c4553a" stroke="#c4553a" stroke-width="2.5" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline" style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">给 NotebookLM 装上喷射背包，一键导入任何来源</div>
+      </div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Serif SC','EB Garamond',serif;">文档站导入</h3>
+        <p style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">支持 14+ 文档框架：Docusaurus、VitePress、MkDocs、GitBook 等，一键导入整站文档。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Serif SC','EB Garamond',serif;">播客下载</h3>
+        <p style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">从 Apple Podcasts、小宇宙下载音频，拖入 NotebookLM 让 AI 生成笔记摘要。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Serif SC','EB Garamond',serif;">AI 对话提取</h3>
+        <p style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">从 Claude、ChatGPT、Gemini 提取问答对，选择性导入有价值的交流内容。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Serif SC','EB Garamond',serif;">稍后阅读 &amp; 聚合</h3>
+        <p style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">收藏文章，10–20 篇聚合为一个 PDF，只占 1 个来源配额而非 20 个。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <h3>YouTube</h3>
+        <p style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">导入视频、播放列表和频道。自动检测当前 YouTube 页面，一键导入。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Serif SC','EB Garamond',serif;">智能抢救</h3>
+        <p style="font-family:'Noto Serif SC','EB Garamond',serif;font-style:normal;">自动检测 NotebookLM 中导入失败和假性成功的来源，一键批量修复。</p>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <span style="font-family:'Noto Serif SC','EB Garamond',serif;">完全免费 &amp; 开源</span>
+      <div class="dot"></div>
+      <span style="font-family:'Noto Serif SC','EB Garamond',serif;">无需注册</span>
+      <div class="dot"></div>
+      <span style="font-family:'Noto Serif SC','EB Garamond',serif;">纯客户端运行</span>
+      <div class="dot"></div>
+      <span>Manifest V3</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

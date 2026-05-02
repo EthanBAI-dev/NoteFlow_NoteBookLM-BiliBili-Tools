@@ -1,0 +1,139 @@
+---
+title: 'Changelog'
+description: 'NotebookLM Jetpack version history'
+---
+
+## v1.7.5 — 2026-04-23
+
+- 🎨 **Share card preserves AI conversation structure**: The previous extractor flattened paragraphs, lists, blockquotes, and bold formatting into a single run-on paragraph — multi-line answers (translations, side-by-side comparisons, definition lists) became unreadable in the share image. Claude/ChatGPT/Gemini extractors now emit cleaned HTML fragments which the offscreen Turndown batch-converts to Markdown, preserving paragraphs / headings / ordered & unordered lists / blockquotes / bold & italic / inline code / fenced code
+- 🛡️ **Share card renders via marked AST**: Walks markdown tokens into React nodes directly, avoiding raw HTML injection paths. Stray iframe/script tags that survive Turndown degrade to plain text automatically
+- ✨ **NotebookLM imports improve in step**: Conversation content imported into NotebookLM now retains the original Markdown structure, much nicer to read
+- 🔧 Popup selection preview strips Markdown symbols so `**` and `##` no longer leak into the list
+
+## v1.7.4 — 2026-04-09
+
+- 🐛 **Fix broken auto-rename for pasted sources**: NotebookLM recently started sorting the source list alphabetically, which broke our old assumption that "new source == last in DOM order". `Pasted Text` defaults were never being renamed to the real title. Switched to a WeakSet diff to locate the new source, robust to any sort order.
+- 🏷️ **Emoji prefixes for rescue / repair**: Rescued sources now display as `🛟 Article Title`; WeChat/X fake-success sources that were repaired display as `🔧 Article Title` — so you can tell at a glance which sources have been processed.
+- ⚙️ **New "Auto-rename default-named sources" toggle**: Popup → More panel → Settings card. Turns the entire auto-rename behavior on/off dynamically.
+
+## v1.7.0 — 2026-03-24
+
+- ▶️ **YouTube Import**: Import individual videos, playlists, and channel videos into NotebookLM
+  - Auto-detects current YouTube tab URL for one-click import
+  - Selective batch import for playlists/channels, with option to limit to the most recent N videos
+  - Dual extraction strategy: InnerTube API + RSS
+- 🗑️ **Bulk Delete Revamp**: Uses NotebookLM's native checkboxes, with a new "More Actions" entry at the bottom of the source list
+  - Confirmation dialog before deletion to prevent accidental removal
+  - Supports SPA in-page navigation (no page refresh needed)
+- 🎓 Onboarding guide now includes YouTube step
+- 🏠 Welcome page adds YouTube and More feature cards
+
+## v1.6.8 — 2026-03-22
+
+- 🔧 Fix repair/rescue tab targeting issues
+- 📊 Switch to port-based progress communication
+- 🛡️ Banner state protection: in-progress banners no longer get removed by DOM mutations
+
+## v1.6.7 — 2026-03-21
+
+- 📌 Add "Pin to toolbar" guidance tooltip on Welcome page
+
+## v1.6.6 — 2026-03-20
+
+- 🎯 Notebook target selector: choose a notebook from the dropdown and imports go directly there — no manual tab switching
+- 🚀 One-click import button: prominent yellow Import button on the bookmarks page for importing the current page to NotebookLM
+- 🎓 Onboarding: Welcome page + 5-step tooltip guide on install, covering all 4 core features, skippable and replayable from the More page
+- 🎨 Bookmarks panel color refresh: bookmark-related UI unified to blue, Import button highlighted in yellow
+- 🔧 Fix import opening homepage: initially auto-selected notebook now correctly persists to storage
+- ⚡ Notebook list caching: 5-minute TTL cache, skeleton loader on load, manual refresh to force update
+- 📐 Fix popup viewport overflow: add max-height constraint to prevent content overflow
+
+## v1.5.8 — 2026-03-11
+
+- 🎴 AI conversation share cards: export conversations as beautifully designed image cards with warm book-style typography
+  - Default export as JPEG; dropdown offers PNG, PDF, and clipboard copy
+  - iPhone Dynamic Island safe area support (59pt, per Apple HIG)
+  - QR code + bilingual signature (Made with ❤️ by Flow2Note)
+  - 3x Retina high-resolution rendering
+- 🖨️ PDF export style upgrade: warm book-style design (Noto Serif SC + EB Garamond), cream background + russet accent
+  - Footer signature area: brand logo + YouTube link + bilingual signature
+  - System font fallback chain for offline rendering (Georgia → Songti SC → STSong → SimSun)
+- 📋 Clipboard copy button added to Bookmarks and Doc Sites: small icon button next to PDF export, one-click copy Markdown to clipboard
+- 📝 New GitHub Issue templates: Bug Report / Feature Request / Site Support Request
+
+## v1.5.7 — 2026-03-09
+
+- 🖨️ Fix X.com article PDF export: correctly extract article body, support CJK Chinese fonts, fix paragraph merging issues
+- 🎨 PDF reading experience upgrade: warm book-style typography (Georgia serif font, cream background, russet accents)
+- 📄 Single article PDF optimization: skip table of contents and cover pages, use article title as filename
+- 📝 Auto-insert heading in PDF content: automatically prepend h1 heading to each article (skip if heading already exists)
+- 🔧 X.com extraction improvements: Article → tweetText dual-strategy fallback, render wait time 5s → 8s
+
+## v1.5.6 — 2026-03-08
+
+- 🗑️ Bulk source deletion: `Cmd+Shift+S` (Mac) / `Ctrl+Shift+S` (Windows) enters selection mode — supports select all, invert selection, select failed only, and one-click bulk delete
+- 🛟 Improved error detection: MutationObserver watches for class attribute changes to detect failed sources in real time (#35)
+- 🔄 Delayed re-check: auto re-checks at 5s/10s/18s after import to catch "false success" sources like WeChat articles
+- ✏️ Fix smart rename for pasted text sources (#38)
+- 🏗️ Huawei developer docs support: fix Catalog API parsing + tab-based content extraction (#37)
+
+## v1.5.5 — 2026-03-02
+
+- 🌐 Complete i18n for content script banners and popup components
+
+## v1.5.4 — 2026-03-01
+
+- 🌐 Add Chrome i18n support with `_locales` directory (en / zh_CN)
+
+## v1.5.3
+
+- 📝 README update: screenshots, YouTube demo video, English content
+
+## v1.5.2 — 2026-02-25
+
+- 🌐 Add X.com (Twitter) long-form article import via tab-based rendering for full content extraction
+- 🛟 Rescue feature expanded: supports failure detection and one-click repair for X.com dynamic pages
+- ⚙️ Refactor tab-based extraction pipeline, unifying WeChat / X.com and other SPA page handling
+
+## v1.1.43 — 2025-02-24
+
+- 🧹 Remove dead YouTube-related code
+- 🎨 Add store promotional graphics
+- 📊 Tests: all 84 tests passing
+
+## v1.1.42 — 2025-02-24
+
+- 🌐 Complete i18n for all components (ImportPanel was the last one)
+- 🔄 Add manual language toggle (EN/中) with localStorage persistence
+- 🤖 AI Conversation tab: add 4-step onboarding guide
+- 🎨 Update extension icon: blue circle + white jetpack figure
+- 🧪 Add 37 tests (bookmarks 21 + i18n 11 + podcast 6), bringing total to 99
+- 📄 Add store listing docs and privacy policy
+
+## v1.1.41 — 2025-02-24
+
+- 🌐 Create i18n system (`lib/i18n.ts`) with `t()` translation function
+- 🔄 11 components converted to i18n
+- 🌍 Auto-detect `navigator.language`
+
+## v1.1.40 — 2025-02-24
+
+- 📚 Verify English NotebookLM DOM matching
+- 🔧 Fix text matching for "Websites" (plural), "Paste any links" (plural), etc.
+
+## v1.1.39 — 2025-02-24
+
+- 📑 Move Bookmarks tab to first position (default tab)
+- 📖 Add Bookmarks onboarding guide
+- 📂 Separate dev/release build directories: `dist-dev/` vs `dist/`
+
+## v1.1.38 — 2025-02-24
+
+- 🔍 Language-agnostic button matching: based on Material Icons instead of text
+- 🎯 `findDialogButtonByIcon()` supports `link`, `content_paste`, `arrow_back`, `add`, `edit`
+- 📝 Text matching retained as fallback
+
+## v1.1.37 — 2025-02-24
+
+- ⏱️ Improve rename reliability: 4s initial wait, 6 retries, incremental delay (600ms → 2600ms)
+- 🌍 Multilingual default source name matching

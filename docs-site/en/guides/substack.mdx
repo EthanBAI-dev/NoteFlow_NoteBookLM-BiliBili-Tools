@@ -1,0 +1,44 @@
+---
+title: 'Substack Import Tips'
+description: 'How to cleanly import Substack articles into NotebookLM'
+---
+
+## Why Does NotebookLM's Direct Import Fall Short with Substack?
+
+Importing a Substack link directly through NotebookLM typically leads to:
+- Anti-scraping mechanisms blocking the import entirely
+- A "successful" import that includes tons of noise: Subscribe buttons, comment sections, recommended articles, footers
+
+## How Jetpack Handles It
+
+Jetpack has purpose-built optimizations for Substack articles:
+
+### 14 Noise Filters
+
+The following elements are automatically filtered out:
+- Subscribe buttons and popups
+- Comment sections
+- Recommended article lists
+- Author bio cards
+- Social sharing buttons
+- Header and footer navigation
+- Paywall overlays (free portion is still extracted)
+- Ads and sponsored content
+
+### Import Methods
+
+<AccordionGroup>
+  <Accordion title="Method 1: Single article import">
+    Paste a Substack article link into Jetpack and click import. The extension automatically extracts the body text.
+  </Accordion>
+  <Accordion title="Method 2: RSS batch import">
+    Substack natively supports RSS. Paste `yourname.substack.com/feed` into RSS Import, select articles, and batch import.
+  </Accordion>
+  <Accordion title="Method 3: Bookmark and aggregate">
+    Bookmark interesting Substack articles one by one, then aggregate and export as PDF, and upload to NotebookLM. Great for compiling a series of posts by the same author.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  **Paywalled articles**: Jetpack can only extract the publicly visible portion. If you're a paid subscriber, log in to the browser first before importing to get the full content.
+</Tip>

@@ -1,0 +1,64 @@
+---
+title: 'Install Extension'
+description: 'Install the NotebookLM Jetpack Chrome extension'
+---
+
+## Chrome Web Store (Recommended)
+
+One-click install with automatic updates.
+
+<Steps>
+  <Step title="Open the store page">
+    Go to the [Chrome Web Store](https://chromewebstore.google.com/detail/notebooklm-jetpack/jgjgpfgcbdblgejodmooigkhlciejjhg) and click "Add to Chrome"
+  </Step>
+  <Step title="Pin to toolbar">
+    Click the puzzle icon 🧩 in the top-right corner of Chrome → find NotebookLM Jetpack → click the 📌 pin icon
+  </Step>
+</Steps>
+
+## Install from GitHub
+
+If you can't access the Chrome Web Store, you can install manually from GitHub Releases.
+
+<Steps>
+  <Step title="Download the extension">
+    Go to [GitHub Releases](https://github.com/crazynomad/notebooklm-jetpack/releases/latest) and download the `.zip` file
+  </Step>
+  <Step title="Unzip the file">
+    Extract the `.zip` to a permanent folder (don't delete it — Chrome needs continuous access to this directory)
+  </Step>
+  <Step title="Load into Chrome">
+    1. Open `chrome://extensions`
+    2. Enable "Developer mode" in the top-right corner
+    3. Click "Load unpacked"
+    4. Select the extracted folder
+  </Step>
+  <Step title="Pin to toolbar">
+    Click the puzzle icon 🧩 in the top-right corner of Chrome → find NotebookLM Jetpack → click the 📌 pin icon
+  </Step>
+</Steps>
+
+<Tip>
+  To update, repeat the steps above — overwrite the extracted folder, then click the refresh button on the `chrome://extensions` page.
+</Tip>
+
+## Build from Source
+
+For the latest development build or to contribute:
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/crazynomad/notebooklm-jetpack.git
+    cd notebooklm-jetpack
+    pnpm install
+    pnpm build
+    ```
+  </Step>
+  <Step title="Load into Chrome">
+    1. Open `chrome://extensions`
+    2. Enable "Developer mode" in the top-right corner
+    3. Click "Load unpacked"
+    4. Select the `dist/chrome-mv3` directory in the project
+  </Step>
+</Steps>

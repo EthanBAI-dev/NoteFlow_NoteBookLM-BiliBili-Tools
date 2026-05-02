@@ -1,0 +1,49 @@
+---
+title: 'Failed Source Rescue'
+description: 'Automatically detect and repair failed imports'
+---
+
+## The Problem
+
+NotebookLM's web import frequently runs into two issues:
+1. **Import failure** — an outright error
+2. **Fake success** — it says "imported successfully," but the content is empty (common with WeChat articles, X.com long posts, and other dynamically rendered pages)
+
+Manually checking and retrying each one is painful.
+
+## The Solution
+
+Jetpack automatically scans all sources on the NotebookLM page and detects both failures and fake successes.
+
+### Rescue Banners
+
+When problematic sources are detected, a banner appears at the top of the NotebookLM page:
+
+- **Amber banner**: "Found N sources that failed to import" -- click "Rescue" to retry them all at once
+- **Blue banner**: "Found N sources that need repair" (WeChat articles, X.com long posts, etc.) -- click "Repair" to fix them all at once
+
+### How It Works
+
+<Steps>
+  <Step title="Automatic scanning">
+    When you open a NotebookLM notebook, the extension automatically scans the source list on the left sidebar.
+  </Step>
+  <Step title="Detect problems">
+    - Checks whether any source is marked as failed
+    - Checks whether web sources actually contain empty content (fake success)
+  </Step>
+  <Step title="Show banner">
+    If issues are found, a banner appears at the top of the page indicating how many sources are affected.
+  </Step>
+  <Step title="One-click fix">
+    Click the button on the banner. The extension re-fetches the content and attempts to repair it. When finished, it shows a success/failure summary.
+  </Step>
+</Steps>
+
+<Tip>
+  **No manual action needed**: as long as you have a NotebookLM notebook open, the extension detects problems automatically. The banner only appears when there are issues -- otherwise it stays completely silent.
+</Tip>
+
+<Note>
+  The rescue feature uses the same content extraction pipeline as normal imports, but bypasses NotebookLM's native import errors by directly injecting the extracted plain text.
+</Note>

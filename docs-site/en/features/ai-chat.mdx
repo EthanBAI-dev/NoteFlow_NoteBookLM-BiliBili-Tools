@@ -1,0 +1,86 @@
+---
+title: 'AI Chat Import'
+description: 'Extract conversations from Claude, ChatGPT, and Gemini, then import into NotebookLM'
+---
+
+## The Problem
+
+You discussed a technical architecture with ChatGPT, did a deep dive on a research paper with Claude, and brainstormed ideas with Gemini. These conversations are knowledge, but NotebookLM can't import AI chats directly.
+
+## The Solution
+
+<Steps>
+  <Step title="Open an AI chat page">
+    Open a conversation on Claude, ChatGPT, or Gemini in your browser.
+  </Step>
+  <Step title="Extract the conversation">
+    Click the Jetpack icon and switch to the "AI Chat" tab. The extension automatically detects the current platform.
+
+    Click "Extract Current Conversation" and the extension pulls all Q&A pairs from the page DOM.
+  </Step>
+  <Step title="Select Q&A pairs">
+    Check the Q&A pairs you want to keep. Each pair shows a question summary and answer preview, so you can import only the valuable parts.
+  </Step>
+  <Step title="Import">
+    Click "Import N Selected Q&A Pairs". The extension formats the conversation as structured Markdown and imports it into NotebookLM using the "Copied text" method.
+  </Step>
+</Steps>
+
+## Supported Platforms
+
+| Platform | Domain | Status |
+|---|---|---|
+| Claude | `claude.ai` | Fully supported |
+| ChatGPT | `chatgpt.com` | Fully supported |
+| Gemini | `gemini.google.com` | Fully supported |
+
+## Import Format
+
+Content imported into NotebookLM is formatted as:
+
+```markdown
+# Conversation Title
+
+**Source**: Claude conversation
+**URL**: https://claude.ai/chat/xxx
+
+---
+
+## Human
+Your question here...
+
+## Claude
+AI's response here...
+
+---
+```
+
+## Share Cards
+
+Beyond importing into NotebookLM, you can also turn great conversations into **share cards** -- perfect for posting on social media.
+
+<Steps>
+  <Step title="Select Q&A pairs">
+    After extracting a conversation in the AI Chat tab, check the Q&A pairs you want to share.
+  </Step>
+  <Step title="Generate share card">
+    Click the "Generate Share Card" button to preview the card on a new page.
+  </Step>
+  <Step title="Export">
+    Click "Save JPEG" to export a high-resolution image. The dropdown menu also supports PNG, PDF, and copy to clipboard.
+  </Step>
+</Steps>
+
+**Card features:**
+- Warm book-style typography (Noto Serif SC serif font, cream background, rust-red accent color)
+- iPhone Dynamic Island safe area support (can be toggled off), great for mobile screenshot sharing
+- 3x Retina high-resolution rendering
+- Automatic Chinese/English layout adaptation
+
+<Tip>
+  **Selective import**: A long conversation often contains only a few gems. Use the checkbox feature to filter out small talk and keep only the best parts.
+</Tip>
+
+<Note>
+  Make sure you have a NotebookLM notebook open before importing.
+</Note>

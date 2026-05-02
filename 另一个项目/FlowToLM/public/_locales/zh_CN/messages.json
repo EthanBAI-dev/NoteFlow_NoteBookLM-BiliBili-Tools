@@ -1,0 +1,8 @@
+{
+  "appName": {
+    "message": "FlowToLM"
+  },
+  "appDescription": {
+    "message": "Extract Bilibili subtitles to Markdown for NotebookLM."
+  }
+}

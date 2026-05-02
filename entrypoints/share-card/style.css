@@ -1,0 +1,458 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #f6f1ea;
+  --bg-deep: #ede6db;
+  --text-cn: #1a1612;
+  --text-en: #5c5147;
+  --accent: #c4553a;
+  --accent-light: #e8c4b8;
+  --rule: #d4c9ba;
+  --quote-bg: #eee8de;
+  --margin-note: #8a7e70;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #2a2420;
+  color: var(--text-cn);
+  min-height: 100vh;
+  font-family: 'Noto Serif SC', 'PingFang SC', serif;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--margin-note);
+  font-family: 'EB Garamond', serif;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+}
+
+/* ── Page layout ── */
+.page {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.save-group {
+  display: flex;
+  position: relative;
+}
+
+.save-btn {
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #faf6f0;
+  border: none;
+  border-radius: 6px 0 0 6px;
+  font-family: 'EB Garamond', serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-dropdown-toggle {
+  padding: 10px 10px;
+  border-radius: 0 6px 6px 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #b04a32;
+}
+
+.save-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.save-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(26, 22, 18, 0.15);
+  z-index: 100;
+  min-width: 100%;
+}
+
+.save-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  font-family: 'EB Garamond', serif;
+  font-size: 13px;
+  color: var(--text-cn);
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0.04em;
+}
+
+.save-dropdown button:hover {
+  background: var(--bg-deep);
+  color: var(--accent);
+}
+
+.save-dropdown button + button {
+  border-top: 1px solid var(--rule);
+}
+
+.hint {
+  font-family: 'EB Garamond', serif;
+  font-size: 12px;
+  color: #8a7e70;
+  letter-spacing: 0.04em;
+}
+
+/* ── Card ── */
+.card-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  width: 390px;
+  background: var(--bg);
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Paper texture overlay (matches taste.html) */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── Safe area: iPhone Dynamic Island ──
+   Top safe area inset: 59pt (iPhone 14 Pro–16) / 62pt (16 Pro)
+   Status bar height: 54pt, Dynamic Island pill centered within
+   Pill: ~126×37pt, top offset ~11pt from screen edge */
+.card-safe-area {
+  height: 59px;
+  position: relative;
+}
+
+/* Dynamic Island pill indicator */
+.dynamic-island {
+  width: 126px;
+  height: 37px;
+  border-radius: 20px;
+  background: rgba(26, 22, 18, 0.04);
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ── Card header ── */
+.card-header {
+  padding: 20px 32px 24px;
+  text-align: center;
+  position: relative;
+}
+
+.card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.platform-label {
+  font-family: 'EB Garamond', serif;
+  font-size: 12px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--margin-note);
+  margin-bottom: 10px;
+}
+
+.card-title {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--text-cn);
+  letter-spacing: 0.02em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Q&A pairs ── */
+.pairs {
+  padding: 24px 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pair {
+  margin-bottom: 28px;
+}
+
+.pair:last-child {
+  margin-bottom: 0;
+}
+
+/* Question block */
+.question-block {
+  margin-bottom: 14px;
+  padding-left: 14px;
+  border-left: 2px solid var(--accent-light);
+}
+
+.role-label {
+  font-family: 'EB Garamond', serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 5px;
+}
+
+.question-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.9;
+  color: var(--text-cn);
+}
+
+.question-text > *:first-child { margin-top: 0; }
+.question-text > *:last-child { margin-bottom: 0; }
+.question-text p { margin: 0.4em 0; }
+
+/* Answer block */
+.answer-block {
+  padding-left: 14px;
+}
+
+.answer-label {
+  font-family: 'EB Garamond', serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--margin-note);
+  margin-bottom: 5px;
+}
+
+.answer-text {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 2.0;
+  color: var(--text-en);
+}
+
+/* Answer markdown structure — keep block rhythm intentional, not browser default */
+.answer-text > *:first-child { margin-top: 0; }
+.answer-text > *:last-child { margin-bottom: 0; }
+
+.answer-text p {
+  margin: 0 0 0.85em;
+}
+
+.answer-text strong {
+  font-weight: 600;
+  color: var(--text-cn);
+}
+
+.answer-text em {
+  font-style: italic;
+  color: var(--text-cn);
+}
+
+.answer-text h2,
+.answer-text h3,
+.answer-text h4 {
+  font-family: 'Noto Serif SC', serif;
+  color: var(--text-cn);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  margin: 1.1em 0 0.45em;
+}
+
+.answer-text h2 { font-size: 17px; }
+.answer-text h3 { font-size: 15.5px; }
+.answer-text h4 { font-size: 14.5px; }
+
+.answer-text ul,
+.answer-text ol {
+  margin: 0.4em 0 0.85em;
+  padding-left: 1.4em;
+}
+
+.answer-text li {
+  margin: 0.15em 0;
+}
+
+.answer-text li > p {
+  margin: 0;
+}
+
+.answer-text blockquote {
+  margin: 0.6em 0 0.9em;
+  padding: 0.1em 0 0.1em 12px;
+  border-left: 2px solid var(--accent-light);
+  color: var(--text-cn);
+  font-style: italic;
+  background: transparent;
+}
+
+.answer-text blockquote p {
+  margin: 0.25em 0;
+}
+
+.answer-text hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 1em 0;
+}
+
+/* Code blocks */
+.code-block {
+  margin: 12px 0;
+  background: var(--bg-deep);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.code-block .code-lang {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 10px;
+  font-family: 'EB Garamond', serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--margin-note);
+  background: var(--bg);
+  border-bottom-left-radius: 4px;
+  border-left: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-cn);
+  white-space: pre;
+}
+
+/* Inline code */
+.inline-code {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 0.88em;
+  background: var(--bg-deep);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--accent);
+}
+
+/* Pair divider */
+.pair-divider {
+  text-align: center;
+  margin: 0 0 24px;
+  color: var(--rule);
+  font-family: 'EB Garamond', serif;
+  font-size: 14px;
+  letter-spacing: 0.5em;
+}
+
+/* ── Card footer ── */
+.card-footer {
+  margin: 24px 32px 0;
+  padding: 16px 0 28px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer-brand {
+  font-family: 'EB Garamond', serif;
+  font-size: 12px;
+  color: var(--margin-note);
+  letter-spacing: 0.08em;
+}
+
+.footer-made-with {
+  font-family: 'EB Garamond', 'Noto Serif SC', serif;
+  font-size: 11px;
+  color: var(--rule);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.footer-qr {
+  flex-shrink: 0;
+  opacity: 0.85;
+}

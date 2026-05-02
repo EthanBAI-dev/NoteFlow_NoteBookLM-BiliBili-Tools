@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Flow2Note",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "从各种来源提取字幕与内容，一键导入 NotebookLM 🚀 支持哔哩哔哩、YouTube、播客、文档站、AI 对话。",
+    "description": "Chrome Web Store 和 chrome://extensions 中显示的扩展描述。"
+  },
+  "actionTitle": {
+    "message": "Flow2Note",
+    "description": "鼠标悬停在工具栏扩展图标时显示的提示文字。"
+  }
+}

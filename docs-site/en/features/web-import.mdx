@@ -1,0 +1,64 @@
+---
+title: 'Web Import'
+description: 'Single import, batch import, and import all tabs'
+---
+
+## Three Import Modes
+
+The extension offers three ways to import web pages, each suited to different scenarios.
+
+### Single Import
+
+The simplest approach — just paste a URL.
+
+<Steps>
+  <Step title="Open the Jetpack panel">
+    Make sure you have a NotebookLM notebook open, then click the Jetpack icon.
+  </Step>
+  <Step title="Enter a URL">
+    Paste a web page link in the input field, or click the "Current Tab" shortcut button to import the current page directly.
+  </Step>
+  <Step title="Click Import">
+    The extension will automatically extract the main content and import it into NotebookLM.
+  </Step>
+</Steps>
+
+<Tip>
+  **Even faster**: Right-click on any web page → "Import to NotebookLM" — done in one step.
+</Tip>
+
+### Batch Import
+
+Import multiple URLs at once.
+
+1. Switch to "Batch" mode
+2. Paste one URL per line (or separate with commas)
+3. Click "Batch Import"
+
+<Note>
+  You can also click "Import all open tabs" to automatically grab URLs from all your open tabs and add them to the list.
+</Note>
+
+### Context Menu
+
+While browsing any web page:
+- **Right-click on empty space** → "Import to NotebookLM" → imports the current page
+- **Right-click a link** → "Import to NotebookLM" → imports the linked page
+
+## Special Platform Support
+
+Some platforms require tab-based rendering for content extraction. Jetpack handles these automatically:
+
+- **X.com (Twitter) long-form articles** — Automatically detects Article format and extracts full content via tab rendering
+- **WeChat articles** — Bypasses anti-scraping mechanisms by rendering in-browser before extraction (see [WeChat Import](/en/guides/wechat))
+- **Substack** — 14 noise filters for precise article extraction (see [Substack Import Tips](/en/guides/substack))
+
+## Import Failed?
+
+If some URLs fail to import, Jetpack shows a failure list with options to:
+- **Retry all failed** — one-click retry for all failed items
+- **Retry individually** — click the retry button next to each failed item
+
+<Warning>
+  Before importing, make sure you have a NotebookLM **notebook page** open (not the homepage).
+</Warning>

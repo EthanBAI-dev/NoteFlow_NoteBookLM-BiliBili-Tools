@@ -1,0 +1,40 @@
+---
+title: 'RSS Import'
+description: 'Batch import articles from RSS/Atom feeds into NotebookLM'
+---
+
+## Use Case
+
+You follow a blog or newsletter and want to batch import recent articles into NotebookLM for knowledge organization.
+
+## Steps
+
+<Steps>
+  <Step title="Get the RSS link">
+    Find the blog's RSS feed URL. Common formats:
+    - `/feed` — WordPress blogs
+    - `/rss` — general
+    - `/atom.xml` — Atom format
+    - `medium.com/feed/@user` — Medium
+    - Substack newsletters are usually at `/feed`
+  </Step>
+  <Step title="Paste into Jetpack">
+    Click the Jetpack icon, switch to the "More" tab, go to RSS Import, paste the link, and click "Load".
+  </Step>
+  <Step title="Select articles">
+    Once loaded, you'll see the article list. Select all or check individual articles. Each entry shows the title and publication date.
+  </Step>
+  <Step title="Import">
+    Click "Import Selected Articles" and the extension imports each article link into NotebookLM one by one.
+  </Step>
+</Steps>
+
+## Supported Formats
+
+- RSS 2.0
+- RSS 1.0
+- Atom
+
+<Tip>
+  **Can't find an RSS link?** Try appending `/feed`, `/rss`, or `/atom.xml` to the domain. You can also use browser extensions like RSSHub Radar to auto-discover RSS feeds.
+</Tip>

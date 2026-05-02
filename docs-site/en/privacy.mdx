@@ -1,0 +1,39 @@
+---
+title: 'Privacy Policy'
+description: 'NotebookLM Jetpack Privacy Policy'
+---
+
+## Overview
+
+NotebookLM Jetpack is a free, open-source Chrome extension. **We do not collect, store, or transmit any personal data.**
+
+## Data Processing
+
+All processing happens **locally in your browser**:
+
+- 🌐 **Web content** — Extracted and processed locally, never sent to any server
+- 📑 **Bookmark data** — Stored in Chrome's local storage, only on your device
+- 📜 **Import history** — Stored locally, never leaves your browser
+- 📡 **RSS feeds** — Fetched directly from source URLs by your browser
+- 🤖 **AI chat extraction** — Reads the current page's DOM, nothing is transmitted externally
+
+## Permissions Explained
+
+| Permission | Purpose |
+|---|---|
+| activeTab | Access the current tab to extract content |
+| storage | Local storage for bookmarks, settings, and history |
+| scripting | Inject content scripts to extract page content |
+| tabs | Detect supported platforms and locate NotebookLM tabs |
+| contextMenus | Right-click "Import to NotebookLM" menu |
+| downloads | Save generated PDF files |
+| debugger | PDF export via `Page.printToPDF` |
+| offscreen | HTML-to-Markdown conversion |
+
+## Open Source
+
+Full source code available for audit: [github.com/crazynomad/notebooklm-jetpack](https://github.com/crazynomad/notebooklm-jetpack)
+
+## Contact
+
+For privacy-related questions, please open an issue on GitHub: [github.com/crazynomad/notebooklm-jetpack/issues](https://github.com/crazynomad/notebooklm-jetpack/issues)

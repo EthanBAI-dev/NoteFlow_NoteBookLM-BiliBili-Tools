@@ -1,0 +1,62 @@
+---
+title: 'Doc Site Import'
+description: 'Analyze entire doc sites and batch import or export as PDF'
+---
+
+## The Problem
+
+You want to learn a new framework, but the official docs have 200 pages. Manually copy-pasting each one into NotebookLM? That's painful.
+
+## The Solution
+
+<Steps>
+  <Step title="Open a doc site">
+    Navigate to any page on the doc site in your browser (e.g., `https://vitepress.dev`).
+  </Step>
+  <Step title="Analyze the site">
+    Click the Jetpack icon, switch to the "Docs" tab, and click "Analyze Current Site".
+
+    The extension will automatically:
+    - Detect the documentation framework
+    - Extract the sidebar navigation or sitemap
+    - List all pages across the site
+  </Step>
+  <Step title="Select and import">
+    Check the sections or pages you need, then choose:
+    - **Import URLs individually** — each page becomes a separate source
+    - **Export as PDF** — merge everything into a single warm book-style PDF (with cover, table of contents, and signature)
+    - **Copy to clipboard** — click the clipboard icon next to the PDF button to copy the Markdown content
+  </Step>
+</Steps>
+
+## Supported Frameworks
+
+<CardGroup cols={3}>
+  <Card title="Docusaurus" icon="d" />
+  <Card title="VitePress" icon="v" />
+  <Card title="MkDocs" icon="m" />
+  <Card title="GitBook" icon="book" />
+  <Card title="Mintlify" icon="leaf" />
+  <Card title="Sphinx / ReadTheDocs" icon="scroll" />
+  <Card title="Google DevSite" icon="google" />
+  <Card title="Anthropic Docs" icon="robot" />
+  <Card title="Yuque" icon="feather" />
+  <Card title="WeChat Dev Docs" icon="message" />
+  <Card title="HarmonyOS" icon="mobile" />
+  <Card title="sitemap.xml" icon="sitemap" />
+  <Card title="llms.txt" icon="brain" />
+  <Card title="llms-full.txt" icon="brain-circuit" />
+</CardGroup>
+
+## Detection Priority
+
+The extension detects site structure in the following order:
+
+1. **llms.txt / llms-full.txt** — AI-native standard, used first when available
+2. **sitemap.xml** — the most universal method
+3. **Sidebar navigation** — based on framework-specific DOM structure
+4. **Page links** — fallback approach
+
+<Tip>
+  If a doc site's analysis results are unsatisfactory, try manually visiting `yourdomain.com/sitemap.xml` to check if one exists.
+</Tip>

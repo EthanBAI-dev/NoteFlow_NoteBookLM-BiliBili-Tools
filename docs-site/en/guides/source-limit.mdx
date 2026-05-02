@@ -1,0 +1,58 @@
+---
+title: 'Breaking the 50-Source Limit'
+description: 'Use Jetpack aggregation to maximize your NotebookLM source quota'
+---
+
+## The Free Tier Limit
+
+NotebookLM's free tier limits each notebook to **50 sources**. For anyone doing serious research, that's nowhere near enough.
+
+## Strategy: Aggregate into PDF
+
+The core idea: **many articles into 1 PDF = 1 source slot**.
+
+### Real-World Comparison
+
+| Method | Articles | Sources Used |
+|---|---|---|
+| Import one by one | 20 articles | 20 |
+| PDF aggregation | 20 articles | **1** |
+| Mixed strategy | 100 articles | **5** |
+
+### Workflow
+
+<Steps>
+  <Step title="Bookmark as you browse">
+    Whenever you find a good article, click the Jetpack bookmark button. No need to import right away.
+  </Step>
+  <Step title="Organize by topic">
+    Create different collections: "AI Papers", "Product Design", "Tech Blogs", etc.
+  </Step>
+  <Step title="Aggregate periodically">
+    Once a collection has 10-20 articles, select all and aggregate into a PDF.
+  </Step>
+  <Step title="Upload the PDF">
+    Drag the PDF into your NotebookLM notebook. One PDF = one source.
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="How many articles per PDF?">
+    We recommend 10-20. Too few defeats the purpose of aggregation; too many makes the PDF oversized (NotebookLM has a per-source size limit).
+  </Accordion>
+  <Accordion title="What's the best way to group articles?">
+    Grouping by **research topic** works best. For example, when working on a project, aggregate all related reference materials into one PDF. NotebookLM performs better when Q&A is focused on a single topic.
+  </Accordion>
+  <Accordion title="Can I add more articles to an existing PDF?">
+    You can't modify an already-uploaded PDF. But you can create a new aggregated PDF and upload that. We recommend keeping a separate collection for content that gets updated over time.
+  </Accordion>
+  <Accordion title="What about doc sites?">
+    Doc sites can use the "Export as PDF" feature directly -- a 200-page doc site takes up just 1 source slot.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  **Pro tip**: Think of NotebookLM's 50 sources as 50 "folders." Each folder can hold 20 articles (via PDF aggregation). In theory, you can store the knowledge of **1,000 articles** in a single notebook.
+</Tip>

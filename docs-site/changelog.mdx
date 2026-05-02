@@ -1,0 +1,154 @@
+---
+title: '更新日志'
+description: 'NotebookLM Jetpack 版本更新记录'
+---
+
+## v1.7.5 — 2026-04-23
+
+- 🎨 **AI 对话分享卡片保留排版结构**：之前抽取层把段落、列表、引用、粗体全部压扁成一段连续散文，分享图片里希腊原文/英译/中译那种"列表式三段对照"挤在一起没法读。现在 Claude/ChatGPT/Gemini 三个抽取器都改为输出清洗后的 HTML 片段，由 offscreen 的 Turndown 批量转 Markdown，段落 / 标题 / 有序无序列表 / 引用块 / 粗体 / 斜体 / 行内代码 / 代码块全部保真
+- 🛡️ **分享卡片渲染改走 marked AST**：直接遍历 token 渲染 React 节点，避免原始 HTML 注入路径，意外混入的 iframe / script 等标签自动退化为纯文本
+- ✨ **NotebookLM 导入质量同步提升**：导入到 NotebookLM 的对话内容现在保留原始 Markdown 结构，阅读体验大幅改善
+- 🔧 Popup 选择列表预览过滤 Markdown 符号，不再显示 `**` `##` 等原始标记
+
+## v1.7.4 — 2026-04-09
+
+- 🐛 **修复文本导入源的自动重命名失效**：NotebookLM 最近开始按字母顺序排序源列表，我们原有的「取列表最后一个源 = 新加的源」假设失效，导致 `Pasted Text` 默认名永远不会被改回真实标题。改用 WeakSet diff 定位新源，对排序鲁棒
+- 🏷️ **Rescue / Repair 源加 emoji 前缀**：抢救后的源显示为 `🛟 文章标题`，修复 WeChat/X 等假成功源后显示为 `🔧 文章标题`，一眼区分是否被处理过
+- ⚙️ **新增「自动重命名默认名来源」开关**：Popup → More 面板 → Settings 卡片，可动态关闭/开启整个自动重命名行为
+
+## v1.7.3 — 2026-04-08
+
+- 🐛 **修复 YouTube 频道只能抓 15 条**：之前 InnerTube 请求被 YouTube 边缘以 403 拦截，静默回退到 RSS（硬限 15 条）。现在通过 youtube.com 标签页隧道执行请求，绕开 origin 限制
+- ➕ **Load more 分页**：频道/播放列表支持按需加载更多视频，每页 15 条，已加载的批次直接显示无需等待
+- 🔁 频道/播放列表/Continuation/Handle 解析全部统一走 youtube.com tab 隧道，自动复用用户已有标签页，无则后台开隐藏标签页（5 分钟空闲后自动关闭）
+
+## v1.7.2 — 2026-03-26
+
+- 🤖 **AI 对话自动提取**：在 Claude/ChatGPT/Gemini 对话页面打开扩展时，自动提取对话内容，无需手动点击
+- 🔧 **AI 对话导入流程统一**：移除旧版手动 Notebook 检查，使用与其他功能一致的标准导入流程
+- 🎯 **智能 UI**：Podcast 和 More 页面不再显示 Notebook 选择器（这两个页面不需要）
+- 🎬 **使用教程**：More 页面新增 YouTube 教程视频入口
+- ⭐ **评价引导**：More 页面新增 Chrome Web Store 评价入口
+- 🎨 **紧凑 Footer**：About 区域的 YouTube 频道和 GitHub 链接压缩为图标按钮
+
+## v1.7.0 — 2026-03-24
+
+- ▶️ **YouTube 导入**：支持导入单个视频、播放列表、频道视频到 NotebookLM
+  - 自动检测当前 YouTube 标签页 URL，一键导入
+  - 播放列表/频道支持选择性批量导入，可限制最近 N 个视频
+  - InnerTube API + RSS 双重提取策略
+- 🗑️ **批量删除重构**：使用 NotebookLM 原生复选框，源列表底部新增「更多操作」入口
+  - 删除前弹出确认对话框，防止误操作
+  - 支持 SPA 页面内导航（无需刷新页面）
+- 🎓 新手引导新增 YouTube 步骤
+- 🏠 Welcome 页面新增 YouTube 和 More 功能卡片
+
+## v1.6.8 — 2026-03-22
+
+- 🔧 修复修复/抢救功能的标签页定位问题
+- 📊 改用基于端口（Port）的进度通信机制
+- 🛡️ 横幅状态保护：操作进行中时不再被 DOM 变更误删
+
+## v1.6.7 — 2026-03-21
+
+- 📌 Welcome 页面新增「固定到工具栏」引导提示
+
+## v1.6.6 — 2026-03-20
+
+- 🎯 Notebook 目标选择：下拉框选中 Notebook 后，导入内容自动发送到该 Notebook，无需手动切换标签页
+- 🚀 一键导入按钮：书签页面新增醒目的黄色 Import 按钮，当前页面一键导入到 NotebookLM
+- 🎓 新手引导：安装后弹出欢迎页 + 5 步 Tooltip 引导，覆盖全部 4 个核心功能，可随时跳过或从 More 页面重新播放
+- 🎨 书签面板配色重构：Bookmark 相关 UI 统一为蓝色，Import 按钮使用黄色突出显示
+- 🔧 修复导入打开首页问题：初始自动选中的 Notebook 现在正确持久化到 storage
+- ⚡ Notebook 列表缓存：5 分钟 TTL 缓存，加载时显示骨架屏，手动刷新可强制更新
+- 📐 修复 Popup 视窗溢出：添加 max-height 约束防止内容超出
+
+## v1.5.8 — 2026-03-11
+
+- 🎴 新增 AI 对话分享卡片：将对话导出为精美的图片卡片，温暖书籍风格排版
+  - 默认导出 JPEG，下拉菜单提供 PNG、PDF、剪贴板复制
+  - iPhone 灵动岛安全区适配（59pt，符合 Apple HIG）
+  - 二维码 + 中英双语签名（Made with ❤️ by Flow2Note）
+  - 3x Retina 高清渲染
+- 🖨️ PDF 导出风格升级：温暖书籍风格（Noto Serif SC + EB Garamond），奶油色背景 + 锈红强调色
+  - 底部签名区：品牌标识 + YouTube 链接 + 中英双语签名
+  - 系统字体回退链确保离线渲染（Georgia → Songti SC → STSong → SimSun）
+- 📋 收藏夹/文档站新增剪贴板复制按钮：PDF 导出旁的小图标按钮，一键复制 Markdown 到剪贴板
+- 📝 新增 GitHub Issue 模板：Bug Report / Feature Request / Site Support Request
+
+## v1.5.7 — 2026-03-09
+
+- 🖨️ 修复 X.com 文章 PDF 导出：正确提取 Article 正文，支持 CJK 中文字体，修复段落合并问题
+- 🎨 PDF 阅读体验升级：温暖书籍风格排版（Georgia 衬线字体、奶油色背景、锈红色强调色）
+- 📄 单篇文章 PDF 优化：跳过目录页和封面页，使用文章标题作为文件名
+- 📝 PDF 内容自动添加标题：每篇文章前自动插入 h1 标题（已有标题则跳过）
+- 🔧 X.com 提取增强：Article → tweetText 双策略回退，渲染等待时间 5s→8s
+
+## v1.5.6 — 2026-03-08
+
+- 🗑️ 新增批量删除来源功能：`Cmd+Shift+S`（Mac）/ `Ctrl+Shift+S`（Windows）进入选择模式，支持全选、反选、仅选失败项，一键批量删除
+- 🛟 改进错误检测：通过 MutationObserver 监听 class 属性变化，实时检测导入失败的来源（#35）
+- 🔄 延迟复查机制：导入后 5s/10s/18s 多次自动复查，捕获微信等「假性成功」来源
+- ✏️ 修复粘贴文本来源的智能重命名功能（#38）
+- 🏗️ 新增华为开发者文档支持：修复 Catalog API 解析 + Tab-based 内容提取（#37）
+
+## v1.5.5 — 2026-03-02
+
+- 🌐 完成 content script 横幅和 popup 组件的完整 i18n 国际化
+
+## v1.5.4 — 2026-03-01
+
+- 🌐 新增 Chrome i18n 支持，添加 `_locales` 目录（en / zh_CN）
+
+## v1.5.3
+
+- 📝 README 更新：截图、YouTube 演示视频、英文内容
+
+## v1.5.2 — 2026-02-25
+
+- 🌐 新增 X.com（Twitter）长文章（Article）导入支持，通过标签页渲染完整提取
+- 🛟 抢救功能扩展：支持 X.com 动态页面的失败检测与一键修复
+- ⚙️ 重构 tab-based 提取管道，统一 WeChat / X.com 等 SPA 页面处理逻辑
+
+## v1.1.43 — 2025-02-24
+
+- 🧹 移除 YouTube 相关死代码
+- 🎨 新增商店宣传图素材
+- 📊 测试：84 个测试全部通过
+
+## v1.1.42 — 2025-02-24
+
+- 🌐 完成全部组件 i18n 国际化（ImportPanel 为最后一个）
+- 🔄 新增手动语言切换按钮（EN/中），支持 localStorage 持久化
+- 🤖 AI 对话 tab 新增引导说明（4 步 onboarding）
+- 🎨 更新扩展图标：蓝色圆形 + 白色 jetpack 小人
+- 🧪 新增 37 个测试（bookmarks 21 + i18n 11 + podcast 6），总计 99 个
+- 📄 新增商店描述文档和隐私政策
+
+## v1.1.41 — 2025-02-24
+
+- 🌐 创建 i18n 系统（`lib/i18n.ts`），`t()` 翻译函数
+- 🔄 11 个组件完成国际化转换
+- 🌍 自动检测 `navigator.language`
+
+## v1.1.40 — 2025-02-24
+
+- 📚 验证英文 NotebookLM DOM 匹配
+- 🔧 修复 "Websites"（复数）、"Paste any links"（复数）等英文文本匹配
+
+## v1.1.39 — 2025-02-24
+
+- 📑 收藏夹 tab 移至第一位（默认 tab）
+- 📖 新增收藏夹 onboarding 引导页
+- 📂 分离开发/发布构建目录：`dist-dev/` vs `dist/`
+
+## v1.1.38 — 2025-02-24
+
+- 🔍 语言无关的按钮匹配：基于 Material Icons 而非文本
+- 🎯 `findDialogButtonByIcon()` 支持 `link`、`content_paste`、`arrow_back`、`add`、`edit`
+- 📝 文本匹配作为 fallback 保留
+
+## v1.1.37 — 2025-02-24
+
+- ⏱️ 改进重命名可靠性：初始等待 4s，6 次重试，递增延迟（600ms→2600ms）
+- 🌍 多语言默认来源名称匹配

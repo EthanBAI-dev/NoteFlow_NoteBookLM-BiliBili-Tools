@@ -1,0 +1,49 @@
+---
+title: 'YouTube Import'
+description: 'Import YouTube videos, playlists, and channels into NotebookLM'
+---
+
+## Problem
+
+YouTube is full of great tutorials and lectures that you want to organize in NotebookLM for knowledge management. But copying links one by one is tedious, and playlists and channels are even harder to handle.
+
+## Solution
+
+<Steps>
+  <Step title="Get the YouTube link">
+    Copy a video, playlist, or channel link. You can also open the extension directly on a YouTube page — it will auto-detect the current link.
+  </Step>
+  <Step title="Paste into Jetpack">
+    Click the Jetpack icon → switch to the "YouTube" tab → paste the link → click "Query".
+  </Step>
+  <Step title="Select videos">
+    For playlists/channels, a video list will appear. Check the videos you want to import. Optionally limit to the most recent N videos.
+  </Step>
+  <Step title="Import to NotebookLM">
+    Click import. The extension sends video URLs in batch to NotebookLM, which natively parses YouTube transcripts.
+  </Step>
+</Steps>
+
+## Supported Link Formats
+
+| Type | Example Format | Notes |
+|---|---|---|
+| Single video | `youtube.com/watch?v=xxx`, `youtu.be/xxx` | One-click import |
+| Playlist | `youtube.com/playlist?list=xxx` | Batch select and import |
+| Channel | `youtube.com/@username`, `youtube.com/channel/UCxxx` | Fetches channel video list |
+| Shorts | `youtube.com/shorts/xxx` | Same as single video |
+| Live | `youtube.com/live/xxx` | Same as single video |
+
+## Import Limits
+
+- In playlist/channel mode, you can set "most recent N"
+- Leave empty to fetch all videos
+- Channel mode fetches the latest 15 via RSS; for more than 15, it automatically switches to the InnerTube API
+
+<Tip>
+  NotebookLM natively supports YouTube videos as sources. Jetpack's value is batch import — add an entire playlist or channel's videos as sources in one go.
+</Tip>
+
+<Note>
+  What gets imported are YouTube video links. NotebookLM will automatically fetch the video's transcript (subtitles). If a video has no subtitles, NotebookLM may not be able to parse its content.
+</Note>

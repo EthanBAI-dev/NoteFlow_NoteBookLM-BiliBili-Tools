@@ -1,0 +1,66 @@
+---
+title: 'FAQ'
+description: 'Frequently asked questions about NotebookLM Jetpack'
+---
+
+<AccordionGroup>
+  <Accordion title="Nothing happens when I click the import button?">
+    Make sure:
+    1. You have a NotebookLM **notebook page** open (not the homepage)
+    2. The NotebookLM page has fully loaded
+    3. Try refreshing the NotebookLM page and retry
+  </Accordion>
+
+  <Accordion title="Which browsers are supported?">
+    Currently only **Google Chrome** and Chromium-based browsers (Edge, Brave, Arc) are supported. Firefox and Safari are not supported at this time.
+  </Accordion>
+
+  <Accordion title="The imported content looks different from the original?">
+    Jetpack extracts the **main content** of the page and converts it to plain text/Markdown. The following elements are filtered out:
+    - Navigation bars, footers, sidebars
+    - Ads and recommendations
+    - Comment sections
+    - Subscription pop-ups
+
+    This is by design — keep the knowledge, remove the noise.
+  </Accordion>
+
+  <Accordion title="Is there a size limit for exported PDFs?">
+    Jetpack itself has no limit, but NotebookLM caps individual sources at roughly 500KB of text or 200MB file size. We recommend merging 10-20 articles at a time.
+  </Accordion>
+
+  <Accordion title="Does the extension upload my data?">
+    **No.** All processing happens locally in your browser. No data is ever sent to any third-party server. See our [Privacy Policy](/en/privacy) for details.
+  </Accordion>
+
+  <Accordion title="How do I switch between English and Chinese?">
+    Click the **EN** or **中** button in the top-right corner of the extension panel. The extension also auto-detects your browser language.
+  </Accordion>
+
+  <Accordion title="Where is my bookmark data stored?">
+    In Chrome's local storage (`chrome.storage.local`). Uninstalling the extension will delete it. If you need a backup, export your bookmarks as a PDF first.
+  </Accordion>
+
+  <Accordion title="Why does the extension need the debugger permission?">
+    This is only used for PDF export. The extension uses Chrome DevTools Protocol's `Page.printToPDF` command to render HTML content as a PDF. This is the only programmatic way to generate PDFs in a Chrome extension. The permission is only used on blank tabs and never accesses your browsing content.
+  </Accordion>
+
+  <Accordion title="Doc site analysis shows 0 pages?">
+    Possible causes:
+    - The doc site has no sitemap.xml and its sidebar structure isn't in the supported list
+    - The page hadn't fully loaded when you clicked analyze
+    - Try analyzing again from the doc site's homepage or a page with sidebar navigation
+  </Accordion>
+
+  <Accordion title="Podcast downloads are slow?">
+    Podcast audio files are typically large (50-100MB) and download speed depends on your network and the audio host's bandwidth. The extension does not throttle downloads.
+  </Accordion>
+
+  <Accordion title="Can I import pages that require login?">
+    If you're already logged into the website in your browser, Jetpack can extract the content you can see. However, it cannot bypass paywalls or access restrictions — it can only extract what's visible to you as a logged-in user.
+  </Accordion>
+
+  <Accordion title="How do I report a bug or suggest a feature?">
+    Open an issue on GitHub: [github.com/crazynomad/notebooklm-jetpack/issues](https://github.com/crazynomad/notebooklm-jetpack/issues)
+  </Accordion>
+</AccordionGroup>

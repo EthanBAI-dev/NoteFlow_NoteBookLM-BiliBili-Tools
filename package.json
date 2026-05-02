@@ -1,0 +1,60 @@
+{
+  "name": "flow2note",
+  "version": "1.7.5",
+  "description": "Flow2Note - Extract subtitles & content from various sources and import to NotebookLM",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "release": "bash scripts/release.sh",
+    "reload": "node scripts/reload-ext.mjs",
+    "test:e2e": "node scripts/test-e2e.mjs",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare",
+    "lint": "eslint . --ext .ts,.tsx --quiet",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+  },
+  "dependencies": {
+    "@radix-ui/react-tabs": "^1.1.13",
+    "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.0",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.454.0",
+    "marked": "^17.0.3",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^2.2.0",
+    "turndown": "^7.2.2"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/chrome": "^0.0.258",
+    "@types/jszip": "^3.4.1",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@types/turndown": "^5.0.6",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@wxt-dev/module-react": "^1.0.0",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "jsdom": "^28.1.0",
+    "pdfkit": "^0.17.2",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18",
+    "wxt": "^0.19.16"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
