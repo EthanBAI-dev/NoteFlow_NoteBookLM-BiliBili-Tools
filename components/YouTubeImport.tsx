@@ -3,7 +3,6 @@ import { Youtube, Loader2, CheckCircle, AlertCircle, PlayCircle, ListVideo, User
 import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
-import { NotebookSelector } from '@/components/NotebookSelector';
 
 type State = 'idle' | 'loading' | 'loaded' | 'importing' | 'done' | 'error';
 
@@ -323,8 +322,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger }: Props) {
         </div>
       )}
 
-      {/* Notebook selector */}
-      <NotebookSelector />
     </div>
   );
 }

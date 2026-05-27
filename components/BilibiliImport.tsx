@@ -4,7 +4,6 @@ import type { ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isBilibiliUrl, parseBilibiliUrl, isBilibiliSpaceUrl, parseBilibiliSpaceUrl } from '@/services/bilibili';
 import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili';
-import { NotebookSelector } from '@/components/NotebookSelector';
 import { getOpState, clearOpState } from '@/services/op-state';
 
 type State = 'idle' | 'loading' | 'loaded' | 'fetching' | 'downloading' | 'uploading' | 'importing' | 'done' | 'error';
@@ -609,7 +608,6 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger }: Props) 
                   {t('bilibili.merged')}
                 </button>
               </div>
-              <NotebookSelector />
               <button
                 onClick={handleImport}
                 disabled={selected.size === 0 || isWorking}

@@ -27,26 +27,23 @@ export function NotebookSelector() {
       if (resp?.success) {
         const nbData = resp.data as NotebookData;
         setData(nbData);
-        // Restore saved selection if it still exists in the list
         if (savedSelection) {
           const found = nbData.notebooks.find(nb => nb.id === savedSelection.id);
           if (found) {
             setSelected(found);
           } else {
-            // Saved notebook no longer exists, fall back and persist
             const fallback = nbData.current || nbData.notebooks[0] || null;
             setSelected(fallback);
-            if (fallback) setSelectedNotebook(fallback);
+            if (fallback) await setSelectedNotebook(fallback);
           }
         } else {
-          // No saved selection — use current from open tab, or first notebook, and persist
           const initial = nbData.current || nbData.notebooks[0] || null;
           setSelected(initial);
-          if (initial) setSelectedNotebook(initial);
+          if (initial) await setSelectedNotebook(initial);
         }
       }
-    } catch {
-      // Extension context unavailable
+    } catch (e) {
+      console.error('[NotebookSelector] Fetch failed:', e);
     }
     setLoading(false);
   }, []);
@@ -58,9 +55,9 @@ export function NotebookSelector() {
   const activeNotebook = selected;
   const notebooks = data?.notebooks || [];
 
-  const handleSelect = (nb: NotebookInfo) => {
+  const handleSelect = async (nb: NotebookInfo) => {
     setSelected(nb);
-    setSelectedNotebook(nb);
+    await setSelectedNotebook(nb);
     setOpen(false);
   };
 
@@ -139,19 +136,17 @@ export function NotebookSelector() {
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          {notebooks.length > 1 && (
-            <button
-              onClick={() => setOpen(!open)}
-              className="p-1.5 text-gray-400 hover:text-notebooklm-blue rounded-md hover:bg-blue-50 transition-colors"
-            >
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
-            </button>
-          )}
+          <button
+            onClick={() => setOpen(!open)}
+            className="p-1.5 text-gray-400 hover:text-notebooklm-blue rounded-md hover:bg-blue-50 transition-colors"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
         </div>
       </div>
 
       {/* Dropdown list */}
-      {open && notebooks.length > 1 && (
+      {open && (
         <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg max-h-[240px] overflow-y-auto">
           {notebooks.map((nb) => {
             const isActive = nb.id === activeNotebook?.id;

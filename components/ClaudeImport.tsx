@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import type { ClaudeConversation, ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
-import { NotebookSelector } from '@/components/NotebookSelector';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -369,8 +368,6 @@ export function ClaudeImport({ onProgress }: Props) {
         </div>
       )}
 
-      {/* Notebook selector */}
-      <NotebookSelector />
     </div>
   );
 }

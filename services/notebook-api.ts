@@ -1,11 +1,14 @@
-// NotebookLM internal API — list notebooks via batchexecute RPC
+// NotebookLM internal API via batchexecute RPC
 // Based on reverse-engineering from notebooklm-py (github.com/teng-lin/notebooklm-py)
 
 const BATCHEXECUTE_URL = 'https://notebooklm.google.com/_/LabsTailwindUi/data/batchexecute';
 const NLM_HOME_URL = 'https://notebooklm.google.com/';
 
-// RPC method ID for listing notebooks
 const RPC_LIST_NOTEBOOKS = 'wXbhsf';
+const RPC_ADD_SOURCE = 'izAoDd';
+
+// Delay between batchexecute calls to avoid rate limiting
+const RPC_DELAY_MS = 1200;
 
 // Cache config
 const CACHE_KEY = 'notebook_list_cache';
@@ -29,13 +32,18 @@ export interface NotebookItem {
 async function fetchCsrfToken(): Promise<string | null> {
   try {
     const resp = await fetch(NLM_HOME_URL, { credentials: 'include' });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      console.warn(`[notebook-api] CSRF fetch: HTTP ${resp.status}`);
+      return null;
+    }
     const html = await resp.text();
 
-    // Google embeds CSRF token as: "SNlM0e":"TOKEN_VALUE"
     const match = html.match(/"SNlM0e":"([^"]+)"/);
-    return match ? match[1] : null;
+    const token = match ? match[1] : null;
+    console.log(`[notebook-api] CSRF token: ${token ? 'found' : 'NOT FOUND (not logged into NotebookLM?)'}`);
+    return token;
   } catch {
+    console.warn('[notebook-api] CSRF fetch: network error');
     return null;
   }
 }
@@ -89,9 +97,14 @@ async function setCachedNotebooks(notebooks: NotebookItem[]): Promise<void> {
 export async function fetchNotebooksCached(force = false): Promise<NotebookItem[]> {
   if (!force) {
     const cached = await getCachedNotebooks();
-    if (cached && cached.length > 0) return cached;
+    if (cached && cached.length > 0) {
+      console.log(`[notebook-api] Using cached notebooks: ${cached.length}`);
+      return cached;
+    }
   }
+  console.log('[notebook-api] Fetching notebooks from API (force=' + force + ')');
   const notebooks = await fetchNotebooks();
+  console.log(`[notebook-api] API returned ${notebooks.length} notebooks`);
   if (notebooks.length > 0) {
     await setCachedNotebooks(notebooks);
   }
@@ -159,14 +172,8 @@ function parseNotebookList(rawText: string): NotebookItem[] {
   try {
     const cleaned = stripAntiXssi(rawText);
 
-    // batchexecute response is chunked: each chunk has a length prefix line
-    // followed by the JSON data. We need to extract the actual RPC result.
-    // The format is: "number\n[[json_data]]\n"
-    // We look for the array that contains our RPC response.
     const results: NotebookItem[] = [];
 
-    // Find the main data array — look for lines that start with "[[" which
-    // contain the RPC response envelope
     const lines = cleaned.split('\n');
     for (const line of lines) {
       const trimmed = line.trim();
@@ -174,36 +181,36 @@ function parseNotebookList(rawText: string): NotebookItem[] {
 
       try {
         const parsed = JSON.parse(trimmed);
-        // batchexecute envelope: [["wrb.fr", "wXbhsf", "JSON_DATA", ...]]
         if (!Array.isArray(parsed)) continue;
 
         for (const outerItem of parsed) {
           if (!Array.isArray(outerItem)) continue;
-          // Response may be 2-level [[rpc_result]] or 3-level [[[rpc_result]]].
-          // Detect by checking if outerItem itself is an RPC result (first element is "wrb.fr").
           const candidates = outerItem[0] === 'wrb.fr' ? [outerItem] : outerItem.filter(Array.isArray);
           for (const item of candidates) {
             if (!Array.isArray(item)) continue;
-            // Check if this is our RPC response: ["wrb.fr", "wXbhsf", "...", ...]
             if (item[0] === 'wrb.fr' && item[1] === RPC_LIST_NOTEBOOKS && typeof item[2] === 'string') {
               const innerData = JSON.parse(item[2]);
-              // innerData[0] is the array of notebooks
-              if (Array.isArray(innerData) && Array.isArray(innerData[0])) {
-                for (const nb of innerData[0]) {
-                  if (!Array.isArray(nb)) continue;
-                  // nb[0] = title (may have "thought\n" prefix), nb[2] = id
-                  const rawTitle = typeof nb[0] === 'string' ? nb[0] : '';
-                  const title = rawTitle.replace(/^thought\n/, '').trim() || 'Untitled';
-                  const id = typeof nb[2] === 'string' ? nb[2] : '';
-                  if (id) {
-                    results.push({
-                      id,
-                      title,
-                      url: `https://notebooklm.google.com/notebook/${id}`,
-                    });
-                  }
+              console.log('[notebook-api] innerData type:', Array.isArray(innerData) ? `array[${innerData.length}]` : typeof innerData);
+              if (innerData.length > 0) {
+                console.log('[notebook-api] innerData[0] type:', Array.isArray(innerData[0]) ? `array[${innerData[0].length}]` : typeof innerData[0]);
+              }
+
+              const rawList = Array.isArray(innerData) && Array.isArray(innerData[0])
+                ? innerData[0]
+                : (Array.isArray(innerData) ? innerData : []);
+
+              console.log('[notebook-api] rawList length:', rawList.length);
+
+              for (const nb of rawList) {
+                if (!Array.isArray(nb)) continue;
+                const rawTitle = typeof nb[0] === 'string' ? nb[0] : '';
+                const title = rawTitle.replace(/^thought\n/, '').trim() || 'Untitled';
+                const id = typeof nb[2] === 'string' ? nb[2] : '';
+                if (id) {
+                  results.push({ id, title, url: `https://notebooklm.google.com/notebook/${id}` });
                 }
               }
+              console.log('[notebook-api] Parsed', results.length, 'notebooks');
               return results;
             }
           }
@@ -218,4 +225,126 @@ function parseNotebookList(rawText: string): NotebookItem[] {
     console.error('[notebook-api] Parse error:', e);
     return [];
   }
+}
+
+// ── Generic RPC call ──
+
+async function rpcCall(
+  rpcId: string,
+  params: unknown[],
+  sourcePath = '/',
+): Promise<string> {
+  const csrfToken = await fetchCsrfToken();
+  if (!csrfToken) {
+    throw new Error('[notebook-api] Failed to get CSRF token — user may not be logged into notebooklm.google.com in Chrome');
+  }
+
+  const fReq = encodeRpcRequest(rpcId, params);
+  const urlParams = new URLSearchParams({
+    rpcids: rpcId,
+    'source-path': sourcePath,
+    rt: 'c',
+  });
+  const body = `f.req=${encodeURIComponent(fReq)}&at=${encodeURIComponent(csrfToken)}&`;
+
+  console.log(`[notebook-api] Calling ${rpcId} with sourcePath=${sourcePath}`);
+
+  const resp = await fetch(`${BATCHEXECUTE_URL}?${urlParams}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+    },
+    body,
+  });
+
+  const text = await resp.text();
+  console.log(`[notebook-api] ${rpcId} response: HTTP ${resp.status}, ${text.length} bytes`);
+
+  if (!resp.ok) {
+    throw new Error(`[notebook-api] RPC ${rpcId} failed: HTTP ${resp.status}`);
+  }
+
+  const cleaned = stripAntiXssi(text);
+
+  if (cleaned.includes('"error"') || cleaned.includes('"errors"')) {
+    throw new Error(`[notebook-api] RPC ${rpcId} returned error: ${cleaned.slice(0, 200)}`);
+  }
+
+  console.log(`[notebook-api] ${rpcId} succeeded`);
+  return cleaned;
+}
+
+// ── Add source (URL) ──
+
+export async function addSourceUrl(notebookId: string, url: string): Promise<void> {
+  console.log(`[notebook-api] addSourceUrl: notebook=${notebookId}, url=${url.slice(0, 50)}`);
+  const params = [
+    [[null, null, [url], null, null, null, null, null]],
+    notebookId,
+    [2],
+    null,
+    null,
+  ];
+  await rpcCall(RPC_ADD_SOURCE, params, `/notebook/${notebookId}`);
+}
+
+// ── Add source (text) ──
+
+export async function addSourceText(
+  notebookId: string,
+  title: string,
+  content: string,
+): Promise<void> {
+  console.log(`[notebook-api] addSourceText: notebook=${notebookId}, title="${title}", ${content.length} chars`);
+  const params = [
+    [[null, [title, content], null, null, null, null, null, null]],
+    notebookId,
+    [2],
+    null,
+    null,
+  ];
+  await rpcCall(RPC_ADD_SOURCE, params, `/notebook/${notebookId}`);
+}
+
+// ── Batch delay helper ──
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ── Create notebook ──
+
+export async function createNotebook(title: string): Promise<NotebookItem> {
+  const RPC_CREATE_NOTEBOOK = 'CCqFvf';
+  const params = [title, null, null, [2], [1]];
+  const raw = await rpcCall(RPC_CREATE_NOTEBOOK, params);
+
+  // Parse response — look for notebook id in the result
+  const lines = raw.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('[')) continue;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!Array.isArray(parsed)) continue;
+      for (const item of parsed) {
+        if (!Array.isArray(item)) continue;
+        if (item[0] === 'wrb.fr' && item[1] === RPC_CREATE_NOTEBOOK && typeof item[2] === 'string') {
+          const data = JSON.parse(item[2]);
+          // Response: [[[id, title, ...]]]
+          if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) {
+            const nb = data[0][0];
+            const id = typeof nb[0] === 'string' ? nb[0] : '';
+            const nbTitle = typeof nb[1] === 'string' ? nb[1] : title;
+            if (id) {
+              return { id, title: nbTitle, url: `https://notebooklm.google.com/notebook/${id}` };
+            }
+          }
+        }
+      }
+    } catch { /* skip */ }
+  }
+
+  throw new Error('[notebook-api] Failed to parse create notebook response');
 }

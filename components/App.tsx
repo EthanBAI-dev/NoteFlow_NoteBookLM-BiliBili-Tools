@@ -9,6 +9,7 @@ import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
 import { YouTubeImport } from '@/components/YouTubeImport';
 import { BilibiliImport } from '@/components/BilibiliImport';
+import { NotebookSelector } from '@/components/NotebookSelector';
 import { getOpState } from '@/services/op-state';
 import { LayersIcon } from '@/components/LayersIcon';
 import { MorePanel } from '@/components/MorePanel';
@@ -161,6 +162,11 @@ export default function App() {
 
       {/* Rescue banner — shown when on NotebookLM page */}
       {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
+
+      {/* Unified notebook selector — shared across all import tabs */}
+      <div className="px-4 pt-3">
+        <NotebookSelector />
+      </div>
 
       {/* Tabs */}
       <Tabs.Root value={activeTab} onValueChange={handleTabChange} className="flex flex-col">

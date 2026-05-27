@@ -900,6 +900,9 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       if (videos.indexOf(video) < videos.length - 1) await new Promise(r => setTimeout(r, 2500));
     }
     clearOpState();
+    if (imported === 0 && skipped > 0) {
+      throw new Error('导入失败：无法导入到 NotebookLM。请确保已在扩展中选择了一个笔记本，且已在 Chrome 中登录 notebooklm.google.com');
+    }
     return { imported, skipped };
   }
 
@@ -916,6 +919,11 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       if (videos.indexOf(video) < videos.length - 1) {
         await new Promise(r => setTimeout(r, 1500));
       }
+    }
+    const validResults = results.filter(r => r.markdown !== null);
+    if (validResults.length === 0) {
+      clearOpState();
+      throw new Error('所选视频都没有字幕');
     }
     let mergedMd = mergeBilibiliSubtitles(results, source);
     if (aiPolish) {
