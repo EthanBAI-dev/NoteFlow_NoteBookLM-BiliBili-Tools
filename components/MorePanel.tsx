@@ -1,13 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  Rss,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  FileText,
   ChevronDown,
   ChevronUp,
-  RotateCcw,
   ExternalLink,
   Youtube,
   Github,
@@ -16,31 +10,41 @@ import {
   Star,
   PlayCircle,
   Edit3,
+  Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
-import type { ImportProgress, ImportItem, RssFeedItem } from '@/lib/types';
+import type { ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { resetOnboarding } from '@/components/OnboardingTour';
 import { getSettings, updateSettings } from '@/lib/settings';
+import { AI_PROVIDERS, PROVIDER_MODELS, PROMPT_STYLES } from '@/services/ai-polish';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
 }
 
-type ImportState = 'idle' | 'loading' | 'importing' | 'success' | 'error';
-
-export function MorePanel({ onProgress }: Props) {
-  const [rssUrl, setRssUrl] = useState('');
-  const [rssArticles, setRssArticles] = useState<RssFeedItem[]>([]);
-  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
-  const [state, setState] = useState<ImportState>('idle');
-  const [error, setError] = useState('');
-  const [importResults, setImportResults] = useState<ImportItem[] | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
-  const [showRss, setShowRss] = useState(false);
+export function MorePanel({ onProgress: _onProgress }: Props) {
   const [autoRename, setAutoRename] = useState(true);
+  const [showAIPolish, setShowAIPolish] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiProvider, setAiProvider] = useState('deepseek');
+  const [aiApiKey, setAiApiKey] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [aiPromptStyle, setAiPromptStyle] = useState('smooth');
+  const [aiCustomPrompt, setAiCustomPrompt] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
 
   useEffect(() => {
-    getSettings().then((s) => setAutoRename(s.autoRenamePastedSources));
+    getSettings().then((s) => {
+      setAutoRename(s.autoRenamePastedSources);
+      setAiEnabled(s.ai.enabled);
+      setAiProvider(s.ai.provider);
+      setAiApiKey(s.ai.apiKey);
+      setAiModel(s.ai.model);
+      setAiPromptStyle(s.ai.promptStyle);
+      setAiCustomPrompt(s.ai.customPrompt);
+    });
   }, []);
 
   const toggleAutoRename = async () => {
@@ -49,208 +53,175 @@ export function MorePanel({ onProgress }: Props) {
     await updateSettings({ autoRenamePastedSources: next });
   };
 
-  const resetState = () => {
-    setState('idle');
-    setError('');
-    setImportResults(null);
+  const saveAISetting = async (key: string, value: unknown) => {
+    const patch: Record<string, unknown> = { [key]: value };
+    await updateSettings({ ai: { enabled: aiEnabled, provider: aiProvider, apiKey: aiApiKey, model: aiModel, promptStyle: aiPromptStyle, customPrompt: aiCustomPrompt, ...patch } as any });
   };
 
-  // ── RSS ──
-  const handleRssLoad = () => {
-    if (!rssUrl) { setError(t('more.enterRssLink')); setState('error'); return; }
-    setState('loading');
-    setError('');
-    setRssArticles([]);
-
-    chrome.runtime.sendMessage({ type: 'PARSE_RSS', rssUrl }, (response) => {
-      if (response?.success && Array.isArray(response.data)) {
-        const items = response.data as RssFeedItem[];
-        setRssArticles(items);
-        setSelectedArticles(new Set(items.map((a) => a.url)));
-        setState('idle');
-      } else {
-        setState('error');
-        setError(response?.error || t('more.rssFailed'));
-      }
-    });
-  };
-
-  const handleBatchImport = (urls: string[]) => {
-    setState('importing');
-    setError('');
-    setImportResults(null);
-
-    const items: ImportItem[] = urls.map((u) => ({ url: u, status: 'pending' as const }));
-    onProgress({ total: urls.length, completed: 0, items });
-
-    chrome.runtime.sendMessage(
-      { type: 'RESCUE_SOURCES', urls },
-      (response) => {
-        onProgress(null);
-        if (response?.success && Array.isArray(response.data)) {
-          setImportResults(response.data);
-          setState('success');
-        } else {
-          setState('error');
-          setError(response?.error || t('importFailed'));
-        }
-      }
-    );
-  };
-
-  const handleRssImport = () => {
-    const urls = rssArticles.filter((a) => selectedArticles.has(a.url)).map((a) => a.url);
-    if (urls.length === 0) { setError(t('selectAtLeastOneArticle')); setState('error'); return; }
-    handleBatchImport(urls);
-  };
-
-  const handleRetryFailed = () => {
-    if (!importResults) return;
-    const failedUrls = importResults.filter((i) => i.status === 'error').map((i) => i.url);
-    if (failedUrls.length > 0) handleBatchImport(failedUrls);
-  };
-
-  const successCount = importResults?.filter((i) => i.status === 'success').length || 0;
-  const failedCount = importResults?.filter((i) => i.status === 'error').length || 0;
+  const models = PROVIDER_MODELS[aiProvider] || [];
 
   return (
     <div className="space-y-4">
-      {/* RSS Import — collapsible section */}
+      {/* AI Polish Settings — collapsible section */}
       <div className="border border-border rounded-lg overflow-hidden shadow-soft">
         <button
-          onClick={() => { setShowRss(!showRss); resetState(); }}
+          onClick={() => setShowAIPolish(!showAIPolish)}
           className="w-full flex items-center justify-between px-3 py-2.5 bg-surface-sunken hover:bg-gray-100/80 transition-colors"
         >
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Rss className="w-4 h-4 text-orange-500" />
-            {t('more.rssImport')}
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            {t('more.aiPolish')}
           </div>
-          {showRss ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          {showAIPolish ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </button>
 
-        {showRss && (
+        {showAIPolish && (
           <div className="p-3 space-y-3 border-t border-gray-200">
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Rss className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="url"
-                  value={rssUrl}
-                  onChange={(e) => setRssUrl(e.target.value)}
-                  placeholder="https://example.com/feed.xml"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-200/60 rounded-lg text-sm placeholder:text-gray-400/70 focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
-                />
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">{t('more.aiEnable')}</span>
               <button
-                onClick={handleRssLoad}
-                disabled={!rssUrl || state === 'loading'}
-                className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+                onClick={async () => {
+                  const next = !aiEnabled;
+                  setAiEnabled(next);
+                  await saveAISetting('enabled', next);
+                }}
+                role="switch"
+                aria-checked={aiEnabled}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40 ${
+                  aiEnabled ? 'bg-purple-500' : 'bg-gray-300'
+                }`}
               >
-                {state === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                {t('load')}
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    aiEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                  }`}
+                />
               </button>
             </div>
 
-            {rssArticles.length > 0 && (
+            {aiEnabled && (
               <>
+                {/* Provider */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">{t('more.selectedArticles', { selected: selectedArticles.size, total: rssArticles.length })}</span>
-                    <div className="flex gap-2 text-xs">
-                      <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">{t('selectAll')}</button>
-                      <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
+                  <label className="block text-xs text-gray-500 mb-1">{t('more.aiProvider')}</label>
+                  <select
+                    value={aiProvider}
+                    onChange={async (e) => {
+                      setAiProvider(e.target.value);
+                      setAiModel('');
+                      await saveAISetting('provider', e.target.value);
+                      await updateSettings({ ai: { enabled: aiEnabled, provider: e.target.value, apiKey: aiApiKey, model: '', promptStyle: aiPromptStyle, customPrompt: aiCustomPrompt } as any });
+                    }}
+                    className="w-full text-sm border border-gray-200/60 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/40"
+                  >
+                    {AI_PROVIDERS.map((p) => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* API Key */}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">{t('more.aiApiKey')}</label>
+                  <div className="flex gap-1">
+                    <div className="flex-1 relative">
+                      <input
+                        type={showApiKey ? 'text' : 'password'}
+                        value={aiApiKey}
+                        onChange={(e) => setAiApiKey(e.target.value)}
+                        onBlur={() => saveAISetting('apiKey', aiApiKey)}
+                        placeholder={t('more.aiApiKeyPlaceholder')}
+                        className="w-full text-sm border border-gray-200/60 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/40 pr-8"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600"
+                      >
+                        {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
                   </div>
-                  <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
-                    {rssArticles.map((article) => (
-                      <label key={article.url} className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
-                        <input
-                          type="checkbox"
-                          checked={selectedArticles.has(article.url)}
-                          onChange={() => {
-                            setSelectedArticles((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(article.url)) next.delete(article.url);
-                              else next.add(article.url);
-                              return next;
-                            });
-                          }}
-                          className="mt-1 rounded border-gray-300 text-notebooklm-blue focus:ring-notebooklm-blue"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-700 line-clamp-2">{article.title}</p>
-                          {article.pubDate && <p className="text-xs text-gray-400 mt-0.5">{new Date(article.pubDate).toLocaleDateString(undefined)}</p>}
-                        </div>
-                      </label>
+                </div>
+
+                {/* Model — dropdown */}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">{t('more.aiModel')}</label>
+                  <select
+                    value={aiModel}
+                    onChange={async (e) => {
+                      setAiModel(e.target.value);
+                      await saveAISetting('model', e.target.value);
+                    }}
+                    className="w-full text-sm border border-gray-200/60 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/40"
+                  >
+                    <option value="">{t('more.aiModelPlaceholder')}</option>
+                    {models.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
                     ))}
+                  </select>
+                </div>
+
+                {/* Prompt Style Bubbles */}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">{t('more.aiPromptStyle')}</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PROMPT_STYLES.map((style) => (
+                      <button
+                        key={style.value}
+                        onClick={async () => {
+                          setAiPromptStyle(style.value);
+                          await saveAISetting('promptStyle', style.value);
+                        }}
+                        className={`px-2.5 py-1.5 text-[11px] rounded-full border transition-colors duration-150 ${
+                          aiPromptStyle === style.value
+                            ? 'bg-purple-500 text-white border-purple-500'
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300 hover:text-purple-600'
+                        }`}
+                        title={style.description}
+                      >
+                        {style.label}
+                      </button>
+                    ))}
+                    <button
+                      onClick={async () => {
+                        setAiPromptStyle('custom');
+                        await saveAISetting('promptStyle', 'custom');
+                      }}
+                      className={`px-2.5 py-1.5 text-[11px] rounded-full border transition-colors duration-150 ${
+                        aiPromptStyle === 'custom'
+                          ? 'bg-purple-500 text-white border-purple-500'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-purple-300 hover:text-purple-600'
+                      }`}
+                    >
+                      {t('more.aiPromptCustom')}
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={handleRssImport}
-                  disabled={selectedArticles.size === 0 || state === 'importing'}
-                  className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-                >
-                  {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</> : <><Rss className="w-4 h-4" />{t('more.importSelected')} (<span className="font-mono tabular-nums">{selectedArticles.size}</span>)</>}
-                </button>
+
+                {/* Custom Prompt */}
+                {aiPromptStyle === 'custom' && (
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">{t('more.aiCustomPrompt')}</label>
+                    <textarea
+                      value={aiCustomPrompt}
+                      onChange={(e) => setAiCustomPrompt(e.target.value)}
+                      onBlur={() => saveAISetting('customPrompt', aiCustomPrompt)}
+                      placeholder={t('more.aiCustomPromptPlaceholder')}
+                      rows={3}
+                      className="w-full text-sm border border-gray-200/60 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/40 resize-none"
+                    />
+                  </div>
+                )}
+
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  {t('more.aiPolishNote')}
+                </p>
               </>
-            )}
-
-            {rssArticles.length === 0 && state === 'idle' && (
-              <div className="bg-surface-sunken rounded-lg p-3">
-                <p className="text-xs text-gray-400">{t('more.rssFormats')}</p>
-              </div>
-            )}
-
-            {state === 'error' && !importResults && (
-              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft border border-red-100/60">
-                <AlertCircle className="w-4 h-4" />
-                {error}
-              </div>
             )}
           </div>
         )}
       </div>
-
-      {/* Import Results */}
-      {importResults && importResults.length > 0 && (
-        <div className="space-y-2">
-          <div className={`flex items-center justify-between text-sm rounded-lg p-3 shadow-soft ${failedCount > 0 ? 'bg-yellow-50 border border-yellow-100/60' : 'bg-green-50 border border-green-100/60'}`}>
-            <div className="flex items-center gap-2">
-              {failedCount > 0 ? <AlertCircle className="w-4 h-4 text-yellow-600" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
-              <span className={failedCount > 0 ? 'text-yellow-700' : 'text-green-600'}>
-                {failedCount > 0 ? t('successFailCount', { success: successCount, failed: failedCount }) : t('successCount', { success: successCount })}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {failedCount > 0 && (
-                <button onClick={handleRetryFailed} disabled={state === 'importing'} className="text-xs text-yellow-700 hover:text-yellow-800 flex items-center gap-1">
-                  <RotateCcw className="w-3 h-3" />{t('retryFailed')}
-                </button>
-              )}
-              <button onClick={() => setShowDetails(!showDetails)} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                {showDetails ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('details')}</>}
-              </button>
-            </div>
-          </div>
-          {showDetails && (
-            <div className="max-h-40 overflow-y-auto border border-border rounded-lg divide-y divide-gray-100">
-              {importResults.map((item, index) => (
-                <div key={index} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50">
-                  {item.status === 'success'
-                    ? <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                    : <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />}
-                  <span className="flex-1 truncate text-gray-600" title={item.url}>{item.url}</span>
-                  {item.status === 'error' && (
-                    <button onClick={() => handleBatchImport([item.url])} disabled={state === 'importing'} className="text-gray-400 hover:text-notebooklm-blue flex-shrink-0" title={t('retry')}>
-                      <RotateCcw className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Replay Tour */}
       <button

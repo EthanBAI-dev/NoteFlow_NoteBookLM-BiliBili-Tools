@@ -16,10 +16,10 @@ interface TourStep {
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="notebook-selector"]', descKey: 'onboarding.stepNotebook', placement: 'bottom' },
-  { target: '[data-tour="tab-bookmark"]', descKey: 'onboarding.stepBookmark', placement: 'bottom' },
-  { target: '[data-tour="tab-docs"]', descKey: 'onboarding.stepDocs', placement: 'bottom' },
-  { target: '[data-tour="tab-podcast"]', descKey: 'onboarding.stepPodcast', placement: 'bottom' },
+  { target: '[data-tour="tab-bilibili"]', descKey: 'onboarding.stepBilibili', placement: 'bottom' },
   { target: '[data-tour="tab-youtube"]', descKey: 'onboarding.stepYouTube', placement: 'bottom' },
+  { target: '[data-tour="tab-podcast"]', descKey: 'onboarding.stepPodcast', placement: 'bottom' },
+  { target: '[data-tour="tab-bookmark"]', descKey: 'onboarding.stepBookmark', placement: 'bottom' },
   { target: '[data-tour="tab-claude"]', descKey: 'onboarding.stepAI', placement: 'bottom' },
 ];
 

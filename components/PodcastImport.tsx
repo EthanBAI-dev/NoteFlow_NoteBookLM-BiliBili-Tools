@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 import { t } from '@/lib/i18n';
+import { NotebookSelector } from '@/components/NotebookSelector';
 
 type State = 'idle' | 'loading' | 'loaded' | 'downloading' | 'done' | 'error';
 type Platform = 'unknown' | 'apple' | 'xiaoyuzhou';
@@ -257,6 +258,9 @@ export function PodcastImport({ initialUrl }: Props) {
           </ul>
         </div>
       )}
+
+      {/* Notebook selector */}
+      <NotebookSelector />
     </div>
   );
 }

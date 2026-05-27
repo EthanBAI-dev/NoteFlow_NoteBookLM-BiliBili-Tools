@@ -33,9 +33,8 @@ After `pnpm dev`, load `dist/` as an unpacked extension in Chrome.
   - `entrypoints/claude.content.ts`: Extracts conversations from claude.ai
   - `entrypoints/chatgpt.content.ts`: Extracts conversations from chatgpt.com
   - `entrypoints/gemini.content.ts`: Extracts conversations from gemini.google.com
-  - `entrypoints/docs.content.ts`: Document site analysis (dynamically injected)
-- **Offscreen Document** (`entrypoints/offscreen/`): HTML→Markdown conversion via Turndown, runs in isolated DOM context since service workers lack DOM access
-- **Popup UI** (`entrypoints/popup/`): React app with 5-tab layout: Docs, Podcast, AI Conversation, Bookmarks, More
+  - **Offscreen Document** (`entrypoints/offscreen/`): HTML→Markdown conversion via Turndown, runs in isolated DOM context since service workers lack DOM access
+- **Popup UI** (`entrypoints/popup/`): React app with 6-tab layout: Bookmarks, Podcast, YouTube, Bilibili, AI Chat, More
 
 ### Message-Based Communication
 - Popup ↔ Background via `chrome.runtime.onMessage` with typed `MessageType` union
@@ -45,8 +44,6 @@ After `pnpm dev`, load `dist/` as an unpacked extension in Chrome.
 
 ### Key Services
 - `services/notebooklm.ts`: Tab management, content script injection, batch import with rate limiting (1.5s delays)
-- `services/docs-analyzer.ts`: Framework detection for 14+ doc types (Docusaurus, MkDocs, VitePress, GitBook, ReadTheDocs, Sphinx, Mintlify, DevSite, Anthropic, Yuque, WeChat, HarmonyOS, etc.)
-- `services/docs-site.ts`: AI-native doc discovery (`/llms.txt`, `/llms-full.txt`), sitemap parsing, Huawei catalog API
 - `services/pdf-generator.ts`: Doc site → PDF via Chrome Debugger Protocol, concurrent page fetching (5 threads), Markdown cleanup of JSX components
 - `services/podcast.ts`: Apple Podcasts (iTunes API) and 小宇宙 FM (__NEXT_DATA__ SSR extraction)
 - `services/claude-conversation.ts`: AI conversation extraction wrapper (Claude/ChatGPT/Gemini)

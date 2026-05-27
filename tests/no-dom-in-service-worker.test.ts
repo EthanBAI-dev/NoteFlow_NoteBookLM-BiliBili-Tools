@@ -17,7 +17,6 @@ import path from 'path';
 // inside chrome.scripting.executeScript() callbacks (which run in page context).
 const SERVICE_WORKER_FILES = [
   'services/rss-parser.ts',
-  'services/docs-site.ts',
   'services/notebooklm.ts',
   'services/podcast.ts',
   'services/bookmarks.ts',

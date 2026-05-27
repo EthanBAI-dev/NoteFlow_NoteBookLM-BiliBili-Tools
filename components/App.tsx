@@ -1,54 +1,101 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { BookOpen, History, MessageCircle, Headphones, MoreHorizontal, Bookmark, Youtube, Tv2 } from 'lucide-react';
+import { History, MessageCircle, Headphones, MoreHorizontal, Youtube, Tv2, RefreshCw } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
-import { DocsImport } from '@/components/DocsImport';
 import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
 import { YouTubeImport } from '@/components/YouTubeImport';
 import { BilibiliImport } from '@/components/BilibiliImport';
+import { getOpState } from '@/services/op-state';
+import { LayersIcon } from '@/components/LayersIcon';
 import { MorePanel } from '@/components/MorePanel';
 import { BookmarkPanel } from '@/components/BookmarkPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
-import { NotebookSelector } from '@/components/NotebookSelector';
 import { OnboardingTour } from '@/components/OnboardingTour';
 
 export default function App() {
   const { t, locale, setLocale } = useI18n();
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [activeTab, setActiveTab] = useState('bookmark');
+  const [activeTab, setActiveTab] = useState('bilibili');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
   const [initialYouTubeUrl, setInitialYouTubeUrl] = useState('');
   const [initialBilibiliUrl, setInitialBilibiliUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
-  // Auto-detect URL from current tab
-  useState(() => {
+  const handleTabChange = useCallback(async (tab: string) => {
+    const op = await getOpState();
+    if (op?.active && tab !== activeTab) return;
+    setActiveTab(tab);
+    if (tab !== 'bilibili') setInitialBilibiliUrl('');
+    if (tab !== 'youtube') setInitialYouTubeUrl('');
+    if (tab !== 'podcast') setInitialPodcastUrl('');
+  }, [activeTab]);
+
+  const detectUrl = useCallback(async (url: string, tabId?: number) => {
+    if (!url) return;
+    const op = await getOpState();
+    if (op?.active) return;
+    if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
+      setActiveTab('podcast');
+      setInitialPodcastUrl(url);
+    } else if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) {
+      setActiveTab('youtube');
+      setInitialYouTubeUrl(url);
+    } else if (/bilibili\.com\/(video|space)/.test(url)) {
+      setActiveTab('bilibili');
+      setInitialBilibiliUrl(url);
+    } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
+      setActiveTab('claude');
+    }
+    if (/notebooklm\.google\.com/.test(url) && tabId) {
+      setNotebookLMTabId(tabId);
+    }
+  }, []);
+
+  const handleReadCurrentPage = useCallback(() => {
+    setFetchTrigger((prev) => prev + 1);
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = tabs[0]?.url || '';
       const tabId = tabs[0]?.id;
-      if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
-        setActiveTab('podcast');
-        setInitialPodcastUrl(url);
-      } else if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) {
-        setActiveTab('youtube');
-        setInitialYouTubeUrl(url);
-      } else if (/bilibili\.com\/video\//.test(url)) {
-        setActiveTab('bilibili');
-        setInitialBilibiliUrl(url);
-      } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
-        setActiveTab('claude');
-      }
-      if (/notebooklm\.google\.com/.test(url) && tabId) {
-        setNotebookLMTabId(tabId);
-      }
+      detectUrl(url, tabId);
     });
-  });
+  }, [detectUrl]);
+
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const url = tabs[0]?.url || '';
+      const tabId = tabs[0]?.id;
+      detectUrl(url, tabId);
+    });
+
+    const handleTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+      if (changeInfo.url && tab.active) {
+        detectUrl(changeInfo.url, tab.id);
+      }
+    };
+
+    const handleTabActivated = (activeInfo: chrome.tabs.TabActiveInfo) => {
+      chrome.tabs.get(activeInfo.tabId, (tab) => {
+        if (tab.url) {
+          detectUrl(tab.url, tab.id);
+        }
+      });
+    };
+
+    chrome.tabs.onUpdated.addListener(handleTabUpdated);
+    chrome.tabs.onActivated.addListener(handleTabActivated);
+
+    return () => {
+      chrome.tabs.onUpdated.removeListener(handleTabUpdated);
+      chrome.tabs.onActivated.removeListener(handleTabActivated);
+    };
+  }, [detectUrl]);
 
   if (showHistory) {
     return <HistoryPanel onClose={() => setShowHistory(false)} />;
@@ -57,13 +104,16 @@ export default function App() {
   return (
     <div className="min-h-[480px] bg-surface">
       {/* Header — frosted glass */}
-      <div className="glass px-3.5 py-2.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2.5">
-          <img src="/icons/icon-128.png" alt="Flow2Note" className="w-7 h-7" />
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-semibold text-[13px] text-gray-900 tracking-tight">Flow2Note</span>
-            <span className="font-mono text-[9px] text-gray-400/80 tabular-nums" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}</span>
-          </div>
+      <div className="glass px-3.5 py-1.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleReadCurrentPage}
+            className="px-2 py-1 text-[10px] font-medium text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press flex items-center gap-1"
+            title={t('app.readCurrentPage')}
+          >
+            <RefreshCw className="w-3 h-3" />
+            {t('app.readCurrentPage')}
+          </button>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -82,13 +132,6 @@ export default function App() {
           </button>
         </div>
       </div>
-
-      {/* Notebook selector — only for tabs that import to NotebookLM */}
-      {activeTab !== 'podcast' && activeTab !== 'more' && (
-        <div className="px-3.5 pt-3" data-tour="notebook-selector">
-          <NotebookSelector />
-        </div>
-      )}
 
       {/* Progress indicator */}
       {importProgress && (
@@ -120,14 +163,13 @@ export default function App() {
       {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
 
       {/* Tabs */}
-      <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
+      <Tabs.Root value={activeTab} onValueChange={handleTabChange} className="flex flex-col">
         <Tabs.List className="flex glass border-b border-border px-2 gap-0.5" data-tour="tab-list">
           {[
-            { value: 'bookmark', icon: Bookmark, label: t('app.tabBookmarks') },
-            { value: 'docs', icon: BookOpen, label: t('app.tabDocs') },
-            { value: 'podcast', icon: Headphones, label: t('app.tabPodcast') },
-            { value: 'youtube', icon: Youtube, label: t('app.tabYouTube') },
             { value: 'bilibili', icon: Tv2, label: t('app.tabBilibili') },
+            { value: 'youtube', icon: Youtube, label: t('app.tabYouTube') },
+            { value: 'podcast', icon: Headphones, label: t('app.tabPodcast') },
+            { value: 'bookmark', icon: LayersIcon, label: t('app.tabBookmarks') },
             { value: 'claude', icon: MessageCircle, label: t('app.tabAI') },
             { value: 'more', icon: MoreHorizontal, label: t('app.tabMore') },
           ].map(({ value, icon: Icon, label }) => (
@@ -150,28 +192,24 @@ export default function App() {
           ))}
         </Tabs.List>
 
-        <Tabs.Content value="docs" className="p-4 animate-fade-in">
-          <DocsImport onProgress={setImportProgress} />
+        <Tabs.Content value="bilibili" className="p-4 animate-fade-in">
+          <BilibiliImport initialUrl={initialBilibiliUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} />
+        </Tabs.Content>
+
+        <Tabs.Content value="youtube" className="p-4 animate-fade-in">
+          <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} />
         </Tabs.Content>
 
         <Tabs.Content value="podcast" className="p-4 animate-fade-in">
           <PodcastImport initialUrl={initialPodcastUrl} />
         </Tabs.Content>
 
-        <Tabs.Content value="youtube" className="p-4 animate-fade-in">
-          <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} />
-        </Tabs.Content>
-
-        <Tabs.Content value="bilibili" className="p-4 animate-fade-in">
-          <BilibiliImport initialUrl={initialBilibiliUrl} onProgress={setImportProgress} />
+        <Tabs.Content value="bookmark" className="p-4 animate-fade-in">
+          <BookmarkPanel onProgress={setImportProgress} />
         </Tabs.Content>
 
         <Tabs.Content value="claude" className="p-4 animate-fade-in">
           <ClaudeImport onProgress={setImportProgress} />
-        </Tabs.Content>
-
-        <Tabs.Content value="bookmark" className="p-4 animate-fade-in">
-          <BookmarkPanel onProgress={setImportProgress} />
         </Tabs.Content>
 
         <Tabs.Content value="more" className="p-4 animate-fade-in">

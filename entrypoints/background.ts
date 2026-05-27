@@ -7,8 +7,7 @@ import {
   getCurrentTabUrl,
   getAllTabUrls,
 } from '@/services/notebooklm';
-import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt, fetchLlmsFullTxt } from '@/services/docs-site';
-import { fetchAllPages, buildDocsHtml, cleanComponentMd, convertHtmlToMarkdown } from '@/services/pdf-generator';
+import { convertHtmlToMarkdown } from '@/services/pdf-generator';
 import { getHistory, clearHistory } from '@/services/history';
 import { fetchPodcast, sanitizeFilename, buildFilename } from '@/services/podcast';
 import { fetchYouTube, fetchYouTubeMore } from '@/services/youtube';
@@ -18,134 +17,16 @@ import {
   sanitizeBilibiliFilename,
   parseBilibiliUrl,
   mergeBilibiliSubtitles,
+  parseBilibiliSpaceUrl,
+  fetchBilibiliUserVideos,
 } from '@/services/bilibili';
 import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili';
+import { polishSubtitlesWithChunks } from '@/services/ai-polish';
+import { setOpState, clearOpState, type OpState } from '@/services/op-state';
 import { uploadToDrive } from '@/services/google-drive';
 import JSZip from 'jszip';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 
-// Helper: render HTML to PDF via CDP and download
-async function handleExportPdfFromHtml(html: string, title: string): Promise<void> {
-  const filename = `${(title || 'docs').replace(/[^a-zA-Z0-9\u4e00-\u9fff-_ ]/g, '').trim().slice(0, 60)}.pdf`;
-  console.log('[EXPORT_PDF] Starting, HTML size:', (html.length / 1024).toFixed(1), 'KB');
-
-  // Create blank tab, then inject HTML content via CDP
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
-  if (!tab?.id) throw new Error('Failed to create tab');
-  const tabId = tab.id;
-
-  // Brief wait for about:blank to be ready
-  await new Promise(r => setTimeout(r, 500));
-
-  // Attach debugger
-  await new Promise<void>((resolve, reject) => {
-    chrome.debugger.attach({ tabId }, '1.3', () => {
-      if (chrome.runtime.lastError) reject(new Error('[EXPORT_PDF] debugger.attach failed: ' + chrome.runtime.lastError.message));
-      else resolve();
-    });
-  });
-  console.log('[EXPORT_PDF] Debugger attached to tab', tabId);
-
-  // Get the actual frameId from the page
-  let frameId: string;
-  try {
-    const frameTree = await new Promise<{ frameTree: { frame: { id: string } } }>((resolve, reject) => {
-      chrome.debugger.sendCommand({ tabId }, 'Page.getFrameTree', {}, (res) => {
-        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-        else resolve(res as { frameTree: { frame: { id: string } } });
-      });
-    });
-    frameId = frameTree.frameTree.frame.id;
-    console.log('[EXPORT_PDF] Got frameId:', frameId);
-  } catch (err) {
-    console.warn('[EXPORT_PDF] Failed to get frameId, using fallback:', err);
-    frameId = '';
-  }
-
-  // Set HTML content via CDP
-  if (frameId) {
-    await new Promise<void>((resolve, reject) => {
-      chrome.debugger.sendCommand({ tabId }, 'Page.setDocumentContent', {
-        frameId,
-        html,
-      }, () => {
-        if (chrome.runtime.lastError) {
-          console.warn('[EXPORT_PDF] setDocumentContent failed:', chrome.runtime.lastError.message);
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          console.log('[EXPORT_PDF] setDocumentContent succeeded');
-          resolve();
-        }
-      });
-    }).catch(async () => {
-      // Fallback: inject via Runtime.evaluate in chunks if needed
-      console.log('[EXPORT_PDF] Falling back to Runtime.evaluate');
-      await cdpEvaluate(tabId, `document.open(); document.close();`);
-      // Write in chunks to avoid CDP command size limits
-      const chunkSize = 1024 * 512; // 512KB chunks
-      for (let i = 0; i < html.length; i += chunkSize) {
-        const chunk = html.slice(i, i + chunkSize);
-        await cdpEvaluate(tabId, `document.write(${JSON.stringify(chunk)});`);
-      }
-      await cdpEvaluate(tabId, `document.close();`);
-      console.log('[EXPORT_PDF] Fallback write completed');
-    });
-  } else {
-    // No frameId, use evaluate directly
-    await cdpEvaluate(tabId, `document.open(); document.close();`);
-    const chunkSize = 1024 * 512;
-    for (let i = 0; i < html.length; i += chunkSize) {
-      const chunk = html.slice(i, i + chunkSize);
-      await cdpEvaluate(tabId, `document.write(${JSON.stringify(chunk)});`);
-    }
-    await cdpEvaluate(tabId, `document.close();`);
-  }
-
-  // Wait for render
-  await new Promise(r => setTimeout(r, 2000));
-
-  // Print to PDF
-  console.log('[EXPORT_PDF] Printing to PDF...');
-  const result = await new Promise<{ data: string }>((resolve, reject) => {
-    chrome.debugger.sendCommand({ tabId }, 'Page.printToPDF', {
-      printBackground: true,
-      preferCSSPageSize: true,
-      marginTop: 0.4,
-      marginBottom: 0.4,
-      marginLeft: 0.4,
-      marginRight: 0.4,
-    }, (res) => {
-      if (chrome.runtime.lastError) reject(new Error('[EXPORT_PDF] printToPDF failed: ' + chrome.runtime.lastError.message));
-      else resolve(res as { data: string });
-    });
-  });
-
-  chrome.debugger.detach({ tabId });
-  chrome.tabs.remove(tabId);
-
-  const pdfSizeMB = (result.data.length * 3 / 4 / 1024 / 1024).toFixed(2);
-  console.log('[EXPORT_PDF] PDF generated, ~size:', pdfSizeMB, 'MB, downloading as:', filename);
-
-  // Use data URL for download (Service Worker has no URL.createObjectURL)
-  const pdfDataUrl = 'data:application/pdf;base64,' + result.data;
-  chrome.downloads.download({ url: pdfDataUrl, filename, saveAs: true }, (downloadId) => {
-    if (chrome.runtime.lastError) {
-      console.error('[EXPORT_PDF] download failed:', chrome.runtime.lastError.message);
-    } else {
-      console.log('[EXPORT_PDF] Download started, id:', downloadId);
-    }
-  });
-}
-
-// Helper: evaluate JS via CDP
-function cdpEvaluate(tabId: number, expression: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', { expression }, () => {
-      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-      else resolve();
-    });
-  });
-}
 import {
   extractClaudeConversation,
   formatConversationForImport,
@@ -238,6 +119,15 @@ export default defineBackground(() => {
         const urls: string[] = msg.urls || [];
         const sendProgress = (data: Record<string, unknown>) => {
           try { port.postMessage(data); } catch { /* disconnected */ }
+          setOpState({
+            active: true,
+            phase: (data.phase as OpState['phase']) || 'downloading',
+            kind: 'export',
+            current: (data.current as number) || 0,
+            total: (data.total as number) || 0,
+            title: (data.title as string) || '',
+            timestamp: Date.now(),
+          });
         };
 
         try {
@@ -265,6 +155,18 @@ export default defineBackground(() => {
         const episodes = msg.episodes as PodcastEpisode[];
         const sendProgress = (data: Record<string, unknown>) => {
           try { port.postMessage(data); } catch { /* disconnected */ }
+          const phase = data.phase as string;
+          if (phase === 'downloading' || phase === 'polishing') {
+            setOpState({
+              active: true,
+              phase: phase === 'polishing' ? 'polishing' : 'downloading',
+              kind: 'export',
+              current: (data.current as number) || 0,
+              total: (data.total as number) || 0,
+              title: (data.title as string) || '',
+              timestamp: Date.now(),
+            });
+          }
         };
 
         const folderName = sanitizeFilename(podcastInfo.name);
@@ -300,129 +202,101 @@ export default defineBackground(() => {
       return;
     }
 
-    if (port.name !== 'pdf-export') return;
+    if (port.name === 'bilibili-download') {
+      port.onMessage.addListener(async (msg) => {
+        if (msg.type !== 'BILIBILI_DOWNLOAD_SEPARATE' && msg.type !== 'BILIBILI_DOWNLOAD_MERGED') return;
 
-    port.onMessage.addListener(async (msg) => {
-      if (msg.type !== 'GENERATE_PDF' && msg.type !== 'GENERATE_CLIPBOARD') return;
+        const { videos, ownerName, desc, source, aiPolish } = msg as any;
+        const isMerged = msg.type === 'BILIBILI_DOWNLOAD_MERGED';
 
-      const isClipboard = msg.type === 'GENERATE_CLIPBOARD';
-      const si = msg.siteInfo;
-      const sendProgress = (data: Record<string, unknown>) => {
-        try { port.postMessage(data); } catch { /* port disconnected */ }
-      };
+        await setOpState({
+          active: true,
+          phase: 'downloading',
+          kind: 'export',
+          current: 0,
+          total: videos.length,
+          title: videos[0]?.part || videos[0]?.title || '',
+          timestamp: Date.now(),
+        });
 
-      const logPrefix = isClipboard ? '[GENERATE_CLIPBOARD]' : '[GENERATE_PDF]';
-      console.log(`${logPrefix} Starting via port, pages:`, si.pages.length);
-
-      try {
-        // Helper: finalize output — either copy to clipboard (return markdown) or generate PDF
-        const finalizeOutput = async (contents: { title: string; markdown: string; section?: string; url: string; wordCount: number }[]) => {
-          if (isClipboard) {
-            // Concatenate all markdown for clipboard
-            const markdown = contents.map(c => {
-              const header = `# ${c.title}\n`;
-              const source = `\n> Source: ${c.url}\n`;
-              return header + c.markdown + source;
-            }).join('\n\n---\n\n');
-            sendProgress({ phase: 'clipboard', markdown });
-            sendProgress({ phase: 'done' });
-          } else {
-            sendProgress({ phase: 'rendering', current: 1, total: 1 });
-            const html = buildDocsHtml(si, contents);
-            const pdfTitle = contents.length === 1 ? contents[0].title : si.title;
-            await handleExportPdfFromHtml(html, pdfTitle);
-            sendProgress({ phase: 'done' });
-          }
+        const sendProgress = (data: Record<string, unknown>) => {
+          try { port.postMessage(data); } catch { /* disconnected */ }
         };
 
-        // Fast path: llms-full.txt
-        if (si.hasLlmsFullTxt) {
-          sendProgress({ phase: 'fetching', current: 0, total: 1, currentPage: 'llms-full.txt' });
-          const origin = new URL(si.baseUrl).origin;
-          const r = await fetch(`${origin}/llms-full.txt`, { signal: AbortSignal.timeout(30000) });
-          if (r.ok) {
-            const fullText = await r.text();
-            if (fullText.length > 1000) {
-              const sections = fullText.split(/(?=^# )/m).filter(s => s.trim().length > 50);
-              const contents = sections.map((section, i) => {
-                const titleMatch = section.match(/^#\s+(.+)/m);
-                const title = titleMatch?.[1] || `Section ${i + 1}`;
-                const cleaned = cleanComponentMd(section);
-                return {
-                  url: `${origin}/#section-${i}`,
-                  title,
-                  markdown: cleaned,
-                  section: undefined as string | undefined,
-                  wordCount: cleaned.split(/\s+/).length,
-                };
-              });
-              sendProgress({ phase: 'fetching', current: 1, total: 1 });
-              await finalizeOutput(contents);
-              return;
+        try {
+          if (isMerged) {
+            const results: { video: any; markdown: string | null }[] = [];
+            for (let i = 0; i < videos.length; i++) {
+              const video = videos[i];
+              sendProgress({ phase: 'downloading', current: i + 1, total: videos.length, title: video.part || video.title, bvid: video.bvid });
+              const result = await fetchVideoSubtitle(video, ownerName, desc);
+              results.push(result);
+              if (i < videos.length - 1) {
+                await new Promise(r => setTimeout(r, 1500));
+              }
             }
-          }
-        }
-
-        // Standard path: fetch pages individually
-        const maxPages = 1000;
-        const pagesToFetch = si.pages.slice(0, maxPages);
-        console.log('[GENERATE_PDF] Fetching', pagesToFetch.length, 'pages...');
-
-        // Split: SPA pages (x.com etc.) need tab-based extraction
-        const spaPages = pagesToFetch.filter((p: { url: string }) => needsTabBasedExtraction(p.url));
-        const fetchPages = pagesToFetch.filter((p: { url: string }) => !needsTabBasedExtraction(p.url));
-
-        let contents: Awaited<ReturnType<typeof fetchAllPages>> = [];
-
-        // Tab-based extraction for SPA pages
-        if (spaPages.length > 0) {
-          console.log('[GENERATE_PDF] Tab-extracting', spaPages.length, 'SPA pages...');
-          const spaResults = await repairDynamicSources(spaPages.map((p: { url: string }) => p.url), true);
-          for (const result of spaResults) {
-            if (result.status === 'success' && result.title) {
-              const content = result.content || '';
-              // innerText from SPA pages is plain text with \n line breaks.
-              // Convert single \n to \n\n so marked.parse() creates proper paragraphs.
-              const markdown = content.replace(/(?<!\n)\n(?!\n)/g, '\n\n');
-              contents.push({
-                url: result.url,
-                title: result.title,
-                markdown,
-                section: undefined,
-                wordCount: content.split(/\s+/).length,
+            let mergedMd = mergeBilibiliSubtitles(results, source);
+            if (aiPolish) {
+              const allBodies = results.flatMap(r => (r as any).rawBody || []);
+              const polished = await polishSubtitlesWithChunks(mergedMd, allBodies.length > 0 ? allBodies : undefined, (c, t) => {
+                sendProgress({ phase: 'polishing', current: c, total: t, title: `AI 润色 ${c}/${t}` });
               });
-            } else if (result.status === 'error') {
-              console.warn('[GENERATE_PDF] SPA extraction failed:', result.url, result.error);
+              if (!polished.success && polished.error) {
+                sendProgress({ phase: 'error', error: `AI 润色失败：${polished.error}，请稍后重试` });
+                clearOpState();
+                return;
+              }
+              if (polished.success) mergedMd = polished.polished;
             }
-            sendProgress({ phase: 'fetching', current: contents.length, total: pagesToFetch.length, currentPage: result.title });
+            const filename = `${sanitizeBilibiliFilename(source.title)}_合并内容.md`;
+            const encoded = btoa(unescape(encodeURIComponent(mergedMd)));
+            const dataUrl = `data:text/markdown;base64,${encoded}`;
+            await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
+            sendProgress({ phase: 'done' });
+            clearOpState();
+          } else {
+            let downloaded = 0; let skipped = 0;
+            for (let i = 0; i < videos.length; i++) {
+              const video = videos[i];
+              sendProgress({ phase: 'downloading', current: i + 1, total: videos.length, title: video.part || video.title, bvid: video.bvid });
+              const result = await fetchVideoSubtitle(video, ownerName, desc);
+              if (!result.markdown) { skipped++; }
+              else {
+                let markdown = result.markdown;
+                if (aiPolish) {
+                  const polished = await polishSubtitlesWithChunks(markdown, result.rawBody, (c, t) => {
+                    sendProgress({ phase: 'polishing', current: c, total: t, title: `${video.part || video.title} ${c}/${t}` });
+                  });
+                  if (!polished.success && polished.error) {
+                    sendProgress({ phase: 'error', error: `AI 润色失败：${polished.error}，请稍后重试` });
+                    clearOpState();
+                    return;
+                  }
+                  if (polished.success) markdown = polished.polished;
+                }
+                const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
+                const filename = `${sanitizeBilibiliFilename(displayTitle)}.md`;
+                const encoded = btoa(unescape(encodeURIComponent(markdown)));
+                const dataUrl = `data:text/markdown;base64,${encoded}`;
+                await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
+                downloaded++;
+              }
+              if (i < videos.length - 1) {
+                await new Promise(r => setTimeout(r, 1500));
+              }
+            }
+            sendProgress({ phase: 'done', downloaded, skipped });
+            clearOpState();
           }
+        } catch (err) {
+          sendProgress({ phase: 'error', error: String(err) });
+          clearOpState();
         }
+      });
+      return;
+    }
 
-        // Fetch-based extraction for regular pages
-        if (fetchPages.length > 0) {
-          const fetchedOffset = contents.length;
-          const fetchContents = await fetchAllPages(fetchPages, {
-            concurrency: 5,
-            onProgress: (p) => {
-              sendProgress({ phase: 'fetching', current: fetchedOffset + p.current, total: pagesToFetch.length, currentPage: p.currentPage });
-              if (p.current % 50 === 0) console.log(`[GENERATE_PDF] Progress: ${fetchedOffset + p.current}/${pagesToFetch.length}`);
-            },
-          });
-          contents.push(...fetchContents);
-        }
 
-        if (contents.length === 0) {
-          sendProgress({ phase: 'error', error: '未能获取任何页面内容' });
-          return;
-        }
-
-        console.log(`${logPrefix} Fetched`, contents.length, 'pages, finalizing...');
-        await finalizeOutput(contents);
-      } catch (err) {
-        console.error(`${logPrefix} Error:`, err);
-        sendProgress({ phase: 'error', error: String(err) });
-      }
-    });
   });
 
   // Handle messages from popup and content scripts
@@ -952,6 +826,10 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     if (!parsed) throw new Error('无法解析的哔哩哔哩链接');
     return await fetchBilibiliVideo(parsed.bvid);
   }
+  if (type === 'FETCH_BILIBILI_SPACE') {
+    const { mid } = message as { mid: string };
+    return await fetchBilibiliUserVideos(mid);
+  }
   if (type === 'DOWNLOAD_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
     let downloaded = 0; let skipped = 0;
@@ -999,33 +877,59 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     return { added };
   }
   if (type === 'IMPORT_BILIBILI_SUBTITLES') {
-    const { videos, ownerName, desc } = message as any;
+    const { videos, ownerName, desc, aiPolish } = message as any;
     let imported = 0; let skipped = 0;
+    setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: '准备导入…', timestamp: Date.now() });
     for (const video of videos) {
+      setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: video.part || video.title, timestamp: Date.now() });
       const result = await fetchVideoSubtitle(video, ownerName, desc);
       if (!result.markdown) { skipped++; continue; }
+      let markdown = result.markdown;
+      if (aiPolish) {
+        setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: `AI润色 ${video.part || video.title}`, timestamp: Date.now() });
+        const polished = await polishSubtitlesWithChunks(markdown, result.rawBody);
+        if (!polished.success && polished.error) {
+          clearOpState();
+          throw new Error(`AI 润色失败：${polished.error}，请稍后重试`);
+        }
+        if (polished.success) markdown = polished.polished;
+      }
       const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
-      const success = await importText(result.markdown, displayTitle, senderTabId);
+      const success = await importText(markdown, displayTitle, senderTabId);
       if (success) { imported++; } else { skipped++; }
       if (videos.indexOf(video) < videos.length - 1) await new Promise(r => setTimeout(r, 2500));
     }
+    clearOpState();
     return { imported, skipped };
   }
 
   if (type === 'IMPORT_BILIBILI_MERGED') {
-    const { videos, ownerName, desc, source } = message as any;
+    const { videos, ownerName, desc, source, aiPolish } = message as any;
     const results = [];
+    setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: '获取字幕…', timestamp: Date.now() });
     console.log(`[background] Starting merged import for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Processing ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
+      setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: video.part || video.title, timestamp: Date.now() });
       const result = await fetchVideoSubtitle(video, ownerName, desc);
       results.push(result);
       if (videos.indexOf(video) < videos.length - 1) {
         await new Promise(r => setTimeout(r, 1500));
       }
     }
-    const mergedMd = mergeBilibiliSubtitles(results, source);
+    let mergedMd = mergeBilibiliSubtitles(results, source);
+    if (aiPolish) {
+      const allBodies2 = results.flatMap(r => (r as any).rawBody || []);
+      setOpState({ active: true, phase: 'polishing', kind: 'import', current: 0, total: 1, title: 'AI润色合并内容…', timestamp: Date.now() });
+      const polished = await polishSubtitlesWithChunks(mergedMd, allBodies2.length > 0 ? allBodies2 : undefined);
+      if (!polished.success && polished.error) {
+        clearOpState();
+        throw new Error(`AI 润色失败：${polished.error}，请稍后重试`);
+      }
+      if (polished.success) mergedMd = polished.polished;
+    }
     const success = await importText(mergedMd, `合并内容：${source.title}`, senderTabId);
+    clearOpState();
     return { success };
   }
 
@@ -1087,115 +991,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
     case 'GET_ALL_TABS':
       return await getAllTabUrls();
-
-    case 'ANALYZE_DOC_SITE': {
-      // AI-native fallback chain: llms.txt → sitemap → Huawei API → DOM
-      const tabInfo = await chrome.tabs.get(message.tabId);
-      const tabUrl = tabInfo.url || '';
-
-      // 1. Try llms.txt first (AI-native, covers 66% of doc sites including React/Svelte with no sitemap)
-      if (tabUrl.startsWith('http')) {
-        try {
-          const llmsPages = await fetchLlmsTxt(tabUrl);
-          if (llmsPages.length >= 5) {
-            const urlObj = new URL(tabUrl);
-            // Check if llms-full.txt is also available (for PDF export optimization)
-            const hasFullTxt = await fetchLlmsFullTxt(tabUrl).then(t => t !== null).catch(() => false);
-            return {
-              baseUrl: urlObj.origin,
-              title: tabInfo.title || urlObj.hostname,
-              framework: 'sitemap' as const,
-              pages: llmsPages,
-              hasLlmsFullTxt: hasFullTxt,
-            };
-          }
-        } catch {
-          // llms.txt not available, fall through
-        }
-      }
-
-      // 2. Try sitemap.xml (covers 55% of sites)
-      if (tabUrl.startsWith('http')) {
-        try {
-          const sitemapPages = await fetchSitemap(tabUrl);
-          if (sitemapPages.length > 0) {
-            const urlObj = new URL(tabUrl);
-            const pathPrefix = urlObj.pathname.replace(/\/$/, '');
-
-            // Filter to pages under the current path prefix (e.g. /docs)
-            let filterPrefix = pathPrefix;
-            if (filterPrefix) {
-              const segments = filterPrefix.split('/').filter(Boolean);
-              if (segments.length > 1) {
-                const last = segments[segments.length - 1];
-                if (last.includes('.') || !sitemapPages.some((p) => p.path.startsWith(filterPrefix + '/'))) {
-                  segments.pop();
-                  filterPrefix = '/' + segments.join('/');
-                }
-              }
-            }
-
-            let filteredPages = sitemapPages;
-            if (filterPrefix && filterPrefix !== '/') {
-              filteredPages = sitemapPages.filter((p) =>
-                p.path.startsWith(filterPrefix)
-              );
-              if (filteredPages.length < 3 && sitemapPages.length > 10) {
-                filteredPages = sitemapPages;
-              }
-            }
-
-            // Multi-language handling: prefer English docs
-            const langPattern = /\/(?:docs|documentation|guide|api)\/([a-z]{2}(?:-[a-z]{2,4})?)\//i;
-            const languages = new Set<string>();
-            for (const p of filteredPages) {
-              const m = p.path.match(langPattern);
-              if (m) languages.add(m[1].toLowerCase());
-            }
-
-            if (languages.size > 1 && languages.has('en')) {
-              const enPages = filteredPages.filter((p) => {
-                const m = p.path.match(langPattern);
-                return m && m[1].toLowerCase() === 'en';
-              });
-              if (enPages.length > 0) {
-                filteredPages = enPages;
-              }
-            }
-
-            if (filteredPages.length >= 5) {
-              return {
-                baseUrl: urlObj.origin,
-                title: tabInfo.title || urlObj.hostname,
-                framework: 'sitemap' as const,
-                pages: filteredPages,
-              };
-            }
-          }
-        } catch {
-          // Sitemap not available, fallback
-        }
-      }
-
-      // 3. Try Huawei catalog API for HarmonyOS docs (Angular SPA, no sitemap)
-      if (tabUrl.includes('developer.huawei.com')) {
-        try {
-          const huaweiPages = await fetchHuaweiCatalog(tabUrl);
-          if (huaweiPages.length > 0) {
-            return {
-              baseUrl: 'https://developer.huawei.com',
-              title: tabInfo.title || 'HarmonyOS 文档',
-              framework: 'huawei' as const,
-              pages: huaweiPages,
-            };
-          }
-        } catch {
-          // Fall through to DOM analysis
-        }
-      }
-
-      return await analyzeDocSite(message.tabId);
-    }
 
     case 'GET_HISTORY':
       return await getHistory(message.limit);
@@ -1269,7 +1064,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       return await repairWechatSources(message.urls, senderTabId);
     }
 
-    case 'GENERATE_PDF':
     case 'EXPORT_PDF':
     case 'DOWNLOAD_PODCAST':
       // Handled via port connection (onConnect), not onMessage

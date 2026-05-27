@@ -59,7 +59,7 @@ describe('i18n', () => {
   describe('key coverage', () => {
     it('all app tab keys exist in both locales', () => {
       const keys = [
-        'app.tabBookmarks', 'app.tabDocs', 'app.tabPodcast', 'app.tabAI', 'app.tabMore',
+        'app.tabBookmarks', 'app.tabPodcast', 'app.tabAI', 'app.tabMore', 'app.tabYouTube', 'app.tabBilibili',
       ] as const;
       for (const key of keys) {
         setLocale('zh');

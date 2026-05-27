@@ -1,40 +1,6 @@
 // Document site framework types
 import type { BilibiliSourceInfo } from '@/services/bilibili';
 
-export type DocFramework =
-  | 'docusaurus'
-  | 'mkdocs'
-  | 'gitbook'
-  | 'vitepress'
-  | 'readthedocs'
-  | 'sphinx'
-  | 'mintlify'
-  | 'devsite'
-  | 'anthropic'
-  | 'sitemap'
-  | 'yuque'
-  | 'wechat'
-  | 'huawei'
-  | 'unknown';
-
-// Document page item
-export interface DocPageItem {
-  url: string;
-  title: string;
-  path: string;
-  level: number;
-  section?: string;
-}
-
-// Document site info
-export interface DocSiteInfo {
-  baseUrl: string;
-  title: string;
-  framework: DocFramework;
-  pages: DocPageItem[];
-  hasLlmsFullTxt?: boolean; // Site supports /llms-full.txt for bulk content export
-}
-
 // Import item
 export interface ImportItem {
   url: string;
@@ -98,17 +64,16 @@ export type MessageType =
   | { type: 'PARSE_RSS'; rssUrl: string }
   | { type: 'GET_CURRENT_TAB' }
   | { type: 'GET_ALL_TABS' }
-  | { type: 'ANALYZE_DOC_SITE'; tabId: number }
   | { type: 'GET_HISTORY'; limit?: number }
   | { type: 'CLEAR_HISTORY' }
   | { type: 'EXTRACT_CLAUDE_CONVERSATION'; tabId: number }
   | { type: 'IMPORT_CLAUDE_CONVERSATION'; conversation: ClaudeConversation; selectedMessageIds: string[] }
   | { type: 'EXPORT_PDF'; blobUrl: string; title: string }
-  | { type: 'GENERATE_PDF'; siteInfo: DocSiteInfo }
   | { type: 'FETCH_PODCAST'; url: string; count?: number }
   | { type: 'FETCH_YOUTUBE'; url: string }
   | { type: 'FETCH_YOUTUBE_MORE'; continuation: string }
   | { type: 'FETCH_BILIBILI'; url: string }
+  | { type: 'FETCH_BILIBILI_SPACE'; mid: string }
   | { type: 'DOWNLOAD_BILIBILI_SUBTITLES'; videos: BilibiliVideoItem[]; ownerName: string; desc: string }
   | { type: 'DOWNLOAD_BILIBILI_ZIP'; videos: BilibiliVideoItem[]; ownerName: string; desc: string }
   | { type: 'DOWNLOAD_BILIBILI_MERGED'; videos: BilibiliVideoItem[]; ownerName: string; desc: string; source: BilibiliSourceInfo }

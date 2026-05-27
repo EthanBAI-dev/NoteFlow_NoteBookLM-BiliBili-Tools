@@ -20,6 +20,7 @@ import type { ImportProgress } from '@/lib/types';
 import type { BookmarkItem } from '@/services/bookmarks';
 import type { PdfProgress } from '@/services/pdf-generator';
 import { t } from '@/lib/i18n';
+import { NotebookSelector } from '@/components/NotebookSelector';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -488,6 +489,9 @@ export function BookmarkPanel({ onProgress }: Props) {
       {pdfState === 'done' && (
         <p className="text-xs text-emerald-600 text-center">{t('bookmark.pdfSaved')}</p>
       )}
+
+      {/* Notebook selector */}
+      <NotebookSelector />
     </div>
   );
 }

@@ -52,6 +52,20 @@ export function parseBilibiliUrl(url: string): { bvid: string; page: number } | 
   }
 }
 
+export function isBilibiliSpaceUrl(url: string): boolean {
+  return /space\.bilibili\.com\/\d+/.test(url);
+}
+
+export function parseBilibiliSpaceUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const match = urlObj.pathname.match(/\/(\d+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── API Helpers ──
 
 const BILIBILI_HEADERS = {
@@ -117,6 +131,7 @@ export async function fetchBilibiliVideo(bvid: string): Promise<BilibiliResult> 
     let pageNum = 1;
 
     for (const section of sections) {
+      if (!section?.archives || !Array.isArray(section.archives)) continue;
       for (const archive of section.archives) {
         allVideos.push({
           bvid: archive.bvid,
@@ -167,6 +182,61 @@ export async function fetchBilibiliVideo(bvid: string): Promise<BilibiliResult> 
       type: 'video',
     },
     videos: singleVideo,
+  };
+}
+
+// ── Fetch UP主主页 Videos ──
+
+export interface BilibiliSpaceResult {
+  source: BilibiliSourceInfo;
+  videos: BilibiliVideoItem[];
+}
+
+export async function fetchBilibiliUserVideos(mid: string): Promise<BilibiliSpaceResult> {
+  const allVideos: BilibiliVideoItem[] = [];
+  let pageNum = 1;
+  const ps = 50;
+
+  // Fetch user info
+  const infoData = await apiFetch(`https://api.bilibili.com/x/space/wbi/acc/info?mid=${mid}`) as any;
+  const owner = infoData?.name || '';
+  const title = `${owner} 的视频列表`;
+
+  // Fetch video list (paginate up to 200 videos)
+  let hasMore = true;
+  while (hasMore && allVideos.length < 200) {
+    const listData = await apiFetch(
+      `https://api.bilibili.com/x/space/wbi/arc/search?mid=${mid}&ps=${ps}&pn=${pageNum}`
+    ) as any;
+
+    const vlist = listData?.list?.vlist || [];
+    for (const v of vlist) {
+      allVideos.push({
+        bvid: v.bvid,
+        cid: 0, // Will be resolved later during subtitle fetch
+        title: v.title,
+        page: pageNum,
+        url: `https://www.bilibili.com/video/${v.bvid}`,
+        duration: v.length ? parseInt(v.length, 10) : undefined,
+      });
+    }
+
+    const total = listData?.page?.count || 0;
+    hasMore = allVideos.length < total && vlist.length > 0;
+    pageNum++;
+  }
+
+  return {
+    source: {
+      bvid: mid,
+      title,
+      owner,
+      desc: '',
+      videoCount: allVideos.length,
+      isSeries: true,
+      type: 'series',
+    },
+    videos: allVideos,
   };
 }
 
@@ -286,7 +356,7 @@ export function mergeBilibiliSubtitles(
   const estimatedWords = Math.round(totalChars * 0.7);
 
   const lines: string[] = [
-    `# Kapture 提取：${source.title}（共 ${validResults.length} 集）`,
+    `# 字幕 提取：${source.title}（共 ${validResults.length} 集）`,
     '',
     `- **UP主：** ${source.owner || '未知'}`,
     `- **简介：** ${source.desc?.trim() || '暂无简介'}`,
@@ -308,6 +378,7 @@ export interface SubtitleFetchResult {
   markdown: string | null;
   error: string | null;
   lan_doc?: string;
+  rawBody?: BilibiliSubtitleBody[];
 }
 
 /**
@@ -400,6 +471,7 @@ export async function fetchVideoSubtitle(
       markdown,
       error: null,
       lan_doc: track.lan_doc,
+      rawBody: bodies,
     };
   } catch (err) {
     console.error(`[Bilibili] 提取字幕异常 bvid=${bvid} cid=${cid}`, err);

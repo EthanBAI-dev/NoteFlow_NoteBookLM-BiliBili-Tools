@@ -3,6 +3,7 @@ import { Youtube, Loader2, CheckCircle, AlertCircle, PlayCircle, ListVideo, User
 import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
+import { NotebookSelector } from '@/components/NotebookSelector';
 
 type State = 'idle' | 'loading' | 'loaded' | 'importing' | 'done' | 'error';
 
@@ -17,9 +18,10 @@ const sourceIcons = {
 interface Props {
   initialUrl?: string;
   onProgress: (progress: ImportProgress | null) => void;
+  fetchTrigger?: number;
 }
 
-export function YouTubeImport({ initialUrl, onProgress }: Props) {
+export function YouTubeImport({ initialUrl, onProgress, fetchTrigger }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
@@ -112,13 +114,23 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
   };
 
   // Auto-fetch when opened from a YouTube tab (initialUrl provided)
-  const autoFetched = useRef(false);
+  const lastAutoUrl = useRef<string | null>(null);
   useEffect(() => {
-    if (initialUrl && isYouTubeUrl(initialUrl) && !autoFetched.current) {
-      autoFetched.current = true;
+    if (initialUrl && isYouTubeUrl(initialUrl) && lastAutoUrl.current !== initialUrl) {
+      lastAutoUrl.current = initialUrl;
+      setUrl(initialUrl);
       handleFetch();
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Force re-fetch when user clicks "读取当前网页"
+  useEffect(() => {
+    if (fetchTrigger && fetchTrigger > 0 && initialUrl && isYouTubeUrl(initialUrl)) {
+      lastAutoUrl.current = null;
+      setUrl(initialUrl);
+      handleFetch();
+    }
+  }, [fetchTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleImport = () => {
     const toImport = videos.filter((v) => selected.has(v.id));
@@ -310,6 +322,9 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
           </ul>
         </div>
       )}
+
+      {/* Notebook selector */}
+      <NotebookSelector />
     </div>
   );
 }

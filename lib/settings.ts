@@ -3,22 +3,41 @@
  * the rest of the extension (notebook cache, bookmarks, history all use local).
  */
 
+export interface AISettings {
+  enabled: boolean;
+  provider: string;
+  apiKey: string;
+  model: string;
+  promptStyle: string;
+  customPrompt: string;
+}
+
 export interface Settings {
   /** Auto-rename sources NotebookLM names with a default placeholder like "Pasted Text". */
   autoRenamePastedSources: boolean;
+  /** AI polish settings for subtitle/text processing */
+  ai: AISettings;
 }
 
 const STORAGE_KEY = 'jetpackSettings';
 
 const DEFAULTS: Settings = {
   autoRenamePastedSources: true,
+  ai: {
+    enabled: false,
+    provider: 'deepseek',
+    apiKey: '',
+    model: '',
+    promptStyle: 'smooth',
+    customPrompt: '',
+  },
 };
 
 export async function getSettings(): Promise<Settings> {
   try {
     const result = await chrome.storage.local.get(STORAGE_KEY);
     const stored = result[STORAGE_KEY] as Partial<Settings> | undefined;
-    return { ...DEFAULTS, ...(stored || {}) };
+    return deepMerge(DEFAULTS, stored || {});
   } catch {
     return { ...DEFAULTS };
   }
@@ -26,16 +45,30 @@ export async function getSettings(): Promise<Settings> {
 
 export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
   const current = await getSettings();
-  const next = { ...current, ...patch };
+  const next = deepMerge(current, patch) as Settings;
   await chrome.storage.local.set({ [STORAGE_KEY]: next });
   return next;
+}
+
+function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+  const result = { ...target };
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const sv = source[key];
+    const tv = target[key];
+    if (sv && typeof sv === 'object' && !Array.isArray(sv) && tv && typeof tv === 'object' && !Array.isArray(tv)) {
+      result[key] = deepMerge(tv, sv as any);
+    } else if (sv !== undefined) {
+      result[key] = sv as T[keyof T];
+    }
+  }
+  return result;
 }
 
 export function onSettingsChanged(listener: (settings: Settings) => void): () => void {
   const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
     if (area !== 'local' || !changes[STORAGE_KEY]) return;
     const newValue = (changes[STORAGE_KEY].newValue || {}) as Partial<Settings>;
-    listener({ ...DEFAULTS, ...newValue });
+    listener(deepMerge(DEFAULTS, newValue));
   };
   chrome.storage.onChanged.addListener(handler);
   return () => chrome.storage.onChanged.removeListener(handler);
