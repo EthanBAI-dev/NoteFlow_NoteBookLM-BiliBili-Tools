@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="120" height="160" role="img" aria-labelledby="title2v desc2v">
+  <title id="title2v">Flow2Note - B Squared Vertical</title>
+  <desc id="desc2v">Stylized B and N letters combined</desc>
+  <defs>
+    <linearGradient id="biliGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FB7299" />
+      <stop offset="100%" style="stop-color:#00A1D6" />
+    </linearGradient>
+    <linearGradient id="noteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7C3AED" />
+      <stop offset="100%" style="stop-color:#A78BFA" />
+    </linearGradient>
+  </defs>
+
+  <!-- B letter -->
+  <circle cx="32" cy="35" r="28" fill="url(#biliGrad)" />
+  <rect x="28" y="17" width="12" height="36" fill="url(#biliGrad)" />
+  <rect x="30" y="19" width="8" height="14" rx="4" fill="#FFFFFF" />
+  <rect x="30" y="37" width="8" height="14" rx="4" fill="#FFFFFF" />
+
+  <!-- Connector line -->
+  <path d="M50,58 Q60,65 50,72" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- N letter -->
+  <rect x="36" y="80" width="42" height="48" rx="6" fill="url(#noteGrad)" />
+  <path d="M42,92 L42,112 L66,100 L66,120" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Text -->
+  <text x="60" y="155" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#1F2937" text-anchor="middle" letter-spacing="1">Flow2Note</text>
+</svg>

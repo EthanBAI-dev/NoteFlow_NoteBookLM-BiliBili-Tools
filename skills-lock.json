@@ -5,6 +5,11 @@
       "source": "rknall/claude-skills",
       "sourceType": "github",
       "computedHash": "c591208a052cc9f7deb77be1183e4627daf54dbf575ea2653f519f29fe3bd4c8"
+    },
+    "目标导向型项目复盘与笔记自动生成助手": {
+      "source": ".agents/skills/devlog-agent",
+      "sourceType": "local",
+      "computedHash": "local"
     }
   }
 }
