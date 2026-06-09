@@ -4,7 +4,7 @@
 
 import { getCurrentAuthuser } from '@/services/account-slots';
 
-const BATCHEXECUTE_URL = 'https://notebooklm.google.com/_/LabsTailwindUI/data/batchexecute';
+const BATCHEXECUTE_URL = 'https://notebooklm.google.com/_/LabsTailwindUi/data/batchexecute';
 const NLM_HOME_URL = 'https://notebooklm.google.com/';
 
 const RPC_LIST_NOTEBOOKS = 'wXbhsf';
@@ -29,44 +29,92 @@ export interface NotebookItem {
 }
 
 /**
- * Extract CSRF token (SNlM0e) from NotebookLM homepage HTML.
- * The token is embedded in the page's JavaScript initialization.
+ * Token pair extracted from NotebookLM homepage.
+ * Both tokens are required for successful batchexecute RPC calls.
+ */
+interface NlmTokens {
+  /** CSRF token (SNlM0e) — sent in POST body as `at` */
+  at: string;
+  /** Request token (cfb2h) — sent in URL query as `bl` */
+  bl: string;
+}
+
+/**
+ * Extract authentication tokens from NotebookLM homepage HTML.
+ *
+ * This is the KEY fix for multi-account switching: the reference
+ * implementation (add_to_NotebookLM) extracts BOTH `SNlM0e` (at)
+ * and `cfb2h` (bl) tokens from the homepage. The `bl` token MUST
+ * be included in the batchexecute URL query params — without it,
+ * Google's backend may reject the request or serve the wrong
+ * account's data.
  *
  * @param authuser - Optional Google account authuser index (0, 1, 2…).
  *                   When > 0, appends ?authuser=X to the request URL,
  *                   fetching the page for that specific account.
  */
-async function fetchCsrfToken(authuser?: number): Promise<string | null> {
+async function fetchTokens(authuser?: number): Promise<NlmTokens | null> {
   try {
     const url = authuser && authuser > 0
-      ? `${NLM_HOME_URL}?authuser=${authuser}`
+      ? `${NLM_HOME_URL}?authuser=${authuser}&pageId=none`
       : NLM_HOME_URL;
-    console.log(`[notebook-api] Fetching CSRF token from: ${url}`);
-    const resp = await fetch(url, { credentials: 'include' });
-    if (!resp.ok) {
-      console.warn(`[notebook-api] CSRF fetch: HTTP ${resp.status}`);
+    console.log(`[notebook-api] Fetching tokens from: ${url}`);
+
+    // Use AbortController timeout — matching the reference's fetchWithTimeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const resp = await fetch(url, {
+      credentials: 'include',
+      redirect: 'manual',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    // Reference logic: allow opaque redirects through (still try to read body)
+    if (!resp.ok && resp.type !== 'opaqueredirect') {
+      console.warn(`[notebook-api] Token fetch: HTTP ${resp.status} type=${resp.type}`);
       return null;
     }
+
     const html = await resp.text();
 
-    const match = html.match(/"SNlM0e":"([^"]+)"/);
-    const token = match ? match[1] : null;
-    console.log(`[notebook-api] CSRF token: ${token ? 'found (authuser=' + authuser + ')' : 'NOT FOUND'}`);
-    return token;
-  } catch {
-    console.warn('[notebook-api] CSRF fetch: network error');
+    // If the response was a redirect, html will be empty — detect quickly
+    if (!html || html.length < 100) {
+      console.warn(`[notebook-api] Token fetch: empty/short response (${html.length} chars) — possible redirect`);
+      return null;
+    }
+
+    // Extract both tokens from the HTML
+    // Pattern matches the exact format Google embeds: "key":"value"
+    const atMatch = html.match(/"SNlM0e":"([^"]+)"/);
+    const blMatch = html.match(/"cfb2h":"([^"]+)"/);
+    const at = atMatch ? atMatch[1] : null;
+    const bl = blMatch ? blMatch[1] : null;
+
+    if (!at || !bl) {
+      console.warn(`[notebook-api] Tokens: at=${!!at} bl=${!!bl} (authuser=${authuser})`);
+      // Log first 500 chars of HTML for debugging
+      console.warn(`[notebook-api] HTML preview: ${html.slice(0, 500)}`);
+      return null;
+    }
+
+    console.log(`[notebook-api] Tokens OK: at=${at.slice(0, 8)}... bl=${bl.slice(0, 8)}... (authuser=${authuser})`);
+    return { at, bl };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[notebook-api] Token fetch: ${msg}`);
     return null;
   }
 }
 
 /**
- * Encode an RPC request into batchexecute format.
- * Format: [[[rpc_id, json_params, null, "generic"]]]
+ * Generate a random request ID for batchexecute (matching Google's format).
+ * The _reqid parameter is used for request deduplication — the reference
+ * implementation includes it in every batchexecute URL.
  */
-function encodeRpcRequest(rpcId: string, params: unknown[]): string {
-  const paramsJson = JSON.stringify(params);
-  const inner = [rpcId, paramsJson, null, 'generic'];
-  return JSON.stringify([[inner]]);
+function generateReqId(): string {
+  return String(Math.floor(Math.random() * 900000 + 100000));
 }
 
 /**
@@ -131,28 +179,40 @@ export async function fetchNotebooks(): Promise<NotebookItem[]> {
   // Get the currently selected account's authuser index
   const authuser = await getCurrentAuthuser();
 
-  // Step 1: Get CSRF token from homepage (with account-specific authuser)
-  const csrfToken = await fetchCsrfToken(authuser);
-  if (!csrfToken) {
-    console.warn('[notebook-api] Failed to get CSRF token — user may not be logged in');
+  // Step 1: Get both tokens from homepage (with account-specific authuser)
+  const tokens = await fetchTokens(authuser);
+  if (!tokens) {
+    console.warn('[notebook-api] Failed to get tokens — user may not be logged in');
     return [];
   }
 
-  // Step 2: Build batchexecute request
+  // Step 2: Build batchexecute request (matching reference exactly)
   const params = [null, 1, null, [2]]; // LIST_NOTEBOOKS params
-  const fReq = encodeRpcRequest(RPC_LIST_NOTEBOOKS, params);
+  const reqId = generateReqId();
 
-  const urlParams = new URLSearchParams({
-    rpcids: RPC_LIST_NOTEBOOKS,
-    'source-path': '/',
-    rt: 'c',
-  });
+  const url = new URL(BATCHEXECUTE_URL);
+  url.searchParams.set('rpcids', RPC_LIST_NOTEBOOKS);
+  url.searchParams.set('source-path', '/');
+  url.searchParams.set('bl', tokens.bl);
+  url.searchParams.set('_reqid', reqId);
+  url.searchParams.set('rt', 'c');
 
-  const body = `f.req=${encodeURIComponent(fReq)}&at=${encodeURIComponent(csrfToken)}&`;
+  // CRITICAL: Include authuser in URL for multi-account support
+  // Without this, Google's backend uses the default account (0) even
+  // when we fetched tokens for a different account.
+  if (authuser > 0) {
+    url.searchParams.set('authuser', String(authuser));
+  }
+
+  // Build form body matching reference exactly
+  const body = new URLSearchParams({
+    'f.req': JSON.stringify([[[RPC_LIST_NOTEBOOKS, JSON.stringify(params), null, 'generic']]]),
+    'at': tokens.at,
+  }).toString();
 
   // Step 3: Make the RPC call
   try {
-    const resp = await fetch(`${BATCHEXECUTE_URL}?${urlParams}`, {
+    const resp = await fetch(url.toString(), {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -162,7 +222,7 @@ export async function fetchNotebooks(): Promise<NotebookItem[]> {
     });
 
     if (!resp.ok) {
-      console.error('[notebook-api] RPC failed:', resp.status);
+      console.error('[notebook-api] RPC failed:', resp.status, resp.statusText);
       return [];
     }
 
@@ -177,65 +237,49 @@ export async function fetchNotebooks(): Promise<NotebookItem[]> {
 /**
  * Parse notebook list from batchexecute response.
  *
- * Response format (after anti-XSSI stripping):
- * Multiple lines of response chunks. The actual data is in a JSON-encoded
- * string within the response array.
+ * Response format (matching reference add_to_NotebookLM):
+ *   )]}'\n\nXX[[["wrb.fr","wXbhsf","[...]",...
  *
- * Each notebook in the response: [title, ???, id, ...]
+ * The actual data is in a JSON-encoded string within the wrb.fr response.
+ * Each notebook item: [title, sources_array, id, emoji, ...]
  */
 function parseNotebookList(rawText: string): NotebookItem[] {
   try {
-    const cleaned = stripAntiXssi(rawText);
+    // Reference approach: find the wrb.fr line directly
+    const lines = rawText.split('\n');
+    const dataLine = lines.find(line => line.includes('wrb.fr'));
+    if (!dataLine) {
+      console.warn('[notebook-api] No wrb.fr line found in response');
+      return [];
+    }
 
-    const results: NotebookItem[] = [];
+    const parsed = JSON.parse(dataLine);
+    const innerData = JSON.parse(parsed[0][2]);
 
-    const lines = cleaned.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith('[')) continue;
+    if (!innerData || !innerData[0]) {
+      console.warn('[notebook-api] Empty inner data');
+      return [];
+    }
 
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (!Array.isArray(parsed)) continue;
+    const notebooks: NotebookItem[] = [];
+    for (const item of innerData[0]) {
+      if (!Array.isArray(item) || item.length < 3) continue;
 
-        for (const outerItem of parsed) {
-          if (!Array.isArray(outerItem)) continue;
-          const candidates = outerItem[0] === 'wrb.fr' ? [outerItem] : outerItem.filter(Array.isArray);
-          for (const item of candidates) {
-            if (!Array.isArray(item)) continue;
-            if (item[0] === 'wrb.fr' && item[1] === RPC_LIST_NOTEBOOKS && typeof item[2] === 'string') {
-              const innerData = JSON.parse(item[2]);
-              console.log('[notebook-api] innerData type:', Array.isArray(innerData) ? `array[${innerData.length}]` : typeof innerData);
-              if (innerData.length > 0) {
-                console.log('[notebook-api] innerData[0] type:', Array.isArray(innerData[0]) ? `array[${innerData[0].length}]` : typeof innerData[0]);
-              }
+      const rawTitle = typeof item[0] === 'string' ? item[0] : '';
+      const title = rawTitle.trim() || 'Untitled';
+      const id = typeof item[2] === 'string' ? item[2] : '';
 
-              const rawList = Array.isArray(innerData) && Array.isArray(innerData[0])
-                ? innerData[0]
-                : (Array.isArray(innerData) ? innerData : []);
-
-              console.log('[notebook-api] rawList length:', rawList.length);
-
-              for (const nb of rawList) {
-                if (!Array.isArray(nb)) continue;
-                const rawTitle = typeof nb[0] === 'string' ? nb[0] : '';
-                const title = rawTitle.replace(/^thought\n/, '').trim() || 'Untitled';
-                const id = typeof nb[2] === 'string' ? nb[2] : '';
-                if (id) {
-                  results.push({ id, title, url: `https://notebooklm.google.com/notebook/${id}` });
-                }
-              }
-              console.log('[notebook-api] Parsed', results.length, 'notebooks');
-              return results;
-            }
-          }
-        }
-      } catch {
-        // Not valid JSON, skip
+      if (id) {
+        notebooks.push({
+          id,
+          title,
+          url: `https://notebooklm.google.com/notebook/${id}`,
+        });
       }
     }
 
-    return results;
+    console.log(`[notebook-api] Parsed ${notebooks.length} notebooks`);
+    return notebooks;
   } catch (e) {
     console.error('[notebook-api] Parse error:', e);
     return [];
@@ -250,22 +294,34 @@ async function rpcCall(
   sourcePath = '/',
 ): Promise<string> {
   const authuser = await getCurrentAuthuser();
-  const csrfToken = await fetchCsrfToken(authuser);
-  if (!csrfToken) {
-    throw new Error('[notebook-api] Failed to get CSRF token — user may not be logged into notebooklm.google.com in Chrome');
+  const tokens = await fetchTokens(authuser);
+  if (!tokens) {
+    throw new Error('[notebook-api] Failed to get tokens — user may not be logged into notebooklm.google.com in Chrome');
   }
 
-  const fReq = encodeRpcRequest(rpcId, params);
-  const urlParams = new URLSearchParams({
-    rpcids: rpcId,
-    'source-path': sourcePath,
-    rt: 'c',
-  });
-  const body = `f.req=${encodeURIComponent(fReq)}&at=${encodeURIComponent(csrfToken)}&`;
+  const reqId = generateReqId();
 
-  console.log(`[notebook-api] Calling ${rpcId} with sourcePath=${sourcePath}`);
+  // Build URL matching reference exactly
+  const url = new URL(BATCHEXECUTE_URL);
+  url.searchParams.set('rpcids', rpcId);
+  url.searchParams.set('source-path', sourcePath);
+  url.searchParams.set('bl', tokens.bl);
+  url.searchParams.set('_reqid', reqId);
+  url.searchParams.set('rt', 'c');
 
-  const resp = await fetch(`${BATCHEXECUTE_URL}?${urlParams}`, {
+  if (authuser > 0) {
+    url.searchParams.set('authuser', String(authuser));
+  }
+
+  // Build form body matching reference exactly
+  const body = new URLSearchParams({
+    'f.req': JSON.stringify([[[rpcId, JSON.stringify(params), null, 'generic']]]),
+    'at': tokens.at,
+  }).toString();
+
+  console.log(`[notebook-api] Calling ${rpcId} sourcePath=${sourcePath} authuser=${authuser}`);
+
+  const resp = await fetch(url.toString(), {
     method: 'POST',
     credentials: 'include',
     headers: {

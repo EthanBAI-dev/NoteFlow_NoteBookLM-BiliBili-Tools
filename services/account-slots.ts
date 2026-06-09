@@ -44,6 +44,42 @@ const LIST_ACCOUNTS_URL =
 
 // ── Storage helpers ──────────────────────────────────
 
+/**
+ * User-action lock: prevents background auto-sync from reverting
+ * the user's explicit account selection within a short window.
+ *
+ * When `activateSlot()` is called (user explicitly switches account),
+ * this timestamp is set. Subsequent auto-syncs (from background
+ * webRequest/tabs.onUpdated listeners) that fire within COOLDOWN_MS
+ * will be SKIPPED, preserving the user's choice.
+ *
+ * The lock is module-level (shared across all imports), so it works
+ * regardless of which context calls `fetchAndCacheAccounts`.
+ */
+let lastUserActionTimestamp = 0;
+const USER_ACTION_COOLDOWN_MS = 3000;
+
+/** Mark that the user has performed an explicit account action. */
+export function markUserAction(): void {
+  lastUserActionTimestamp = Date.now();
+}
+
+/**
+ * Check if the current auto-sync should be skipped due to a recent
+ * user action. After the cooldown window expires, auto-sync resumes.
+ */
+function shouldSkipAutoSync(): boolean {
+  if (lastUserActionTimestamp === 0) return false;
+  const elapsed = Date.now() - lastUserActionTimestamp;
+  if (elapsed < USER_ACTION_COOLDOWN_MS) {
+    console.log(
+      `[AccountSlots] Skipping auto-sync: user action ${elapsed}ms ago (cooldown=${USER_ACTION_COOLDOWN_MS}ms)`,
+    );
+    return true;
+  }
+  return false;
+}
+
 export async function getCachedSlots(): Promise<GoogleAccountSlot[]> {
   const result = await chrome.storage.local.get(CACHED_SLOTS_KEY);
   const slots = result[CACHED_SLOTS_KEY];
@@ -192,6 +228,12 @@ export async function logSlotDebug(
  * This prevents background syncs from reverting the user's choice.
  */
 export async function fetchAndCacheAccounts(): Promise<GoogleAccountSlot[]> {
+  // Skip if user just switched accounts (prevents background reverts)
+  if (shouldSkipAutoSync()) {
+    const cached = await getCachedSlots();
+    return cached;
+  }
+
   try {
     const resp = await fetch(LIST_ACCOUNTS_URL, {
       credentials: 'include',
@@ -336,6 +378,10 @@ function hashEmail(email: string): string {
  * @returns The authuser index of the activated account
  */
 export async function activateSlot(email: string): Promise<number> {
+  // Mark user action immediately to prevent background auto-sync
+  // from reverting this selection during the cooldown window.
+  markUserAction();
+
   const slots = await getCachedSlots();
   const target = slots.find((s) => s.email === email);
 

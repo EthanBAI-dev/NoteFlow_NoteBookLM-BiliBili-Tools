@@ -66,13 +66,6 @@ export default defineContentScript({
         sendResponse({ success: true, data: info });
         return true;
       }
-
-      // Extract Google account info from the page
-      if (message.type === 'GET_GOOGLE_ACCOUNT') {
-        const account = extractGoogleAccount();
-        sendResponse({ success: true, data: account });
-        return true;
-      }
     });
 
     // Auto-inject banners if issues detected
@@ -1772,69 +1765,6 @@ interface NotebookInfo {
   id: string;
   title: string;
   url: string;
-}
-
-/**
- * Extract Google account info from the NotebookLM page.
- *
- * Google's Material header renders the user avatar button with an aria-label
- * containing the email address, e.g.:
- *   "Google Account: user@gmail.com\nUser Name\n..."
- * The profile photo is an <img> with src pointing to lh3.googleusercontent.com.
- */
-function extractGoogleAccount(): { email: string; name: string; photoUrl: string } | null {
-  // Strategy 1: Find the user avatar button and read its aria-label
-  const allElements = document.querySelectorAll<HTMLElement>('[aria-label*="Google Account"]');
-  for (const el of allElements) {
-    const label = el.getAttribute('aria-label') || '';
-    const emailMatch = label.match(/Google\s*Account:\s*(\S+@\S+)/i);
-    if (emailMatch) {
-      const email = emailMatch[1].trim();
-      const parts = label.split('\n').map(s => s.trim()).filter(Boolean);
-      const name = parts.length > 1 ? parts[1] : email.split('@')[0];
-      return { email, name, photoUrl: `https://lh3.googleusercontent.com/a/default-user=s96-c` };
-    }
-  }
-
-  // Strategy 2: Look for profile images with Google photo URL patterns
-  const profileImgs = document.querySelectorAll<HTMLImageElement>(
-    'img[src*="lh3.googleusercontent.com"], img[src*="googleusercontent.com"]'
-  );
-  if (profileImgs.length > 0) {
-    const img = profileImgs[0];
-    const photoUrl = img.src;
-    const parentButton = img.closest('[aria-label]');
-    if (parentButton) {
-      const label = parentButton.getAttribute('aria-label') || '';
-      const emailMatch = label.match(/Google\s*Account:\s*(\S+@\S+)/i);
-      if (emailMatch) {
-        return { email: emailMatch[1].trim(), name: emailMatch[1].split('@')[0], photoUrl };
-      }
-    }
-    const emailEl = document.querySelector('[data-email], [data-account-email]');
-    if (emailEl) {
-      const email = emailEl.getAttribute('data-email') ||
-                    emailEl.getAttribute('data-account-email') || '';
-      if (email.includes('@')) {
-        return { email, name: email.split('@')[0], photoUrl };
-      }
-    }
-  }
-
-  // Strategy 3: data-email attributes
-  const accountEmails = document.querySelectorAll<HTMLElement>('[data-email], [data-account-email]');
-  for (const el of accountEmails) {
-    const email = el.getAttribute('data-email') || el.getAttribute('data-account-email') || '';
-    if (email.includes('@')) {
-      return {
-        email,
-        name: email.split('@')[0],
-        photoUrl: `https://lh3.googleusercontent.com/a/default-user=s96-c`,
-      };
-    }
-  }
-
-  return null;
 }
 
 /**

@@ -46,12 +46,7 @@ const zh = {
   'app.tabMore': '更多',
 
   // ── Notebook Selector ──
-  'notebook.noNotebook': '请先打开 NotebookLM',
-  'notebook.open': '打开',
-  'notebook.current': '当前笔记本',
-  'notebook.refresh': '刷新',
   'notebook.openInTab': '在标签页中打开',
-  'notebook.active': '当前',
 
   // ── PodcastImport ──
   'podcast.link': '播客链接',
@@ -362,12 +357,7 @@ const en: Record<keyof typeof zh, string> = {
   'app.tabMore': 'More',
 
   // ── Notebook Selector ──
-  'notebook.noNotebook': 'Open NotebookLM first',
-  'notebook.open': 'Open',
-  'notebook.current': 'Current notebook',
-  'notebook.refresh': 'Refresh',
   'notebook.openInTab': 'Open in tab',
-  'notebook.active': 'Active',
 
   // ── PodcastImport ──
   'podcast.link': 'Podcast Link',

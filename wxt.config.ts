@@ -35,6 +35,7 @@ export default defineConfig({
       'offscreen',
       'identity',
       'sidePanel',
+      'webRequest',
     ],
     host_permissions: [
       'https://notebooklm.google.com/*',
@@ -45,6 +46,7 @@ export default defineConfig({
       'https://www.bilibili.com/*',
       'https://i.hdslb.com/*',
       'https://www.googleapis.com/*',
+      'https://accounts.google.com/*',
     ],
     oauth2: {
       client_id: 'KAPTURE_OAUTH2_CLIENT_ID_PLACEHOLDER',

@@ -1152,64 +1152,26 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     case 'IS_BOOKMARKED':
       return await isBookmarked(message.url);
 
-    // ── Notebook Info ──
+    // ── Notebook Info (Refactored: Pure API approach) ──
+    // Replaced the legacy two-phase strategy (API → content-script fallback)
+    // with a single linear API fetch. The fallback required an open NLM tab
+    // and was unreliable across account switches. The batchexecute API works
+    // without any tabs open and correctly handles ?authuser=X for multi-account.
     case 'GET_NOTEBOOKS': {
-      // Primary: fetch via batchexecute API (works without open NLM tabs)
-      const apiNotebooks = await fetchNotebooksApi(message.force);
-      if (apiNotebooks.length > 0) {
-        // Detect current notebook from any open NLM tab URL
-        let current: { id: string; title: string; url: string } | null = null;
-        const nlmTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/notebook/*' });
-        if (nlmTabs.length > 0) {
-          const tabUrl = nlmTabs[0].url || '';
-          const match = tabUrl.match(/\/notebook\/([^/?#]+)/);
-          if (match) {
-            current = apiNotebooks.find(nb => nb.id === match[1]) || null;
-          }
-        }
-        return { current, notebooks: apiNotebooks };
-      }
+      const notebooks = await fetchNotebooksApi(message.force);
 
-      // Fallback: content-script approach (requires open NLM tabs)
-      console.log('[background] API fetch returned empty, falling back to content script');
-      const fallbackTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/*' });
-      const notebooks: Array<{ id: string; title: string; url: string }> = [];
-      const seen = new Set<string>();
-      let fallbackCurrent: { id: string; title: string; url: string } | null = null;
-
-      for (const tab of fallbackTabs) {
-        if (!tab.id) continue;
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['content-scripts/notebooklm.js'],
-          }).catch(() => {});
-
-          const resp = await new Promise<{ success: boolean; data?: { current: { id: string; title: string; url: string } | null; list: Array<{ id: string; title: string; url: string }> } }>((resolve) => {
-            chrome.tabs.sendMessage(tab.id!, { type: 'GET_NOTEBOOK_INFO' }, (r) => {
-              if (chrome.runtime.lastError) resolve({ success: false });
-              else resolve(r || { success: false });
-            });
-          });
-
-          if (resp.success && resp.data) {
-            if (resp.data.current && !seen.has(resp.data.current.id)) {
-              seen.add(resp.data.current.id);
-              fallbackCurrent = resp.data.current;
-              notebooks.push(resp.data.current);
-            }
-            for (const nb of resp.data.list) {
-              if (!seen.has(nb.id)) {
-                seen.add(nb.id);
-                notebooks.push(nb);
-              }
-            }
-          }
-        } catch {
-          // Tab may not be ready
+      // Detect current notebook from any open NLM tab URL (UI convenience)
+      let current: { id: string; title: string; url: string } | null = null;
+      const nlmTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/notebook/*' });
+      if (nlmTabs.length > 0) {
+        const tabUrl = nlmTabs[0].url || '';
+        const match = tabUrl.match(/\/notebook\/([^/?#]+)/);
+        if (match) {
+          current = notebooks.find(nb => nb.id === match[1]) || null;
         }
       }
-      return { current: fallbackCurrent, notebooks };
+
+      return { current, notebooks };
     }
 
     default:
