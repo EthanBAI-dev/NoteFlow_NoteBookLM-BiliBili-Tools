@@ -10,6 +10,7 @@ import { ClaudeImport } from '@/components/ClaudeImport';
 import { YouTubeImport } from '@/components/YouTubeImport';
 import { BilibiliImport } from '@/components/BilibiliImport';
 import { NotebookSelector } from '@/components/NotebookSelector';
+import { GoogleAccountSelector } from '@/components/GoogleAccountSelector';
 import { getOpState } from '@/services/op-state';
 import { LayersIcon } from '@/components/LayersIcon';
 import { MorePanel } from '@/components/MorePanel';
@@ -163,8 +164,13 @@ export default function App() {
       {/* Rescue banner — shown when on NotebookLM page */}
       {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
 
-      {/* Unified notebook selector — shared across all import tabs */}
+      {/* Google account selector — above the notebook selector */}
       <div className="px-4 pt-3">
+        <GoogleAccountSelector />
+      </div>
+
+      {/* Unified notebook selector — shared across all import tabs */}
+      <div className="px-4 pt-2 pb-1">
         <NotebookSelector />
       </div>
 
