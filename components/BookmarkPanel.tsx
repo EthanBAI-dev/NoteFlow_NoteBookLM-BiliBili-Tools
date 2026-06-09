@@ -8,7 +8,6 @@ import {
   Trash2,
   FileDown,
   Copy,
-  BookOpen,
   FolderPlus,
   FolderInput,
   ChevronDown,
@@ -23,11 +22,12 @@ import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
+  onImportHandlerChange?: (handler: (() => void) | null) => void;
 }
 
 type PanelState = 'idle' | 'loading' | 'importing' | 'exporting' | 'success' | 'error';
 
-export function BookmarkPanel({ onProgress }: Props) {
+export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -185,6 +185,13 @@ export function BookmarkPanel({ onProgress }: Props) {
       }
     });
   };
+
+  // Register import handler for unified button
+  useEffect(() => {
+    onImportHandlerChange?.(selectedIds.size > 0 ? handleImportToNotebookLM : null);
+    return () => onImportHandlerChange?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onImportHandlerChange, handleImportToNotebookLM, selectedIds.size]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -435,18 +442,6 @@ export function BookmarkPanel({ onProgress }: Props) {
                   </button>
                 </div>
               )}
-
-              <button
-                onClick={handleImportToNotebookLM}
-                disabled={state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-                className="btn-press w-full py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
-              >
-                {state === 'importing' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</>
-                ) : (
-                  <><BookOpen className="w-4 h-4" />{t('bookmark.importToNlm', { count: selectedIds.size })}</>
-                )}
-              </button>
             </div>
           )}
         </>

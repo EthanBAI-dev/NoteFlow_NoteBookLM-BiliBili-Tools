@@ -12,6 +12,7 @@ import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
+  onImportHandlerChange?: (handler: (() => void) | null) => void;
 }
 
 type ImportState = 'idle' | 'extracting' | 'ready' | 'importing' | 'success' | 'error';
@@ -51,7 +52,7 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
-export function ClaudeImport({ onProgress }: Props) {
+export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   const [state, setState] = useState<ImportState>('idle');
   const [error, setError] = useState('');
   const [conversation, setConversation] = useState<ClaudeConversation | null>(null);
@@ -155,6 +156,13 @@ export function ClaudeImport({ onProgress }: Props) {
       }
     );
   };
+
+  // Register import handler for unified button
+  useEffect(() => {
+    onImportHandlerChange?.(selectedPairIds.size > 0 ? handleImport : null);
+    return () => onImportHandlerChange?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onImportHandlerChange, handleImport, selectedPairIds.size, conversation]);
 
   const togglePair = (id: string) => {
     setSelectedPairIds((prev) => {
@@ -331,19 +339,8 @@ export function ClaudeImport({ onProgress }: Props) {
         ))}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons — share card only, import moved to unified button */}
       <div className="flex gap-2">
-        <button
-          onClick={handleImport}
-          disabled={state === 'importing' || selectedPairIds.size === 0}
-          className="flex-1 py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-        >
-          {state === 'importing' ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.importingBtn')}</>
-          ) : (
-            <>{t('claude.importSelected', { count: selectedPairIds.size })}</>
-          )}
-        </button>
         <button
           onClick={handleShareCard}
           disabled={state === 'importing' || selectedPairIds.size === 0}

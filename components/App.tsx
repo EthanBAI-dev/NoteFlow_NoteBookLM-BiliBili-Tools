@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { History, MessageCircle, Headphones, MoreHorizontal, Youtube, Tv2, RefreshCw } from 'lucide-react';
+import { History, MessageCircle, Headphones, MoreHorizontal, Youtube, Tv2, RefreshCw, Upload } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -29,6 +29,14 @@ export default function App() {
   const [initialBilibiliUrl, setInitialBilibiliUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
+
+  // ── Shared import handler (registered by active tab) ──
+  const [hasImportHandler, setHasImportHandler] = useState(false);
+  const importHandlerRef = useRef<(() => void) | null>(null);
+  const registerImportHandler = useCallback((handler: (() => void) | null) => {
+    importHandlerRef.current = handler;
+    setHasImportHandler(handler !== null);
+  }, []);
 
   const handleTabChange = useCallback(async (tab: string) => {
     const op = await getOpState();
@@ -103,6 +111,10 @@ export default function App() {
     return <HistoryPanel onClose={() => setShowHistory(false)} />;
   }
 
+  const handleSharedImport = () => {
+    importHandlerRef.current?.();
+  };
+
   return (
     <div className="min-h-[480px] bg-surface">
       {/* Header — frosted glass */}
@@ -164,19 +176,13 @@ export default function App() {
       {/* Rescue banner — shown when on NotebookLM page */}
       {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
 
-      {/* Google account selector — above the notebook selector */}
+      {/* ════════════════════════════════════════════════════════
+         Group 1: Web Modules — tab-based content panels
+         ════════════════════════════════════════════════════════ */}
       <div className="px-4 pt-3">
-        <GoogleAccountSelector />
-      </div>
-
-      {/* Unified notebook selector — shared across all import tabs */}
-      <div className="px-4 pt-2 pb-1">
-        <NotebookSelector />
-      </div>
-
-      {/* Tabs */}
-      <Tabs.Root value={activeTab} onValueChange={handleTabChange} className="flex flex-col">
-        <Tabs.List className="flex glass border-b border-border px-2 gap-0.5" data-tour="tab-list">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <Tabs.Root value={activeTab} onValueChange={handleTabChange}>
+            <Tabs.List className="flex border-b border-gray-200 px-2 gap-0.5" data-tour="tab-list">
           {[
             { value: 'bilibili', icon: Tv2, label: t('app.tabBilibili') },
             { value: 'youtube', icon: Youtube, label: t('app.tabYouTube') },
@@ -205,11 +211,11 @@ export default function App() {
         </Tabs.List>
 
         <Tabs.Content value="bilibili" className="p-4 animate-fade-in">
-          <BilibiliImport initialUrl={initialBilibiliUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} />
+          <BilibiliImport initialUrl={initialBilibiliUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} onImportHandlerChange={registerImportHandler} />
         </Tabs.Content>
 
         <Tabs.Content value="youtube" className="p-4 animate-fade-in">
-          <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} />
+          <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} onImportHandlerChange={registerImportHandler} />
         </Tabs.Content>
 
         <Tabs.Content value="podcast" className="p-4 animate-fade-in">
@@ -217,17 +223,40 @@ export default function App() {
         </Tabs.Content>
 
         <Tabs.Content value="bookmark" className="p-4 animate-fade-in">
-          <BookmarkPanel onProgress={setImportProgress} />
+          <BookmarkPanel onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
         </Tabs.Content>
 
         <Tabs.Content value="claude" className="p-4 animate-fade-in">
-          <ClaudeImport onProgress={setImportProgress} />
+          <ClaudeImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
         </Tabs.Content>
 
         <Tabs.Content value="more" className="p-4 animate-fade-in">
           <MorePanel onProgress={setImportProgress} />
         </Tabs.Content>
       </Tabs.Root>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════
+         Group 2: NotebookLM Settings — account, notebook list, import
+         ════════════════════════════════════════════════════════ */}
+      <div className="px-4 pt-4 pb-4 space-y-4">
+        {/* NotebookLM Account selector */}
+        <GoogleAccountSelector />
+
+        {/* Notebook selector */}
+        <NotebookSelector />
+
+        {/* Unified Import button */}
+        <button
+          onClick={handleSharedImport}
+          disabled={!hasImportHandler}
+          className="w-full py-2.5 bg-notebooklm-blue hover:bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+        >
+          <Upload className="w-4 h-4" />
+          {t('notebook.importToNlm')}
+        </button>
+      </div>
 
       {/* First-time onboarding tour */}
       <OnboardingTour />

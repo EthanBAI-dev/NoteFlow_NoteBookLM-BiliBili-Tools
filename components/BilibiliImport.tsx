@@ -35,6 +35,7 @@ interface Props {
   initialUrl?: string;
   onProgress: (progress: ImportProgress | null) => void;
   fetchTrigger?: number;
+  onImportHandlerChange?: (handler: (() => void) | null) => void;
 }
 
 /**
@@ -60,7 +61,7 @@ function refineMode(source: BilibiliSourceInfo, _videos: BilibiliVideoItem[]): F
   return 'single';
 }
 
-export function BilibiliImport({ initialUrl, onProgress, fetchTrigger }: Props) {
+export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportHandlerChange }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
@@ -330,6 +331,13 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger }: Props) 
       );
     }
   };
+
+  // Register import handler for unified button
+  useEffect(() => {
+    onImportHandlerChange?.(selected.size > 0 ? handleImport : null);
+    return () => onImportHandlerChange?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onImportHandlerChange, handleImport, selected.size, source]);
 
   const toggleVideo = (key: string) => {
     setSelected(prev => {
@@ -608,17 +616,6 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger }: Props) 
                   {t('bilibili.merged')}
                 </button>
               </div>
-              <button
-                onClick={handleImport}
-                disabled={selected.size === 0 || isWorking}
-                className="w-full py-2.5 bg-[#00a1d6] hover:bg-[#0090c0] text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-              >
-                {state === 'importing' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />{t('bilibili.importing')}</>
-                ) : (
-                  <><Upload className="w-4 h-4" />{t('bilibili.importOneClick')}（{selected.size}）</>
-                )}
-              </button>
             </div>
           )}
         </div>

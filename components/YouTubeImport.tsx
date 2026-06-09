@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Youtube, Loader2, CheckCircle, AlertCircle, PlayCircle, ListVideo, User, ChevronDown } from 'lucide-react';
+import { Youtube, Loader2, AlertCircle, PlayCircle, ListVideo, User, ChevronDown } from 'lucide-react';
 import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
@@ -18,9 +18,10 @@ interface Props {
   initialUrl?: string;
   onProgress: (progress: ImportProgress | null) => void;
   fetchTrigger?: number;
+  onImportHandlerChange?: (handler: (() => void) | null) => void;
 }
 
-export function YouTubeImport({ initialUrl, onProgress, fetchTrigger }: Props) {
+export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHandlerChange }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
@@ -161,6 +162,13 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger }: Props) {
     });
   };
 
+  // Register import handler for unified button
+  useEffect(() => {
+    onImportHandlerChange?.(selected.size > 0 ? handleImport : null);
+    return () => onImportHandlerChange?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onImportHandlerChange, handleImport, selected.size]);
+
   const toggleVideo = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -269,25 +277,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger }: Props) {
             </button>
           )}
         </div>
-      )}
-
-      {/* Import Button */}
-      {videos.length > 0 && (
-        <button
-          onClick={handleImport}
-          disabled={selected.size === 0 || state === 'importing'}
-          className="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-        >
-          {state === 'importing' ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</>
-          ) : state === 'done' ? (
-            <><CheckCircle className="w-4 h-4" />{t('youtube.importDone')}</>
-          ) : videos.length === 1 ? (
-            <><PlayCircle className="w-4 h-4" />{t('youtube.importThisVideo')}</>
-          ) : (
-            <><Youtube className="w-4 h-4" />{t('youtube.importToNlm', { count: selected.size })}</>
-          )}
-        </button>
       )}
 
       {/* Results */}

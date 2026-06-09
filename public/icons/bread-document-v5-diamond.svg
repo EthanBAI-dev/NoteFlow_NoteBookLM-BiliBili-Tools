@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 510" width="450" height="510" role="img" aria-labelledby="breadV5Title">
+  <title id="breadV5Title">记忆面包 - 菱形星星版本</title>
+  <style>
+    .crust { fill: #78350F; }
+    .bread { fill: #FDE68A; }
+    .star { fill: #78350F; }
+    .star-inner { fill: #FDE68A; }
+  </style>
+
+  <!-- Shadow -->
+  <ellipse cx="225" cy="472" rx="140" ry="12" fill="#451A03" opacity="0.08"/>
+
+  <!-- CRUST — outer bread shell -->
+  <path
+    d="
+      M 80,44
+      C 68,44 65,50 65,60
+      L 65,442
+      C 65,452 73,458 83,458
+      L 367,458
+      C 377,458 385,452 385,442
+      L 385,115
+      L 305,35
+      L 80,35
+      C 68,35 65,40 65,48
+      Z
+    "
+    class="crust"
+  />
+
+  <!-- BREAD INTERIOR -->
+  <path
+    d="
+      M 89,60
+      C 81,60 81,64 81,70
+      L 81,434
+      C 81,440 85,442 91,442
+      L 357,442
+      C 363,442 369,440 369,434
+      L 369,123
+      L 297,51
+      L 89,51
+      C 83,51 81,54 81,60
+      Z
+    "
+    class="bread"
+  />
+
+  <!--
+     DIAMOND STAR — AI processing symbol
+     Centered at (225, 245) — the visual center of the bread interior
+     Star size: 100px wide,tall — proportional to bread width (288)
+  -->
+  <g transform="translate(225, 245)">
+    <!-- Outer diamond star (4-pointed) — made of two overlapping rounded rects -->
+    <!-- Vertical diamond -->
+    <rect x="-14" y="-60" width="28" height="120" rx="10" class="star"/>
+    <!-- Horizontal diamond -->
+    <rect x="-60" y="-14" width="120" height="28" rx="10" class="star"/>
+    
+    <!-- Inner diamond highlight -->
+    <rect x="-6" y="-30" width="12" height="60" rx="5" class="star-inner" opacity="0.4"/>
+    <rect x="-30" y="-6" width="60" height="12" rx="5" class="star-inner" opacity="0.4"/>
+
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="5" class="star"/>
+  </g>
+
+  <!-- DIAGONAL CUT EDGE SHADOW -->
+  <path
+    d="M 298,54 L 366,126"
+    stroke="#B45309"
+    stroke-width="1.5"
+    fill="none"
+    opacity="0.2"
+    stroke-linecap="round"
+  />
+
+  <!-- BOTTOM EDGE HIGHLIGHT -->
+  <path
+    d="M 88,438 C 120,442 330,442 362,438"
+    fill="none"
+    stroke="#FEF3C7"
+    stroke-width="1.5"
+    opacity="0.25"
+    stroke-linecap="round"
+  />
+</svg>

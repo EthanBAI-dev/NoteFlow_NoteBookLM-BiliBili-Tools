@@ -47,6 +47,12 @@ const zh = {
 
   // ── Notebook Selector ──
   'notebook.openInTab': '在标签页中打开',
+  'notebook.loading': '加载中...',
+  'notebook.noNotebooks': '暂无笔记本',
+  'notebook.selectNotebook': '选择笔记本',
+  'notebook.searchPlaceholder': '搜索笔记本...',
+  'notebook.noSearchResults': '没有匹配的笔记本',
+  'notebook.importToNlm': '一键导入 NotebookLM',
 
   // ── PodcastImport ──
   'podcast.link': '播客链接',
@@ -358,6 +364,12 @@ const en: Record<keyof typeof zh, string> = {
 
   // ── Notebook Selector ──
   'notebook.openInTab': 'Open in tab',
+  'notebook.loading': 'Loading...',
+  'notebook.noNotebooks': 'No notebooks',
+  'notebook.selectNotebook': 'Select notebook',
+  'notebook.searchPlaceholder': 'Search notebooks...',
+  'notebook.noSearchResults': 'No matching notebooks',
+  'notebook.importToNlm': 'Import to NotebookLM',
 
   // ── PodcastImport ──
   'podcast.link': 'Podcast Link',

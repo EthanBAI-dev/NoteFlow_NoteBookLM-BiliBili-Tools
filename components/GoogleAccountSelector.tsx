@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, ChevronDown, AlertCircle, Plus, Loader2, Search, User } from 'lucide-react';
+import { Check, ChevronDown, Plus, User } from 'lucide-react';
 import {
   type GoogleAccountSlot,
   initializeSlots,
@@ -9,9 +9,7 @@ import {
   onSlotsChanged,
   openAddAccount,
   getInitialsAvatar,
-  checkAuthStatus,
 } from '@/services/account-slots';
-import { fetchNotebooks } from '@/services/notebook-api';
 
 /** Consistent label style used across the panel */
 const LABEL_CLS = 'text-[11px] font-medium text-gray-500 tracking-wide';
@@ -21,10 +19,7 @@ export function GoogleAccountSelector() {
   const [activeSlot, setActiveSlot] = useState<GoogleAccountSlot | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [authValid, setAuthValid] = useState(true);
-  const [notebooks, setNotebooks] = useState<string[]>([]);
-  const [notebooksLoading, setNotebooksLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ── Guard: track last user-initiated action timestamp ──
@@ -49,8 +44,6 @@ export function GoogleAccountSelector() {
 
   useEffect(() => {
     loadSlots();
-    // Check auth once on mount
-    checkAuthStatus().then(r => setAuthValid(r.valid));
   }, [loadSlots]);
 
   // ── Listen for storage changes (real-time sync, but guard against reverts) ──
@@ -141,25 +134,6 @@ export function GoogleAccountSelector() {
     setActiveSlot(detected);
   }, []);
 
-  // ── Fetch notebooks function (internal, no manual button) ──
-  const fetchNotebooksInternal = useCallback(async () => {
-    setNotebooksLoading(true);
-    try {
-      const items = await fetchNotebooks();
-      const names = items.map((n) => n.title || n.id || 'untitled');
-      setNotebooks(names);
-      console.log(
-        `%c[📓 GoogleAccountSelector::fetchNotebooks]`,
-        'color:#8b5cf6;font-weight:bold',
-        `count=${names.length}`,
-        names,
-      );
-    } catch (err) {
-      console.error('[📓 GoogleAccountSelector] fetch error:', err);
-    }
-    setNotebooksLoading(false);
-  }, []);
-
   // ── Avatar image error fallback ──
   const handleImgError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>, slot: GoogleAccountSlot) => {
@@ -167,20 +141,6 @@ export function GoogleAccountSelector() {
     },
     [],
   );
-
-  // ── Auto-fetch notebooks when slots are available ──
-  const hasSlotsAndActive = slots.length > 0 && activeSlot !== null;
-  useEffect(() => {
-    if (!loading && hasSlotsAndActive) {
-      fetchNotebooksInternal();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, hasSlotsAndActive]);
-
-  // ── Filtered notebooks based on search query ──
-  const filteredNotebooks = searchQuery
-    ? notebooks.filter((name) => name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : notebooks;
 
   // ── Loading state ──
   if (loading) {
@@ -226,8 +186,8 @@ export function GoogleAccountSelector() {
                 {activeSlot.email}
               </span>
               {activeSlot.detected && (
-                <span className="text-[8px] text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded-full font-medium flex-shrink-0 leading-none">
-                  detected
+                <span className="text-[8px] text-blue-600 bg-blue-50 px-1 py-0.5 rounded-full font-medium flex-shrink-0 leading-none">
+                  当前
                 </span>
               )}
             </>
@@ -242,58 +202,6 @@ export function GoogleAccountSelector() {
           }`}
         />
       </button>
-
-      {/* Status line (no refresh button) */}
-      {authValid ? (
-        <div className="flex items-center gap-1 mt-1">
-          <Check className="w-2.5 h-2.5 text-emerald-500" />
-          <span className="text-[10px] text-emerald-600 font-medium">
-            Using {activeSlot?.email || '...'}
-          </span>
-        </div>
-      ) : (
-        <div className="flex items-center gap-1 mt-1">
-          <AlertCircle className="w-2.5 h-2.5 text-amber-500" />
-          <span className="text-[10px] text-amber-600">Session may have expired</span>
-        </div>
-      )}
-
-      {/* Notebook list with search bar — no manual refresh buttons */}
-      <div className="mt-3">
-        <label className={LABEL_CLS}>Notebooks</label>
-
-        {/* Search bar */}
-        <div className="relative mt-1.5">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search notebooks..."
-            className="w-full h-8 pl-7 pr-3 text-[11px] bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-colors"
-          />
-        </div>
-
-        {notebooksLoading ? (
-          <div className="flex items-center gap-1.5 mt-2">
-            <Loader2 className="w-2.5 h-2.5 text-gray-400 animate-spin" />
-            <span className="text-[10px] text-gray-400">Loading notebooks...</span>
-          </div>
-        ) : filteredNotebooks.length > 0 ? (
-          <ul className="mt-2 space-y-0.5 max-h-28 overflow-y-auto">
-            {filteredNotebooks.map((name, i) => (
-              <li
-                key={i}
-                className="text-[10px] text-gray-500 truncate px-1 py-0.5 hover:bg-gray-50 rounded"
-              >
-                📓 {name}
-              </li>
-            ))}
-          </ul>
-        ) : searchQuery ? (
-          <p className="mt-2 text-[10px] text-gray-400">No notebooks match &quot;{searchQuery}&quot;</p>
-        ) : null}
-      </div>
 
       {/* Dropdown menu */}
       {open && (
@@ -331,8 +239,8 @@ export function GoogleAccountSelector() {
                         {slot.email}
                       </span>
                       {slot.detected && (
-                        <span className="text-[8px] text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded-full font-medium flex-shrink-0 leading-none">
-                          detected
+                        <span className="text-[8px] text-blue-600 bg-blue-50 px-1 py-0.5 rounded-full font-medium flex-shrink-0 leading-none">
+                          当前
                         </span>
                       )}
                     </div>
