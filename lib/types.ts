@@ -95,13 +95,22 @@ export type MessageType =
   | { type: 'CREATE_COLLECTION'; name: string }
   | { type: 'IS_BOOKMARKED'; url: string }
   // Notebook info
-  | { type: 'GET_NOTEBOOKS'; force?: boolean };
+  | { type: 'GET_NOTEBOOKS'; force?: boolean }
+  // Google account info
+  | { type: 'GET_GOOGLE_ACCOUNT' };
 
 // Notebook info returned from content script
 export interface NotebookInfo {
   id: string;
   title: string;
   url: string;
+}
+
+/** Google account info extracted from NotebookLM page */
+export interface GoogleAccountInfo {
+  email: string;
+  name: string;
+  photoUrl: string;
 }
 
 export type MessageResponse =

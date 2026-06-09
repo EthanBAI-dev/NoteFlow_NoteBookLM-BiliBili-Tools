@@ -1042,6 +1042,45 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       return await fetchYouTubeMore(message.continuation);
     }
 
+    case 'GET_GOOGLE_ACCOUNT': {
+      // Query the notebooklm tab for user account info
+      try {
+        const tabs = await chrome.tabs.query({
+          url: ['https://notebooklm.google.com/*'],
+        });
+        if (tabs.length === 0 || !tabs[0].id) {
+          // Try extension's own sidepanel or popup
+          const allTabs = await chrome.tabs.query({ url: ['*://notebooklm.google.com/*'] });
+          if (allTabs.length === 0 || !allTabs[0].id) {
+            return { success: false as const, error: 'No notebooklm tab found' };
+          }
+          tabs[0] = allTabs[0];
+        }
+        const tabId = tabs[0].id;
+
+        // Ensure content script is injected
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['content-scripts/notebooklm.js'],
+          });
+        } catch { /* already injected */ }
+        await new Promise((r) => setTimeout(r, 300));
+
+        return new Promise<{ success: boolean; data?: { email: string; name: string; photoUrl: string } | null; error?: string }>((resolve) => {
+          chrome.tabs.sendMessage(tabId, { type: 'GET_GOOGLE_ACCOUNT' }, (resp) => {
+            if (chrome.runtime.lastError || !resp?.success) {
+              resolve({ success: false, error: chrome.runtime.lastError?.message || 'Content script not ready' });
+            } else {
+              resolve({ success: true, data: resp.data });
+            }
+          });
+        });
+      } catch (err) {
+        return { success: false, error: String(err) };
+      }
+    }
+
     case 'GET_FAILED_SOURCES': {
       // Ensure content script is injected, then forward
       try {
