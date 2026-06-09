@@ -1,33 +1,58 @@
 /**
  * Google Account Slots Service
  *
- * Detects the currently logged-in Google account on NotebookLM by querying
- * the content script on notebooklm.google.com. Falls back to
- * chrome.identity.getProfileUserInfo() if no NotebookLM tab is found.
+ * Multi-account detection & switching, adapted from:
+ *   https://github.com/AndyShaman/add_to_NotebookLM
  *
- * Inspired by notebooklm-py's multi-profile approach:
- *   https://github.com/teng-lin/notebooklm-py
+ * Core mechanism:
+ *   1. Fetch accounts.google.com/ListAccounts → get ALL signed-in accounts
+ *   2. Parse postMessage(...) response → extract name/email/avatar/authuser
+ *   3. User picks an account → persist authuser index in chrome.storage.local
+ *   4. All NotebookLM RPC calls → append ?authuser=X (done in notebook-api.ts)
+ *
+ * This avoids opening any Google login/chooser pages — the browser already
+ * has cookies for every account. Switching is purely a parameter change.
  */
 
-import type { GoogleAccountInfo } from '@/lib/types';
+import { getSelectedAccountIndex, setSelectedAccountIndex } from '@/lib/config';
 
+/** A single Google account slot */
 export interface GoogleAccountSlot {
-  email: string;
+  /** authuser index (0 = primary, 1, 2… — maps to ?authuser=X) */
+  index: number;
+  /** Display name (acc[2] in postMessage format) */
   name: string;
+  /** Email address (acc[3] in postMessage format) */
+  email: string;
+  /** Profile photo URL (acc[4] in postMessage format) */
   photoUrl: string;
+  /** Whether this session is active */
+  isActive: boolean;
+  /** Whether this is the default account */
+  isDefault: boolean;
+  /** Whether the UI considers this "currently selected" */
   detected: boolean;
+  /** Last used timestamp */
   lastUsed: number;
 }
 
 const CACHED_SLOTS_KEY = 'cached_google_slots';
 
-// ─── Storage helpers ─────────────────────────────────
+// Exact URL from add_to_NotebookLM — the params trigger postMessage format
+const LIST_ACCOUNTS_URL =
+  'https://accounts.google.com/ListAccounts?json=standard&source=ogb&md=1&cc=1&mn=1&mo=1&gpsia=1&fwput=860&listPages=1&origin=https%3A%2F%2Fwww.google.com';
+
+// ── Storage helpers ──────────────────────────────────
 
 export async function getCachedSlots(): Promise<GoogleAccountSlot[]> {
   const result = await chrome.storage.local.get(CACHED_SLOTS_KEY);
   const slots = result[CACHED_SLOTS_KEY];
   if (Array.isArray(slots)) {
-    return slots as GoogleAccountSlot[];
+    return (slots as GoogleAccountSlot[]).map((s) => ({
+      ...s,
+      detected: s.detected ?? false,
+      lastUsed: s.lastUsed ?? 0,
+    }));
   }
   return [];
 }
@@ -36,70 +61,154 @@ export async function saveCachedSlots(slots: GoogleAccountSlot[]): Promise<void>
   await chrome.storage.local.set({ [CACHED_SLOTS_KEY]: slots });
 }
 
-export function onSlotsChanged(callback: (slots: GoogleAccountSlot[]) => void): () => void {
+export function onSlotsChanged(
+  callback: (slots: GoogleAccountSlot[]) => void,
+): () => void {
   const handler = (changes: Record<string, chrome.storage.StorageChange>) => {
     if (changes[CACHED_SLOTS_KEY]) {
       const newSlots = changes[CACHED_SLOTS_KEY].newValue as GoogleAccountSlot[] | undefined;
-      if (Array.isArray(newSlots)) {
-        callback(newSlots);
-      }
+      if (Array.isArray(newSlots)) callback(newSlots);
     }
   };
   chrome.storage.local.onChanged.addListener(handler);
   return () => chrome.storage.local.onChanged.removeListener(handler);
 }
 
-// ─── Account detection ───────────────────────────────
+// ── ListAccounts parsing (adapted from add_to_NotebookLM) ──
 
-/**
- * Generate initials avatar (SVG data URI) as fallback.
- */
-export function getInitialsAvatar(nameOrEmail: string): string {
-  const initial = nameOrEmail.trim().charAt(0).toUpperCase() || '?';
-  const colors = ['#4F46E5', '#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2', '#DB2777'];
-  const idx = Math.abs(hashCode(nameOrEmail)) % colors.length;
-  const color = colors[idx];
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-    <circle cx="48" cy="48" r="48" fill="${color}"/>
-    <text x="48" y="54" text-anchor="middle" fill="white" font-size="36" font-family="Inter,sans-serif" font-weight="600">${initial}</text>
-  </svg>`;
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
-}
-
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
-}
-
-/**
- * Detect the current Google account by querying the NotebookLM page.
- *
- * Strategy A (primary): Send GET_GOOGLE_ACCOUNT message via background
- *   → content script on notebooklm.google.com extracts email from DOM
- * Strategy B (fallback): chrome.identity.getProfileUserInfo()
- *   (only works if user is signed into Chrome itself)
- */
-export async function detectActiveAccount(): Promise<{ email: string; name: string; photoUrl: string } | null> {
-  // Strategy A: Ask the content script on notebooklm.google.com
+function parsePostMessageFormat(
+  text: string,
+): Array<{ name: string; email: string; avatar: string; isActive: boolean; isDefault: boolean }> | null {
   try {
-    const resp = await chrome.runtime.sendMessage<
-      { type: 'GET_GOOGLE_ACCOUNT' },
-      { success: boolean; data?: GoogleAccountInfo | null; error?: string }
-    >({ type: 'GET_GOOGLE_ACCOUNT' });
+    const match = text.match(/postMessage\('([^']*)'\s*,\s*'https:/);
+    if (!match) return null;
+    const decoded = match[1]
+      .replace(/\\x5b/g, '[')
+      .replace(/\\x5d/g, ']')
+      .replace(/\\x22/g, '"');
+    const parsed = JSON.parse(decoded);
+    const accounts = parsed[1] as Array<[number, unknown, string, string, string, boolean, boolean, ...unknown[]]> | undefined;
+    if (!Array.isArray(accounts)) return null;
+    return accounts
+      .filter((acc) => acc[3] && typeof acc[3] === 'string' && acc[3].includes('@'))
+      .map((acc) => ({
+        name: acc[2] || '',
+        email: acc[3] || '',
+        avatar: acc[4] || '',
+        isActive: !!acc[5],
+        isDefault: !!acc[6],
+      }));
+  } catch {
+    return null;
+  }
+}
 
-    if (resp?.success && resp.data) {
-      return resp.data;
+function parseStartEndFormat(
+  text: string,
+): Array<{ name: string; email: string; avatar: string; isActive: boolean; isDefault: boolean }> | null {
+  try {
+    const cleanJson = JSON.parse(text.replace(/^&&&START&&&/, ''));
+    const accounts = cleanJson[1] as Array<[number, string, string, string, ...unknown[]]> | undefined;
+    if (!Array.isArray(accounts)) return null;
+    return accounts
+      .filter((acc) => acc[1] && typeof acc[1] === 'string' && acc[1].includes('@'))
+      .map((acc) => ({
+        name: acc[2] || '',
+        email: acc[1] || '',
+        avatar: acc[3] || '',
+        isActive: true,
+        isDefault: false,
+      }));
+  } catch {
+    return null;
+  }
+}
+
+function parseAccounts(text: string): Array<{ name: string; email: string; avatar: string; isActive: boolean; isDefault: boolean }> {
+  const pm = parsePostMessageFormat(text);
+  if (pm && pm.length > 0) return pm;
+  const se = parseStartEndFormat(text);
+  if (se && se.length > 0) return se;
+  return [];
+}
+
+// ── Public fetch API ─────────────────────────────────
+
+export async function fetchAndCacheAccounts(): Promise<GoogleAccountSlot[]> {
+  try {
+    const resp = await fetch(LIST_ACCOUNTS_URL, {
+      credentials: 'include',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!resp.ok) {
+      console.debug(`[AccountSlots] HTTP ${resp.status}`);
+      return [];
     }
+    const text = await resp.text();
+    const parsed = parseAccounts(text);
+    if (parsed.length === 0) {
+      console.debug('[AccountSlots] No accounts parsed');
+      return [];
+    }
+
+    const now = Date.now();
+    const slots: GoogleAccountSlot[] = parsed.map((acc, idx) => ({
+      index: idx,
+      name: acc.name,
+      email: acc.email,
+      photoUrl: acc.avatar,
+      isActive: acc.isActive,
+      isDefault: acc.isDefault,
+      detected: idx === 0,
+      lastUsed: now,
+    }));
+
+    await saveCachedSlots(slots);
+    console.log(`[AccountSlots] Fetched & cached ${slots.length} accounts`);
+    return slots;
   } catch (err) {
-    console.warn('[AccountSlots] Page detection failed:', err);
+    console.debug('[AccountSlots] Fetch error:', (err as Error)?.message);
+    return [];
+  }
+}
+
+/**
+ * Initialize account slots.
+ * Three-tier fallback: direct fetch → cache → chrome.identity.
+ */
+export async function initializeSlots(): Promise<GoogleAccountSlot[]> {
+  // Restore persisted detection from previous session
+  const persistedIndex = await getSelectedAccountIndex();
+
+  // Tier 1: Direct ListAccounts fetch
+  const fresh = await fetchAndCacheAccounts();
+  if (fresh.length > 0) {
+    // Restore the previously-selected account's detected flag
+    const persisted = fresh.find((s) => s.index === persistedIndex);
+    if (persisted) {
+      for (const s of fresh) s.detected = (s.index === persistedIndex);
+    } else if (fresh[0]) {
+      fresh[0].detected = true;
+    }
+    await saveCachedSlots(fresh);
+    return fresh;
   }
 
-  // Strategy B: chrome.identity.getProfileUserInfo (Chrome profile login)
+  // Tier 2: Existing cache
+  const cached = await getCachedSlots();
+  if (cached.length > 0) {
+    const restored = cached.find((s) => s.index === persistedIndex);
+    if (restored) {
+      cached.forEach((s) => (s.detected = s.index === persistedIndex));
+      if (restored) restored.lastUsed = Date.now();
+    } else if (cached[0]) {
+      cached[0].detected = true;
+    }
+    await saveCachedSlots(cached);
+    return cached;
+  }
+
+  // Tier 3: chrome.identity (single account only)
   try {
     const userInfo = await new Promise<chrome.identity.UserInfo>((resolve, reject) => {
       chrome.identity.getProfileUserInfo((info) => {
@@ -107,125 +216,113 @@ export async function detectActiveAccount(): Promise<{ email: string; name: stri
         else resolve(info);
       });
     });
-
     if (userInfo?.email) {
-      return {
-        email: userInfo.email,
+      const fallback: GoogleAccountSlot[] = [{
+        index: 0,
         name: userInfo.email.split('@')[0] || userInfo.email,
-        photoUrl: `https://lh3.googleusercontent.com/a/default-user=s96-c`,
-      };
+        email: userInfo.email,
+        photoUrl: `https://lh3.googleusercontent.com/a-/AOh14G${hashEmail(userInfo.email)}=s96-c`,
+        isActive: true,
+        isDefault: true,
+        detected: true,
+        lastUsed: Date.now(),
+      }];
+      await saveCachedSlots(fallback);
+      return fallback;
     }
-  } catch (err) {
-    console.warn('[AccountSlots] Chrome identity detection failed:', err);
-  }
+  } catch { /* no identity */ }
 
-  return null;
+  return [];
 }
 
-// ─── Slot management ─────────────────────────────────
+// ── Avatar fallback ──────────────────────────────────
+
+/** Generate initials avatar (data URI) */
+export function getInitialsAvatar(nameOrEmail: string): string {
+  const initial = nameOrEmail.trim().charAt(0).toUpperCase() || '?';
+  const colors = ['#4F46E5', '#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#0891B2', '#DB2777'];
+  const idx = Math.abs(hashEmail(nameOrEmail).charCodeAt(0) || 0) % colors.length;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+    <circle cx="48" cy="48" r="48" fill="${colors[idx]}"/>
+    <text x="48" y="54" text-anchor="middle" fill="white" font-size="36" font-family="Inter,sans-serif" font-weight="600">${initial}</text>
+  </svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+function hashEmail(email: string): string {
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = ((hash << 5) - hash) + email.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(12, '0');
+}
+
+// ── Account switching (THE FIX: persist index, NO page navigation) ──
 
 /**
- * Initialize account slots: merge detected account into cache.
+ * Switch to a different Google account.
  *
- * 1. Read existing slots from storage
- * 2. Detect current account (page → identity fallback)
- * 3. Merge: update detected flag, add if new
- * 4. Save back to storage
- * 5. Return updated slot list
+ * This is the core fix: instead of opening Google's AccountChooser
+ * (which always defaults to account 0), we simply persist the
+ * selected authuser index. The browser already has cookies for
+ * ALL accounts — all subsequent NotebookLM RPC calls will use
+ * the ?authuser=X parameter to pick the right one.
+ *
+ * @param email - The target account email
+ * @returns The authuser index of the activated account
  */
-export async function initializeSlots(): Promise<GoogleAccountSlot[]> {
-  const [existing, detected] = await Promise.all([
-    getCachedSlots(),
-    detectActiveAccount(),
-  ]);
-
-  const slots = [...existing];
-
-  if (detected) {
-    const existingIndex = slots.findIndex((s) => s.email === detected.email);
-
-    if (existingIndex >= 0) {
-      slots[existingIndex] = {
-        ...slots[existingIndex],
-        detected: true,
-        lastUsed: Date.now(),
-        name: slots[existingIndex].name || detected.name,
-        photoUrl: detected.photoUrl || slots[existingIndex].photoUrl,
-      };
-    } else {
-      slots.unshift({
-        email: detected.email,
-        name: detected.name,
-        photoUrl: detected.photoUrl || getInitialsAvatar(detected.email),
-        detected: true,
-        lastUsed: Date.now(),
-      });
-    }
-
-    // Clear detected flag for all other slots
-    for (const slot of slots) {
-      if (slot.email !== detected.email) {
-        slot.detected = false;
-      }
-    }
-  }
-
-  await saveCachedSlots(slots);
-  return slots;
-}
-
-/**
- * Mark an account as the active one.
- */
-export async function activateSlot(email: string): Promise<void> {
+export async function activateSlot(email: string): Promise<number> {
   const slots = await getCachedSlots();
-  let found = false;
+  const target = slots.find((s) => s.email === email);
 
-  for (const slot of slots) {
-    if (slot.email === email) {
-      slot.detected = true;
-      slot.lastUsed = Date.now();
-      found = true;
-    } else {
-      slot.detected = false;
-    }
-  }
-
-  if (!found) {
+  if (!target) {
+    // Unknown account — add as a new slot
+    const newIndex = slots.length;
     slots.unshift({
-      email,
+      index: newIndex,
       name: email.split('@')[0] || email,
-      photoUrl: getInitialsAvatar(email),
+      email,
+      photoUrl: `https://lh3.googleusercontent.com/a-/AOh14G${hashEmail(email)}=s96-c`,
+      isActive: true,
+      isDefault: false,
       detected: true,
       lastUsed: Date.now(),
     });
+    // Clear other detected flags
+    for (let i = 1; i < slots.length; i++) slots[i].detected = false;
+
+    // Persist the index
+    await Promise.all([saveCachedSlots(slots), setSelectedAccountIndex(newIndex)]);
+    return newIndex;
   }
 
-  await saveCachedSlots(slots);
+  // Update detected flags
+  for (const s of slots) s.detected = (s.email === email);
+  target.lastUsed = Date.now();
+
+  // Persist the index
+  await Promise.all([saveCachedSlots(slots), setSelectedAccountIndex(target.index)]);
+  return target.index;
 }
 
 /**
- * Remove an account slot.
+ * Get the currently selected account authuser index.
+ * Used by notebook-api.ts to append ?authuser=X to all RPC calls.
  */
+export async function getCurrentAuthuser(): Promise<number> {
+  return getSelectedAccountIndex();
+}
+
 export async function removeSlot(email: string): Promise<void> {
   const slots = await getCachedSlots();
-  const filtered = slots.filter((s) => s.email !== email);
-  await saveCachedSlots(filtered);
-}
-
-// ─── Navigation helpers ──────────────────────────────
-
-/**
- * Open Google account picker for switching accounts.
- */
-export function openAccountPicker(): void {
-  chrome.tabs.create({
-    url: 'https://accounts.google.com/AccountChooser?continue=https://notebooklm.google.com',
-  });
+  await saveCachedSlots(slots.filter((s) => s.email !== email));
 }
 
 /**
- * Open Google sign-in for adding a new account.
+ * Open Google account picker (for adding a new account).
+ * This is the ONLY place where we navigate to Google — used
+ * exclusively for the "Add new account" action, NOT for switching.
  */
 export function openAddAccount(): void {
   chrome.tabs.create({
@@ -234,16 +331,25 @@ export function openAddAccount(): void {
 }
 
 /**
- * Check auth status by testing a fetch to notebooklm.google.com.
+ * Check if the current Google session is still valid.
  */
 export async function checkAuthStatus(): Promise<{ valid: boolean; error?: string }> {
   try {
-    const resp = await fetch('https://notebooklm.google.com/', {
-      method: 'HEAD',
-      credentials: 'include',
-    });
+    const authuser = await getCurrentAuthuser();
+    const url = `https://notebooklm.google.com/?authuser=${authuser}`;
+    const resp = await fetch(url, { method: 'HEAD', credentials: 'include' });
     return { valid: resp.status === 200 };
   } catch (err) {
-    return { valid: false, error: err instanceof Error ? err.message : 'Network error' };
+    return { valid: false, error: err instanceof Error ? err.message : '网络错误' };
   }
+}
+
+/**
+ * Compute the authuser query param for a given email.
+ */
+export function getAuthuserParam(slots: GoogleAccountSlot[], activeEmail: string | null): string {
+  if (!activeEmail) return '';
+  const active = slots.find((s) => s.email === activeEmail);
+  const index = active?.index ?? 0;
+  return index > 0 ? `?authuser=${index}` : '';
 }

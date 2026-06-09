@@ -1,6 +1,6 @@
 {
   "name": "flow2note",
-  "version": "1.7.5",
+  "version": "0.2.2",
   "description": "Flow2Note - Extract subtitles & content from various sources and import to NotebookLM",
   "private": true,
   "type": "module",

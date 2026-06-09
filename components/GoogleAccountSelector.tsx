@@ -7,10 +7,10 @@ import {
   activateSlot,
   removeSlot,
   onSlotsChanged,
-  openAccountPicker,
   openAddAccount,
   getInitialsAvatar,
   checkAuthStatus,
+  getCurrentAuthuser,
 } from '@/services/account-slots';
 
 /**
@@ -87,8 +87,10 @@ export function GoogleAccountSelector() {
     setOpen(false);
     setActiveSlot(slot);
     await activateSlot(slot.email);
-    // Navigate to account picker to actually switch Google accounts
-    openAccountPicker();
+    // No navigation — the browser already has cookies for all accounts.
+    // All subsequent NotebookLM API calls will use ?authuser=X
+    // where X = the selected account's index.
+    console.log(`[AccountSelector] Switched to ${slot.email} (authuser=${slot.index})`);
   }, []);
 
   // ── Add new account ──

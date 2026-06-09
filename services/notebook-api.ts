@@ -1,7 +1,10 @@
 // NotebookLM internal API via batchexecute RPC
 // Based on reverse-engineering from notebooklm-py (github.com/teng-lin/notebooklm-py)
+// Multi-account support via ?authuser=X parameter (from add_to_NotebookLM)
 
-const BATCHEXECUTE_URL = 'https://notebooklm.google.com/_/LabsTailwindUi/data/batchexecute';
+import { getCurrentAuthuser } from '@/services/account-slots';
+
+const BATCHEXECUTE_URL = 'https://notebooklm.google.com/_/LabsTailwindUI/data/batchexecute';
 const NLM_HOME_URL = 'https://notebooklm.google.com/';
 
 const RPC_LIST_NOTEBOOKS = 'wXbhsf';
@@ -28,10 +31,18 @@ export interface NotebookItem {
 /**
  * Extract CSRF token (SNlM0e) from NotebookLM homepage HTML.
  * The token is embedded in the page's JavaScript initialization.
+ *
+ * @param authuser - Optional Google account authuser index (0, 1, 2…).
+ *                   When > 0, appends ?authuser=X to the request URL,
+ *                   fetching the page for that specific account.
  */
-async function fetchCsrfToken(): Promise<string | null> {
+async function fetchCsrfToken(authuser?: number): Promise<string | null> {
   try {
-    const resp = await fetch(NLM_HOME_URL, { credentials: 'include' });
+    const url = authuser && authuser > 0
+      ? `${NLM_HOME_URL}?authuser=${authuser}`
+      : NLM_HOME_URL;
+    console.log(`[notebook-api] Fetching CSRF token from: ${url}`);
+    const resp = await fetch(url, { credentials: 'include' });
     if (!resp.ok) {
       console.warn(`[notebook-api] CSRF fetch: HTTP ${resp.status}`);
       return null;
@@ -40,7 +51,7 @@ async function fetchCsrfToken(): Promise<string | null> {
 
     const match = html.match(/"SNlM0e":"([^"]+)"/);
     const token = match ? match[1] : null;
-    console.log(`[notebook-api] CSRF token: ${token ? 'found' : 'NOT FOUND (not logged into NotebookLM?)'}`);
+    console.log(`[notebook-api] CSRF token: ${token ? 'found (authuser=' + authuser + ')' : 'NOT FOUND'}`);
     return token;
   } catch {
     console.warn('[notebook-api] CSRF fetch: network error');
@@ -114,10 +125,14 @@ export async function fetchNotebooksCached(force = false): Promise<NotebookItem[
 /**
  * Fetch notebook list from NotebookLM via internal batchexecute API.
  * Uses the extension's host permission — fetch() automatically includes cookies.
+ * Supports multi-account via ?authuser=X.
  */
 export async function fetchNotebooks(): Promise<NotebookItem[]> {
-  // Step 1: Get CSRF token from homepage
-  const csrfToken = await fetchCsrfToken();
+  // Get the currently selected account's authuser index
+  const authuser = await getCurrentAuthuser();
+
+  // Step 1: Get CSRF token from homepage (with account-specific authuser)
+  const csrfToken = await fetchCsrfToken(authuser);
   if (!csrfToken) {
     console.warn('[notebook-api] Failed to get CSRF token — user may not be logged in');
     return [];
@@ -234,7 +249,8 @@ async function rpcCall(
   params: unknown[],
   sourcePath = '/',
 ): Promise<string> {
-  const csrfToken = await fetchCsrfToken();
+  const authuser = await getCurrentAuthuser();
+  const csrfToken = await fetchCsrfToken(authuser);
   if (!csrfToken) {
     throw new Error('[notebook-api] Failed to get CSRF token — user may not be logged into notebooklm.google.com in Chrome');
   }
