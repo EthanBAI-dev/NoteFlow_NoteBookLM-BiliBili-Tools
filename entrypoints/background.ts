@@ -24,6 +24,7 @@ import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili'
 import { polishSubtitlesWithChunks } from '@/services/ai-polish';
 import { setOpState, clearOpState, type OpState } from '@/services/op-state';
 import { uploadToDrive } from '@/services/google-drive';
+import { fetchAndCacheAccounts, logSlotDebug } from '@/services/account-slots';
 import JSZip from 'jszip';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 
@@ -61,6 +62,45 @@ const MENU_ID_LINK = 'import-link';
 
 export default defineBackground(() => {
   console.log('Flow2Note background service started');
+
+  // ── Google Account List Auto-Detection ──
+  // Uses the shared fetchAndCacheAccounts from services/account-slots.ts
+  // which fetches accounts.google.com/ListAccounts?json=1 directly.
+
+  // Sync on startup
+  (async () => {
+    const prev = (await chrome.storage.local.get('cached_google_slots'))['cached_google_slots'];
+    const prevCount = Array.isArray(prev) ? prev.length : 0;
+    const slots = await fetchAndCacheAccounts();
+    logSlotDebug('background(startup)', slots[0]?.email ?? null, 0, slots.length);
+    // Detect login: was 0 accounts, now have some
+    if (prevCount === 0 && slots.length > 0) {
+      console.log(`[Background] Login detected: ${slots.length} account(s) now available`);
+    }
+  })();
+
+  // Listen for when Google itself fetches ListAccounts (e.g. user
+  // navigates to a Google service or switches accounts)
+  chrome.webRequest.onCompleted.addListener(
+    (details) => {
+      logSlotDebug('background(webRequest)', null, -1, -1);
+      setTimeout(fetchAndCacheAccounts, 500);
+    },
+    { urls: ['https://accounts.google.com/ListAccounts*'] },
+  );
+
+  // Also sync when the user visits notebooklm.google.com
+  chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+    if (
+      changeInfo.status === 'complete' &&
+      tab.url?.startsWith('https://notebooklm.google.com')
+    ) {
+      logSlotDebug('background(tabs.onUpdated)', null, -1, -1);
+      setTimeout(fetchAndCacheAccounts, 1000);
+    }
+  });
+
+  // ── End Google Account List Auto-Detection ──
 
   // Click toolbar icon → open side panel (must be at top level, not just onInstalled)
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
@@ -1040,45 +1080,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
     case 'FETCH_YOUTUBE_MORE': {
       return await fetchYouTubeMore(message.continuation);
-    }
-
-    case 'GET_GOOGLE_ACCOUNT': {
-      // Query the notebooklm tab for user account info
-      try {
-        const tabs = await chrome.tabs.query({
-          url: ['https://notebooklm.google.com/*'],
-        });
-        if (tabs.length === 0 || !tabs[0].id) {
-          // Try extension's own sidepanel or popup
-          const allTabs = await chrome.tabs.query({ url: ['*://notebooklm.google.com/*'] });
-          if (allTabs.length === 0 || !allTabs[0].id) {
-            return { success: false as const, error: 'No notebooklm tab found' };
-          }
-          tabs[0] = allTabs[0];
-        }
-        const tabId = tabs[0].id;
-
-        // Ensure content script is injected
-        try {
-          await chrome.scripting.executeScript({
-            target: { tabId },
-            files: ['content-scripts/notebooklm.js'],
-          });
-        } catch { /* already injected */ }
-        await new Promise((r) => setTimeout(r, 300));
-
-        return new Promise<{ success: boolean; data?: { email: string; name: string; photoUrl: string } | null; error?: string }>((resolve) => {
-          chrome.tabs.sendMessage(tabId, { type: 'GET_GOOGLE_ACCOUNT' }, (resp) => {
-            if (chrome.runtime.lastError || !resp?.success) {
-              resolve({ success: false, error: chrome.runtime.lastError?.message || 'Content script not ready' });
-            } else {
-              resolve({ success: true, data: resp.data });
-            }
-          });
-        });
-      } catch (err) {
-        return { success: false, error: String(err) };
-      }
     }
 
     case 'GET_FAILED_SOURCES': {

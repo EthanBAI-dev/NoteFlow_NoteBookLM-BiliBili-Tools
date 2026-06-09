@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, ChevronDown, AlertCircle, Loader2, Plus, RefreshCw, User } from 'lucide-react';
+import { Check, ChevronDown, AlertCircle, Loader2, Plus, RefreshCw, User, Bug } from 'lucide-react';
 import {
   type GoogleAccountSlot,
+  type SlotDebugEvent,
   initializeSlots,
   getCachedSlots,
   activateSlot,
@@ -10,18 +11,19 @@ import {
   openAddAccount,
   getInitialsAvatar,
   checkAuthStatus,
-  getCurrentAuthuser,
 } from '@/services/account-slots';
+import { fetchNotebooks } from '@/services/notebook-api';
+
+const DEBUG_LOG_KEY = 'dev_slots_debug_log';
 
 /**
  * GoogleAccountSelector
  *
- * A polished dropdown component that detects the current Google account,
- * displays cached account slots, and allows the user to switch accounts.
- * Placed above the NotebookLM notebook selector.
+ * Placed above the NotebookLM notebook selector. Displays detected Google
+ * accounts from ListAccounts cache, allows switching via authuser param.
  *
- * Design: Modern efficiency tool aesthetic, slate-50 background,
- * white card with subtle border, clean typography.
+ * Debug: open DevTools → Application → Local Storage → dev_slots_debug_log
+ * to trace every selection/sync/revert event.
  */
 export function GoogleAccountSelector() {
   const [slots, setSlots] = useState<GoogleAccountSlot[]>([]);
@@ -30,15 +32,24 @@ export function GoogleAccountSelector() {
   const [loading, setLoading] = useState(true);
   const [authValid, setAuthValid] = useState(true);
   const [authChecking, setAuthChecking] = useState(false);
+  const [notebooks, setNotebooks] = useState<string[]>([]);
+  const [notebooksLoading, setNotebooksLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // ── Guard: track last user-initiated action timestamp ──
+  // If storage fires `onSlotsChanged` within 500ms of a user action,
+  // it's likely the user's own write bouncing back — ignore it to
+  // prevent double-render confusion. If it fires AFTER 500ms, it
+  // could be a background sync trying to revert — log it clearly.
+  const lastUserActionRef = useRef(0);
 
   // ── Load slots on mount ──
   const loadSlots = useCallback(async () => {
     setLoading(true);
     try {
-      const initialized = await initializeSlots();
-      setSlots(initialized);
-      const detected = initialized.find((s) => s.detected) || initialized[0] || null;
+      const result = await initializeSlots();
+      setSlots(result);
+      const detected = result.find((s) => s.detected) || result[0] || null;
       setActiveSlot(detected);
     } catch (err) {
       console.error('[GoogleAccountSelector] Init failed:', err);
@@ -53,15 +64,47 @@ export function GoogleAccountSelector() {
     loadSlots();
   }, [loadSlots]);
 
-  // ── Listen for storage changes (real-time sync) ──
+  // ── Listen for storage changes (real-time sync, but guard against reverts) ──
   useEffect(() => {
     const unsub = onSlotsChanged((newSlots) => {
+      const now = Date.now();
+      const elapsed = now - lastUserActionRef.current;
+
+      // Format the detected account for debugging
+      const detected = newSlots.find((s) => s.detected);
+      const detectedPreview = detected
+        ? `${detected.email} (idx=${detected.index})`
+        : 'none';
+
+      console.log(
+        `%c[🔍 GoogleAccountSelector::onSlotsChanged]`,
+        'color:#f59e0b;font-weight:bold',
+        `elapsedSinceUserAction=${elapsed}ms detected=${detectedPreview}`,
+        `\n  ↳ newSlots:`,
+        newSlots.map((s) => `${s.email.slice(0, 20)}… detected=${s.detected}`),
+      );
+
+      // Check if this storage change is reverting the user's selection
+      const currentActiveEmail = activeSlot?.email;
+      const revertHappening =
+        currentActiveEmail &&
+        detected &&
+        detected.email !== currentActiveEmail &&
+        elapsed > 100; // not the user's own write
+
+      if (revertHappening) {
+        console.warn(
+          `%c⚠️ [GoogleAccountSelector] DETECTED AUTO-REVERT: active was "${currentActiveEmail}", storage now says "${detected.email}"`,
+          'color:#ef4444;font-weight:bold',
+          `\n  ↳ source=onSlotsChanged elapsedSinceUserAction=${elapsed}ms`,
+        );
+      }
+
       setSlots(newSlots);
-      const detected = newSlots.find((s) => s.detected) || newSlots[0] || null;
-      setActiveSlot(detected);
+      setActiveSlot(detected || newSlots[0] || null);
     });
     return unsub;
-  }, []);
+  }, [activeSlot?.email]);
 
   // ── Click outside to close ──
   useEffect(() => {
@@ -82,15 +125,18 @@ export function GoogleAccountSelector() {
     setAuthChecking(false);
   }, []);
 
-  // ── Switch account ──
+  // ── Switch account (NO PAGE NAVIGATION) ──
   const handleSwitchAccount = useCallback(async (slot: GoogleAccountSlot) => {
+    lastUserActionRef.current = Date.now();
     setOpen(false);
     setActiveSlot(slot);
     await activateSlot(slot.email);
-    // No navigation — the browser already has cookies for all accounts.
-    // All subsequent NotebookLM API calls will use ?authuser=X
-    // where X = the selected account's index.
-    console.log(`[AccountSelector] Switched to ${slot.email} (authuser=${slot.index})`);
+    console.log(
+      `%c[🔍 GoogleAccountSelector::switchAccount]`,
+      'color:#22c55e;font-weight:bold',
+      `selected=${slot.email} (authuser=${slot.index})`,
+      `\n  ↳ lastUserAction=${lastUserActionRef.current}`,
+    );
   }, []);
 
   // ── Add new account ──
@@ -115,10 +161,58 @@ export function GoogleAccountSelector() {
     await loadSlots();
   }, [handleAuthCheck, loadSlots]);
 
-  // ── Avatar image error fallback ──
-  const handleImgError = useCallback((e: React.SyntheticEvent<HTMLImageElement>, slot: GoogleAccountSlot) => {
-    e.currentTarget.src = getInitialsAvatar(slot.name || slot.email);
+  // ── Manual notebooks fetch ──
+  const handleFetchNotebooks = useCallback(async () => {
+    setNotebooksLoading(true);
+    try {
+      const items = await fetchNotebooks();
+      const names = items.map((n) => n.title || n.id || 'untitled');
+      setNotebooks(names);
+      console.log(
+        `%c[📓 GoogleAccountSelector::fetchNotebooks]`,
+        'color:#8b5cf6;font-weight:bold',
+        `count=${names.length}`,
+        names,
+      );
+    } catch (err) {
+      console.error('[📓 GoogleAccountSelector] fetch error:', err);
+    }
+    setNotebooksLoading(false);
   }, []);
+
+  // ── Avatar image error fallback ──
+  const handleImgError = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>, slot: GoogleAccountSlot) => {
+      e.currentTarget.src = getInitialsAvatar(slot.name || slot.email);
+    },
+    [],
+  );
+
+  // ── Dump debug log to console ──
+  const dumpDebugLog = useCallback(async () => {
+    const result = await chrome.storage.local.get(DEBUG_LOG_KEY);
+    const log: SlotDebugEvent[] = result[DEBUG_LOG_KEY] || [];
+    console.log(
+      `%c[🐛 DevLog] Account switch debug log (${log.length} events):`,
+      'color:#f59e0b;font-weight:bold',
+    );
+    console.table(log.map((e) => ({
+      time: new Date(e.at).toISOString().slice(11, 23),
+      source: e.source,
+      email: e.activeEmail?.slice(0, 25),
+      detectedIdx: e.detectedIndex,
+      total: e.totalSlots,
+    })));
+  }, []);
+
+  // ── Login auto-refresh: when slots appear after being empty, fetch notebooks ──
+  const hasSlotsAndActive = slots.length > 0 && activeSlot !== null;
+  useEffect(() => {
+    if (!loading && hasSlotsAndActive) {
+      handleFetchNotebooks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, hasSlotsAndActive]);
 
   // ── Loading state ──
   if (loading) {
@@ -137,10 +231,19 @@ export function GoogleAccountSelector() {
 
   return (
     <div className="bg-slate-50 rounded-md border border-slate-200 p-4" ref={dropdownRef}>
-      {/* Label */}
-      <label className="block text-[11px] font-medium text-slate-500 tracking-wide mb-2">
-        NotebookLM Account
-      </label>
+      {/* Label row with debug button */}
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-[11px] font-medium text-slate-500 tracking-wide">
+          NotebookLM Account
+        </label>
+        <button
+          onClick={dumpDebugLog}
+          className="text-[10px] text-slate-300 hover:text-amber-500 transition-colors"
+          title="Dump debug log to console"
+        >
+          <Bug className="w-3 h-3" />
+        </button>
+      </div>
 
       {/* Dropdown trigger */}
       <button
@@ -148,7 +251,6 @@ export function GoogleAccountSelector() {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2.5 bg-white rounded-md border border-slate-200 px-3 py-2 text-left hover:border-slate-300 transition-colors"
       >
-        {/* Avatar */}
         {activeSlot ? (
           <img
             src={activeSlot.photoUrl}
@@ -162,7 +264,6 @@ export function GoogleAccountSelector() {
           </div>
         )}
 
-        {/* Email + detected badge */}
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
           {activeSlot ? (
             <>
@@ -214,10 +315,44 @@ export function GoogleAccountSelector() {
         </button>
       </div>
 
+      {/* Notebook list (auto-fetched when logged in) */}
+      <div className="mt-3 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-between">
+          <label className="block text-[11px] font-medium text-slate-500 tracking-wide">
+            Notebooks
+          </label>
+          <button
+            onClick={handleFetchNotebooks}
+            disabled={notebooksLoading}
+            className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <RefreshCw className={`w-3 h-3 ${notebooksLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        {notebooksLoading ? (
+          <div className="flex items-center gap-2 mt-2">
+            <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
+            <span className="text-[11px] text-slate-400">Loading notebooks...</span>
+          </div>
+        ) : notebooks.length > 0 ? (
+          <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+            {notebooks.map((name, i) => (
+              <li
+                key={i}
+                className="text-[11px] text-slate-600 truncate px-1 py-0.5 hover:bg-slate-50 rounded"
+              >
+                📓 {name}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-[11px] text-slate-400">No notebooks loaded</p>
+        )}
+      </div>
+
       {/* Dropdown menu */}
       {open && (
-        <div className="absolute z-30 mt-1 left-4 right-4 bg-white rounded-md border border-slate-200 shadow-lg animate-scale-in overflow-hidden">
-          {/* Account list */}
+        <div className="absolute z-30 mt-1 left-4 right-4 bg-white rounded-md border border-slate-200 shadow-lg overflow-hidden">
           <div className="max-h-48 overflow-y-auto">
             {slots.length === 0 && (
               <div className="px-3 py-4 text-center">
@@ -277,10 +412,8 @@ export function GoogleAccountSelector() {
             })}
           </div>
 
-          {/* Divider */}
           <div className="border-t border-slate-100" />
 
-          {/* Add new account */}
           <button
             onClick={handleAddAccount}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors"

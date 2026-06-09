@@ -132,8 +132,65 @@ function parseAccounts(text: string): Array<{ name: string; email: string; avata
   return [];
 }
 
+// ── Debug logging helpers ────────────────────────────
+
+/** Structured debug event for tracing account slot state changes */
+export interface SlotDebugEvent {
+  at: number;              // timestamp
+  source: string;          // trigger source identifier
+  activeEmail: string | null;
+  detectedIndex: number;
+  totalSlots: number;
+  stack: string;           // truncated stack trace
+}
+
+const DEBUG_LOG_KEY = 'dev_slots_debug_log';
+const MAX_DEBUG_EVENTS = 50;
+
+/** Log a structured debug event to storage (for DevTools inspection) */
+export async function logSlotDebug(
+  source: string,
+  activeEmail: string | null,
+  detectedIndex: number,
+  totalSlots: number,
+): Promise<void> {
+  const event: SlotDebugEvent = {
+    at: Date.now(),
+    source,
+    activeEmail,
+    detectedIndex,
+    totalSlots,
+    stack: new Error().stack?.split('\n').slice(2, 5).join(' → ') || '',
+  };
+
+  // Console with structured format
+  const prefix = `[🔍 AccountSlots::${source}]`;
+  console.log(
+    `%c${prefix}`,
+    'color:#6366f1;font-weight:bold',
+    `email=${activeEmail ?? 'null'} detectedIdx=${detectedIndex} total=${totalSlots}`,
+    `\n  ↳ stack: ${event.stack}`,
+  );
+
+  // Persist to storage
+  try {
+    const result = await chrome.storage.local.get(DEBUG_LOG_KEY);
+    const log: SlotDebugEvent[] = result[DEBUG_LOG_KEY] || [];
+    log.push(event);
+    if (log.length > MAX_DEBUG_EVENTS) log.splice(0, log.length - MAX_DEBUG_EVENTS);
+    await chrome.storage.local.set({ [DEBUG_LOG_KEY]: log });
+  } catch { /* best-effort */ }
+}
+
 // ── Public fetch API ─────────────────────────────────
 
+/**
+ * Fetch accounts from Google ListAccounts and cache them.
+ *
+ * CRITICAL: preserves the user's previously selected account index
+ * (read from persisted storage) instead of always setting slot 0 as detected.
+ * This prevents background syncs from reverting the user's choice.
+ */
 export async function fetchAndCacheAccounts(): Promise<GoogleAccountSlot[]> {
   try {
     const resp = await fetch(LIST_ACCOUNTS_URL, {
@@ -151,6 +208,10 @@ export async function fetchAndCacheAccounts(): Promise<GoogleAccountSlot[]> {
       return [];
     }
 
+    // ── KEY FIX: read persisted selected index ──
+    // This ensures background-triggered syncs respect the user's choice
+    const persistedIndex = await getSelectedAccountIndex();
+
     const now = Date.now();
     const slots: GoogleAccountSlot[] = parsed.map((acc, idx) => ({
       index: idx,
@@ -159,12 +220,18 @@ export async function fetchAndCacheAccounts(): Promise<GoogleAccountSlot[]> {
       photoUrl: acc.avatar,
       isActive: acc.isActive,
       isDefault: acc.isDefault,
-      detected: idx === 0,
+      // Use persisted index instead of hardcoded `idx === 0`
+      detected: idx === persistedIndex,
       lastUsed: now,
     }));
 
     await saveCachedSlots(slots);
-    console.log(`[AccountSlots] Fetched & cached ${slots.length} accounts`);
+    logSlotDebug(
+      'fetchAndCacheAccounts',
+      slots.find(s => s.detected)?.email ?? null,
+      persistedIndex,
+      slots.length,
+    );
     return slots;
   } catch (err) {
     console.debug('[AccountSlots] Fetch error:', (err as Error)?.message);
@@ -183,14 +250,7 @@ export async function initializeSlots(): Promise<GoogleAccountSlot[]> {
   // Tier 1: Direct ListAccounts fetch
   const fresh = await fetchAndCacheAccounts();
   if (fresh.length > 0) {
-    // Restore the previously-selected account's detected flag
-    const persisted = fresh.find((s) => s.index === persistedIndex);
-    if (persisted) {
-      for (const s of fresh) s.detected = (s.index === persistedIndex);
-    } else if (fresh[0]) {
-      fresh[0].detected = true;
-    }
-    await saveCachedSlots(fresh);
+    logSlotDebug('initializeSlots(tier1-fresh)', fresh.find(s => s.detected)?.email ?? null, persistedIndex, fresh.length);
     return fresh;
   }
 
@@ -205,6 +265,7 @@ export async function initializeSlots(): Promise<GoogleAccountSlot[]> {
       cached[0].detected = true;
     }
     await saveCachedSlots(cached);
+    logSlotDebug('initializeSlots(tier2-cache)', cached.find(s => s.detected)?.email ?? null, persistedIndex, cached.length);
     return cached;
   }
 
@@ -228,10 +289,12 @@ export async function initializeSlots(): Promise<GoogleAccountSlot[]> {
         lastUsed: Date.now(),
       }];
       await saveCachedSlots(fallback);
+      logSlotDebug('initializeSlots(tier3-identity)', userInfo.email, 0, 1);
       return fallback;
     }
   } catch { /* no identity */ }
 
+  logSlotDebug('initializeSlots(empty)', null, 0, 0);
   return [];
 }
 
@@ -294,6 +357,7 @@ export async function activateSlot(email: string): Promise<number> {
 
     // Persist the index
     await Promise.all([saveCachedSlots(slots), setSelectedAccountIndex(newIndex)]);
+    logSlotDebug('activateSlot(unknown)', email, newIndex, slots.length);
     return newIndex;
   }
 
@@ -303,6 +367,7 @@ export async function activateSlot(email: string): Promise<number> {
 
   // Persist the index
   await Promise.all([saveCachedSlots(slots), setSelectedAccountIndex(target.index)]);
+  logSlotDebug('activateSlot', email, target.index, slots.length);
   return target.index;
 }
 
