@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 import { t } from '@/lib/i18n';
@@ -28,9 +28,12 @@ function getPlatformConfig(platform: string) {
 
 interface Props {
   initialUrl?: string;
+  fetchTrigger?: number;
+  onProgress?: (progress: any) => void;
+  onImportHandlerChange?: (handler: (() => void) | null) => void;
 }
 
-export function PodcastImport({ initialUrl }: Props) {
+export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [count, setCount] = useState<number | undefined>(undefined);
   const [state, setState] = useState<State>('idle');
@@ -43,16 +46,20 @@ export function PodcastImport({ initialUrl }: Props) {
   const platform = useMemo(() => detectPlatform(url), [url]);
   const theme = getPlatformConfig(platform);
 
-  const handleFetch = () => {
-    if (!url) { setError(t('podcast.enterLink')); setState('error'); return; }
-    if (platform === 'unknown') { setError(t('podcast.unrecognized')); setState('error'); return; }
+  // Auto-fetch when initialUrl changes (tab switch / page nav)
+  const lastAutoUrl = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialUrl) return;
+    if (lastAutoUrl.current === initialUrl) return;
+    lastAutoUrl.current = initialUrl;
+    setUrl(initialUrl);
     setState('loading');
     setError('');
     setPodcast(null);
     setEpisodes([]);
 
     chrome.runtime.sendMessage(
-      { type: 'FETCH_PODCAST', url, count },
+      { type: 'FETCH_PODCAST', url: initialUrl, count },
       (resp) => {
         if (resp?.success && resp.data) {
           const data = resp.data as { podcast: PodcastInfo; episodes: PodcastEpisode[] };
@@ -66,7 +73,35 @@ export function PodcastImport({ initialUrl }: Props) {
         }
       },
     );
-  };
+  }, [initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch on fetchTrigger (header refresh button)
+  useEffect(() => {
+    if (fetchTrigger && fetchTrigger > 0 && initialUrl) {
+      lastAutoUrl.current = null;
+      setUrl(initialUrl);
+      setState('loading');
+      setError('');
+      setPodcast(null);
+      setEpisodes([]);
+
+      chrome.runtime.sendMessage(
+        { type: 'FETCH_PODCAST', url: initialUrl, count },
+        (resp) => {
+          if (resp?.success && resp.data) {
+            const data = resp.data as { podcast: PodcastInfo; episodes: PodcastEpisode[] };
+            setPodcast(data.podcast);
+            setEpisodes(data.episodes);
+            setSelected(new Set(data.episodes.map((e) => e.id)));
+            setState('loaded');
+          } else {
+            setState('error');
+            setError(resp?.error || t('podcast.fetchFailed'));
+          }
+        },
+      );
+    }
+  }, [fetchTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownload = () => {
     const toDownload = episodes.filter((e) => selected.has(e.id));
@@ -114,51 +149,6 @@ export function PodcastImport({ initialUrl }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-          {platform === 'xiaoyuzhou' ? <Radio className="w-4 h-4 text-emerald-500" /> : <Headphones className="w-4 h-4 text-purple-500" />}
-          {platform === 'unknown' ? t('podcast.link') : theme.name}
-        </label>
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Music className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t('podcast.placeholder')}
-              className="w-full pl-10 pr-3 py-2 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent placeholder:text-gray-400/70"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <label className="text-xs text-gray-500">{t('podcast.latest')}</label>
-          <input
-            type="number"
-            value={count || ''}
-            onChange={(e) => setCount(e.target.value ? parseInt(e.target.value) : undefined)}
-            placeholder={t('podcast.all')}
-            min={1}
-            max={500}
-            className="w-16 px-2 py-1 border border-gray-200/60 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-notebooklm-blue/40 placeholder:text-gray-400/70"
-          />
-          <label className="text-xs text-gray-500">{t('podcast.episodes')}</label>
-          <div className="flex-1" />
-          <button
-            onClick={handleFetch}
-            disabled={!url || state === 'loading'}
-            className={`px-4 py-1.5 ${theme.accent} text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press`}
-          >
-            {state === 'loading' ? (
-              <><Loader2 className="w-3 h-3 animate-spin" />{t('podcast.querying')}</>
-            ) : (
-              <><Music className="w-3 h-3" />{t('podcast.query')}</>
-            )}
-          </button>
-        </div>
-      </div>
-
       {/* Podcast Info */}
       {podcast && (
         <div className={`${theme.accentLight} border ${theme.border} rounded-lg p-3 flex items-center gap-3 shadow-soft`}>
@@ -243,18 +233,6 @@ export function PodcastImport({ initialUrl }: Props) {
         <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
-        </div>
-      )}
-
-      {/* Help */}
-      {!podcast && state === 'idle' && (
-        <div className="text-xs text-gray-400 space-y-1 bg-surface-sunken rounded-xl p-3.5">
-          <p>{t('podcast.supportedFormats')}</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>{t('podcast.formatApple')}</li>
-            <li>{t('podcast.formatXyz1')}</li>
-            <li>{t('podcast.formatXyz2')}</li>
-          </ul>
         </div>
       )}
 

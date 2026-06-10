@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Youtube, Loader2, AlertCircle, PlayCircle, ListVideo, User, ChevronDown } from 'lucide-react';
+import { Youtube, Loader2, AlertCircle, PlayCircle, ListVideo, User } from 'lucide-react';
 import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
@@ -30,11 +30,8 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
   const [continuation, setContinuation] = useState<string | undefined>();
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
-  const displayedVideos = useMemo(() => videos.slice(0, displayCount), [videos, displayCount]);
-  const canLoadMore = displayCount < videos.length || !!continuation;
+  const displayedVideos = useMemo(() => videos, [videos]);
 
   const urlType = useMemo(() => {
     if (!url || !isYouTubeUrl(url)) return 'unknown';
@@ -53,7 +50,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     setVideos([]);
     setResults(null);
     setContinuation(undefined);
-    setDisplayCount(PAGE_SIZE);
 
     chrome.runtime.sendMessage(
       { type: 'FETCH_YOUTUBE', url },
@@ -64,50 +60,10 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
           setVideos(data.videos);
           setSelected(new Set(data.videos.slice(0, PAGE_SIZE).map((v) => v.id)));
           setContinuation(data.continuation);
-          setDisplayCount(PAGE_SIZE);
           setState('loaded');
         } else {
           setState('error');
           setError(resp?.error || t('youtube.fetchFailed'));
-        }
-      },
-    );
-  };
-
-  const revealNextPage = (allVideos: YouTubeVideoItem[]) => {
-    const nextCount = Math.min(displayCount + PAGE_SIZE, allVideos.length);
-    const newlyRevealed = allVideos.slice(displayCount, nextCount);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      newlyRevealed.forEach((v) => next.add(v.id));
-      return next;
-    });
-    setDisplayCount(nextCount);
-  };
-
-  const handleLoadMore = () => {
-    if (loadingMore) return;
-
-    // 1. If there are buffered (already fetched) videos, reveal them first
-    if (displayCount < videos.length) {
-      revealNextPage(videos);
-      return;
-    }
-
-    // 2. Otherwise fetch the next page from continuation
-    if (!continuation) return;
-    setLoadingMore(true);
-
-    chrome.runtime.sendMessage(
-      { type: 'FETCH_YOUTUBE_MORE', continuation },
-      (resp) => {
-        setLoadingMore(false);
-        if (resp?.success && resp.data) {
-          const data = resp.data as { videos: YouTubeVideoItem[]; continuation?: string };
-          const merged = [...videos, ...data.videos];
-          setVideos(merged);
-          setContinuation(data.continuation);
-          revealNextPage(merged);
         }
       },
     );
@@ -183,41 +139,20 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
 
   return (
     <div className="space-y-4">
-      {/* Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-          <Youtube className="w-4 h-4 text-red-500" />
-          {t('youtube.link')}
-        </label>
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <SourceIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t('youtube.placeholder')}
-              className="w-full pl-10 pr-3 py-2 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-transparent placeholder:text-gray-400/70"
-            />
-          </div>
-          <button
-            onClick={handleFetch}
-            disabled={!url || state === 'loading'}
-            className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-          >
-            {state === 'loading' ? (
-              <><Loader2 className="w-3 h-3 animate-spin" />{t('youtube.querying')}</>
-            ) : (
-              <><Youtube className="w-3 h-3" />{t('youtube.query')}</>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Source Info */}
+      {/* Source Info — with YouTube favicon */}
       {source && (
         <div className="bg-red-50 border border-red-100/60 rounded-lg p-3 flex items-center gap-3 shadow-soft">
-          <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+          <img
+            src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64"
+            alt=""
+            className="w-10 h-10 rounded-lg flex-shrink-0 bg-white object-contain p-1"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+          <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0 hidden">
             <SourceIcon className="w-5 h-5 text-red-500" />
           </div>
           <div className="flex-1 min-w-0">
@@ -262,20 +197,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
               </label>
             ))}
           </div>
-          {/* Load More */}
-          {canLoadMore && (
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="w-full mt-2 py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 border border-red-200/60 rounded-lg flex items-center justify-center gap-1 transition-colors duration-150 disabled:opacity-50"
-            >
-              {loadingMore ? (
-                <><Loader2 className="w-3 h-3 animate-spin" />{t('youtube.loadingMore')}</>
-              ) : (
-                <><ChevronDown className="w-3 h-3" />{t('youtube.loadMore')}</>
-              )}
-            </button>
-          )}
         </div>
       )}
 
@@ -295,19 +216,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
         <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
-        </div>
-      )}
-
-      {/* Help */}
-      {!source && state === 'idle' && (
-        <div className="text-xs text-gray-400 space-y-1 bg-surface-sunken rounded-xl p-3.5">
-          <p>{t('youtube.supportedFormats')}</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>{t('youtube.formatVideo')}</li>
-            <li>{t('youtube.formatPlaylist')}</li>
-            <li>{t('youtube.formatChannel')}</li>
-            <li>{t('youtube.formatShort')}</li>
-          </ul>
         </div>
       )}
 

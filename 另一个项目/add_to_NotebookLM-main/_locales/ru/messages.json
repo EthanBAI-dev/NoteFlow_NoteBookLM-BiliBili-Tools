@@ -1,0 +1,390 @@
+{
+  "extName": {
+    "message": "Add to NotebookLM",
+    "description": "Название расширения"
+  },
+  "extDescription": {
+    "message": "Импортируйте YouTube видео и веб-страницы в NotebookLM одним кликом. Массовый импорт, поддержка плейлистов и многое другое.",
+    "description": "Описание расширения"
+  },
+  "popup_currentPage": {
+    "message": "Текущая страница:",
+    "description": "Метка текущей страницы"
+  },
+  "popup_selectNotebook": {
+    "message": "Добавить в нотбук:",
+    "description": "Метка выбора нотбука"
+  },
+  "popup_addToNotebook": {
+    "message": "Добавить в нотбук",
+    "description": "Текст кнопки добавления"
+  },
+  "popup_addVideo": {
+    "message": "Добавить видео в нотбук",
+    "description": "Текст кнопки добавления видео"
+  },
+  "popup_addPlaylist": {
+    "message": "Добавить плейлист в нотбук",
+    "description": "Текст кнопки добавления плейлиста"
+  },
+  "popup_addAllPlaylist": {
+    "message": "Добавить все видео из плейлиста",
+    "description": "Текст кнопки добавления всех видео"
+  },
+  "popup_addChannelVideos": {
+    "message": "Добавить видео канала в нотбук",
+    "description": "Текст кнопки добавления видео канала"
+  },
+  "popup_createNotebook": {
+    "message": "Создать новый нотбук",
+    "description": "Кнопка создания нотбука"
+  },
+  "popup_bulkImport": {
+    "message": "Массовый импорт",
+    "description": "Кнопка массового импорта"
+  },
+  "popup_fromTabs": {
+    "message": "Из вкладок",
+    "description": "Кнопка импорта из вкладок"
+  },
+  "popup_loading": {
+    "message": "Загрузка...",
+    "description": "Состояние загрузки"
+  },
+  "popup_loadingNotebooks": {
+    "message": "Загрузка нотбуков...",
+    "description": "Загрузка нотбуков"
+  },
+  "popup_success": {
+    "message": "Успешно добавлено!",
+    "description": "Сообщение об успехе"
+  },
+  "popup_error": {
+    "message": "Не удалось добавить. Попробуйте ещё раз.",
+    "description": "Сообщение об ошибке"
+  },
+  "popup_loginRequired": {
+    "message": "Сначала войдите в NotebookLM",
+    "description": "Сообщение о необходимости входа"
+  },
+  "popup_noNotebooks": {
+    "message": "Нотбуки не найдены",
+    "description": "Сообщение об отсутствии нотбуков"
+  },
+  "popup_tools": {
+    "message": "Инструменты:",
+    "description": "Метка секции инструментов"
+  },
+  "popup_openNotebook": {
+    "message": "Открыть нотбук",
+    "description": "Кнопка открытия нотбука"
+  },
+  "popup_cancel": {
+    "message": "Отмена",
+    "description": "Кнопка отмены"
+  },
+  "popup_createAndAdd": {
+    "message": "Создать и добавить",
+    "description": "Кнопка создания и добавления"
+  },
+  "popup_notebookName": {
+    "message": "Название нотбука",
+    "description": "Placeholder названия нотбука"
+  },
+  "popup_extractingVideos": {
+    "message": "Извлечение видео из",
+    "description": "Сообщение об извлечении видео"
+  },
+  "popup_addingVideos": {
+    "message": "Добавление видео в нотбук...",
+    "description": "Сообщение о добавлении видео"
+  },
+  "popup_noVideosFound": {
+    "message": "Видео не найдены. Попробуйте прокрутить страницу вниз для загрузки видео, затем попробуйте снова.",
+    "description": "Сообщение об отсутствии видео"
+  },
+  "popup_videosAdded": {
+    "message": "видео добавлено!",
+    "description": "Сообщение о добавленных видео"
+  },
+  "popup_addedTo": {
+    "message": "Добавлено в",
+    "description": "Префикс добавления"
+  },
+  "popup_playlist": {
+    "message": "Плейлист",
+    "description": "Метка плейлиста"
+  },
+  "popup_videoFromPlaylist": {
+    "message": "Видео из плейлиста",
+    "description": "Метка видео из плейлиста"
+  },
+  "popup_clickToAddAll": {
+    "message": "Нажмите, чтобы добавить все видео",
+    "description": "Подсказка о добавлении всех"
+  },
+  "popup_channel": {
+    "message": "Канал",
+    "description": "Метка канала"
+  },
+  "app_title": {
+    "message": "Add to NotebookLM",
+    "description": "Заголовок страницы приложения"
+  },
+  "app_description": {
+    "message": "Ваш набор инструментов для работы с NotebookLM",
+    "description": "Описание страницы приложения"
+  },
+  "bulk_title": {
+    "message": "Массовый импорт",
+    "description": "Заголовок страницы массового импорта"
+  },
+  "bulk_description": {
+    "message": "Импортируйте несколько ссылок в NotebookLM за раз",
+    "description": "Описание массового импорта"
+  },
+  "bulk_linksTab": {
+    "message": "Ссылки",
+    "description": "Вкладка ссылок"
+  },
+  "bulk_tabsTab": {
+    "message": "Вкладки браузера",
+    "description": "Вкладка браузерных вкладок"
+  },
+  "bulk_settingsTab": {
+    "message": "Настройки",
+    "description": "Вкладка настроек"
+  },
+  "bulk_selectNotebook": {
+    "message": "Выберите нотбук",
+    "description": "Заголовок выбора нотбука"
+  },
+  "bulk_pasteLinks": {
+    "message": "Вставьте ссылки",
+    "description": "Заголовок секции ссылок"
+  },
+  "bulk_enterUrls": {
+    "message": "Введите URL (по одному на строку):",
+    "description": "Метка поля ввода URL"
+  },
+  "bulk_importLinks": {
+    "message": "Импортировать ссылки",
+    "description": "Кнопка импорта ссылок"
+  },
+  "bulk_selectTabs": {
+    "message": "Выберите вкладки браузера",
+    "description": "Заголовок секции вкладок"
+  },
+  "bulk_selectAll": {
+    "message": "Выбрать все",
+    "description": "Чекбокс выбора всех"
+  },
+  "bulk_importTabs": {
+    "message": "Импортировать выбранные вкладки",
+    "description": "Кнопка импорта вкладок"
+  },
+  "bulk_openNotebook": {
+    "message": "Открыть нотбук",
+    "description": "Ссылка на открытие нотбука"
+  },
+  "bulk_createNewNotebook": {
+    "message": "Создать новый нотбук",
+    "description": "Кнопка создания нотбука"
+  },
+  "bulk_loadingTabs": {
+    "message": "Загрузка вкладок...",
+    "description": "Загрузка вкладок"
+  },
+  "bulk_noTabs": {
+    "message": "Вкладки не найдены",
+    "description": "Вкладки не найдены"
+  },
+  "bulk_failedToLoad": {
+    "message": "Не удалось загрузить вкладки",
+    "description": "Ошибка загрузки вкладок"
+  },
+  "settings_title": {
+    "message": "Настройки",
+    "description": "Заголовок настроек"
+  },
+  "settings_language": {
+    "message": "Язык:",
+    "description": "Метка выбора языка"
+  },
+  "settings_languageHint": {
+    "message": "Выберите язык интерфейса",
+    "description": "Подсказка выбора языка"
+  },
+  "settings_account": {
+    "message": "Аккаунт Google:",
+    "description": "Метка выбора аккаунта"
+  },
+  "settings_accountHint": {
+    "message": "Выберите аккаунт Google для NotebookLM",
+    "description": "Подсказка выбора аккаунта"
+  },
+  "settings_autoOpen": {
+    "message": "Автоматически открывать нотбук после добавления источников",
+    "description": "Настройка автооткрытия"
+  },
+  "settings_youtube": {
+    "message": "Настройки YouTube",
+    "description": "Заголовок настроек YouTube"
+  },
+  "settings_youtubeHint": {
+    "message": "Для плейлистов и каналов YouTube используйте кнопки, которые появляются непосредственно на страницах YouTube. Расширение автоматически извлечёт URL-адреса видео с помощью InnerTube API YouTube.",
+    "description": "Подсказка настроек YouTube"
+  },
+  "settings_about": {
+    "message": "О расширении",
+    "description": "Заголовок раздела О расширении"
+  },
+  "settings_aboutText": {
+    "message": "Chrome-расширение для импорта YouTube видео, плейлистов, каналов, веб-страниц и комментариев в Google NotebookLM. Поддержка массового импорта и нескольких аккаунтов Google.",
+    "description": "Текст о расширении"
+  },
+  "settings_openNotebookLM": {
+    "message": "Открыть NotebookLM",
+    "description": "Кнопка открытия NotebookLM"
+  },
+  "settings_accountChanged": {
+    "message": "Аккаунт изменён. Нотбуки перезагружены.",
+    "description": "Сообщение об изменении аккаунта"
+  },
+  "settings_darkMode": {
+    "message": "Тёмная тема",
+    "description": "Переключатель тёмной темы"
+  },
+  "settings_darkModeHint": {
+    "message": "Переключение между светлой и тёмной темой",
+    "description": "Подсказка переключателя темы"
+  },
+  "common_sources": {
+    "message": "источников",
+    "description": "Метка источников"
+  },
+  "common_links": {
+    "message": "ссылок",
+    "description": "Ссылки множественное число"
+  },
+  "common_tabs": {
+    "message": "вкладок",
+    "description": "Вкладки множественное число"
+  },
+  "settings_enableBulkDelete": {
+    "message": "Включить кнопку массового удаления в NotebookLM",
+    "description": "Настройка массового удаления"
+  },
+  "settings_bulkDeleteHint": {
+    "message": "Показывает кнопку удаления при выборе нескольких источников в NotebookLM",
+    "description": "Подсказка настройки массового удаления"
+  },
+  "comments_parseComments": {
+    "message": "Спарсить комментарии",
+    "description": "Кнопка парсинга комментариев"
+  },
+  "comments_loadingComments": {
+    "message": "Загрузка комментариев...",
+    "description": "Прогресс загрузки комментариев"
+  },
+  "comments_loadingReplies": {
+    "message": "Загрузка ответов...",
+    "description": "Прогресс загрузки ответов"
+  },
+  "comments_commentsLoaded": {
+    "message": "комментариев",
+    "description": "Метка комментариев в фазе загрузки ответов"
+  },
+  "comments_formatting": {
+    "message": "Форматирование...",
+    "description": "Прогресс форматирования"
+  },
+  "comments_sending": {
+    "message": "Отправка в NotebookLM...",
+    "description": "Отправка комментариев в NotebookLM"
+  },
+  "comments_commentsDisabled": {
+    "message": "Комментарии отключены для этого видео",
+    "description": "Ошибка: комментарии отключены"
+  },
+  "comments_modeLabel": {
+    "message": "Режим парсинга комментариев:",
+    "description": "Метка режима комментариев"
+  },
+  "comments_modeTop": {
+    "message": "Топ комментарии (~1000 популярных)",
+    "description": "Режим топ комментариев"
+  },
+  "comments_modeNewest": {
+    "message": "Все (сначала новые)",
+    "description": "Режим новых комментариев"
+  },
+  "comments_limitLabel": {
+    "message": "Лимит комментариев:",
+    "description": "Метка лимита комментариев"
+  },
+  "comments_limitUnlimited": {
+    "message": "Без лимита ⚠️",
+    "description": "Вариант без лимита"
+  },
+  "comments_includeReplies": {
+    "message": "Загружать ответы",
+    "description": "Чекбокс загрузки ответов"
+  },
+  "comments_includeRepliesHint": {
+    "message": "Загружать ветки ответов к комментариям",
+    "description": "Подсказка загрузки ответов"
+  },
+  "comments_cancelParsing": {
+    "message": "Отмена",
+    "description": "Кнопка отмены парсинга"
+  },
+  "comments_cancelled": {
+    "message": "Парсинг отменён",
+    "description": "Сообщение об отмене парсинга"
+  },
+  "comments_networkError": {
+    "message": "Ошибка сети. Проверьте подключение.",
+    "description": "Сообщение об ошибке сети"
+  },
+  "comments_videoNotFound": {
+    "message": "Видео не найдено",
+    "description": "Ошибка: видео не найдено"
+  },
+  "comments_notYoutubePage": {
+    "message": "Не удалось определить ID видео на этой странице",
+    "description": "Не YouTube-страница с видео"
+  },
+  "comments_commentsParsed": {
+    "message": "комментариев добавлено в",
+    "description": "Комментарии спаршены и добавлены в нотбук"
+  },
+  "comments_invalidRequest": {
+    "message": "Неверный запрос",
+    "description": "Ошибка неверного запроса"
+  },
+  "popup_addAsPdf": {
+    "message": "Добавить как PDF",
+    "description": "Кнопка добавления как PDF"
+  },
+  "popup_capturingPdf": {
+    "message": "Захват страницы в PDF...",
+    "description": "Сообщение о захвате PDF"
+  },
+  "popup_pdfSuccess": {
+    "message": "Страница добавлена как PDF!",
+    "description": "PDF успешно добавлен"
+  },
+  "popup_pdfError": {
+    "message": "Не удалось захватить эту страницу как PDF",
+    "description": "Ошибка захвата PDF"
+  },
+  "settings_enableSyncDrive": {
+    "message": "Включить кнопку синхронизации Drive в NotebookLM",
+    "description": "Настройка синхронизации Drive"
+  },
+  "settings_syncDriveHint": {
+    "message": "Показывает кнопку синхронизации для обновления источников Google Документов и Таблиц в NotebookLM",
+    "description": "Подсказка настройки синхронизации Drive"
+  }
+}

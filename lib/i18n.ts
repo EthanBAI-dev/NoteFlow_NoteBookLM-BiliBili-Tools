@@ -194,6 +194,7 @@ const zh = {
   'claude.extracting': '正在提取对话...',
   'claude.extractCurrent': '提取当前对话',
   'claude.currentPlatform': '当前平台：',
+  'claude.aiChatTitle': 'AI 聊天',
   'claude.instructions': '使用说明：',
   'claude.step1': '在 {platform} 打开对话页面',
   'claude.step2': '点击「提取当前对话」',
@@ -215,7 +216,7 @@ const zh = {
   'claude.shareCard': '生成分享卡片',
   'claude.guideTip': '💡 导入前请确保已打开一个 NotebookLM 笔记本（非首页）',
 
-  // ── BookmarkPanel ──
+  // ── WebImport ──
   'bookmark.collection': '网址集合',
   'bookmark.bookmarked': '已收集',
   'bookmark.addBookmark': '收集',
@@ -511,6 +512,7 @@ const en: Record<keyof typeof zh, string> = {
   'claude.extracting': 'Extracting conversation...',
   'claude.extractCurrent': 'Extract Current Conversation',
   'claude.currentPlatform': 'Current platform: ',
+  'claude.aiChatTitle': 'AI Chat',
   'claude.instructions': 'Instructions:',
   'claude.step1': 'Open a conversation on {platform}',
   'claude.step2': 'Click "Extract Current Conversation"',
@@ -532,7 +534,7 @@ const en: Record<keyof typeof zh, string> = {
   'claude.shareCard': 'Share Card',
   'claude.guideTip': '💡 Make sure a NotebookLM notebook (not homepage) is open before importing',
 
-  // ── BookmarkPanel ──
+  // ── WebImport ──
   'bookmark.collection': 'URL Collection',
   'bookmark.bookmarked': 'Collected',
   'bookmark.addBookmark': 'Collect',

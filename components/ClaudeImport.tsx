@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { ClaudeConversation, ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
+import { SourceInfoCard } from './SourceInfoCard';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -59,6 +60,7 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   const [selectedPairIds, setSelectedPairIds] = useState<Set<string>>(new Set());
   const [platformInfo, setPlatformInfo] = useState<ReturnType<typeof detectPlatform>>(null);
   const [currentTabId, setCurrentTabId] = useState<number | null>(null);
+  const [currentTabFavicon, setCurrentTabFavicon] = useState<string | undefined>();
 
   const [autoExtracted, setAutoExtracted] = useState(false);
 
@@ -69,6 +71,7 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
         const info = detectPlatform(tab.url);
         setPlatformInfo(info);
         setCurrentTabId(info ? (tab.id || null) : null);
+        setCurrentTabFavicon(tab.favIconUrl || undefined);
       }
     });
   }, []);
@@ -195,7 +198,7 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   const pairs = conversation?.pairs || [];
   const allSelected = pairs.length > 0 && selectedPairIds.size === pairs.length;
 
-  // Not on a supported AI platform — show onboarding guide
+  // Not on a supported AI platform
   if (!platformInfo) {
     return (
       <div className="space-y-4">
@@ -203,30 +206,6 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
           <MessageCircle className="w-10 h-10 text-amber-500 opacity-80 mx-auto mb-2" />
           <p className="text-sm font-medium text-amber-700">{t('claude.openAiPage')}</p>
           <p className="text-xs text-amber-600/70 mt-1">{t('claude.supported')}</p>
-        </div>
-        <div className="bg-surface-sunken rounded-xl p-4 space-y-3">
-          <p className="text-xs font-medium text-gray-600">{t('claude.guideTitle')}</p>
-          <ol className="text-xs text-gray-500 space-y-2 list-none">
-            <li className="flex gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">1</span>
-              <span>{t('claude.guideStep1')}</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">2</span>
-              <span>{t('claude.guideStep2')}</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">3</span>
-              <span>{t('claude.guideStep3')}</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">4</span>
-              <span>{t('claude.guideStep4')}</span>
-            </li>
-          </ol>
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-[10px] text-gray-400">{t('claude.guideTip')}</p>
-          </div>
         </div>
       </div>
     );
@@ -236,6 +215,15 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   if (state === 'idle' || state === 'extracting' || (state === 'error' && !conversation)) {
     return (
       <div className="space-y-4">
+        {/* Source Info Card — matches Bilibili/YouTube design pattern */}
+        <SourceInfoCard
+          platform="ai"
+          title={platformInfo?.name || t('claude.aiChatTitle')}
+          favicon={currentTabFavicon}
+          subtitle={platformInfo ? `${platformInfo.icon} ${platformInfo.name}` : undefined}
+          tags={platformInfo ? [platformInfo.name] : undefined}
+        />
+
         <button
           onClick={handleExtract}
           disabled={state === 'extracting'}
@@ -255,16 +243,6 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
           </div>
         )}
 
-        <div className="text-xs text-gray-400 space-y-1 bg-surface-sunken rounded-xl p-3.5">
-          <p>{t('claude.currentPlatform')}{platformInfo.icon} {platformInfo.name}</p>
-          <p className="mt-1">{t('claude.instructions')}</p>
-          <ol className="list-decimal list-inside space-y-0.5">
-            <li>{t('claude.step1', { platform: platformInfo.name })}</li>
-            <li>{t('claude.step2')}</li>
-            <li>{t('claude.step3')}</li>
-            <li>{t('claude.step4')}</li>
-          </ol>
-        </div>
       </div>
     );
   }

@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add to NotebookLM</title>
+  <style>
+    /* ===== CSS Variables - Light Theme ===== */
+    :root {
+      /* Backgrounds */
+      --bg-body: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+      --bg-card: rgba(255, 255, 255, 0.7);
+      --bg-card-hover: rgba(255, 255, 255, 0.85);
+      --bg-input: rgba(255, 255, 255, 0.9);
+
+      /* Blur */
+      --blur-card: 20px;
+
+      /* Borders */
+      --border-subtle: rgba(255, 255, 255, 0.5);
+      --border-input: rgba(0, 0, 0, 0.1);
+
+      /* Text */
+      --text-primary: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-muted: #86868b;
+
+      /* Accent */
+      --accent-primary: #007AFF;
+      --accent-primary-hover: #0056CC;
+      --accent-success: #34C759;
+      --accent-error: #FF3B30;
+      --accent-warning: #FF9500;
+
+      /* Shadows */
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.08);
+      --shadow-button: 0 4px 16px rgba(0, 122, 255, 0.3);
+      --shadow-button-hover: 0 6px 20px rgba(0, 122, 255, 0.4);
+
+      /* Radius */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-pill: 50px;
+
+      /* Transitions */
+      --transition-fast: 0.2s ease;
+      --transition-normal: 0.3s ease;
+    }
+
+    /* ===== Dark Theme ===== */
+    [data-theme="dark"] {
+      --bg-body: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
+      --bg-card: rgba(44, 44, 46, 0.7);
+      --bg-card-hover: rgba(58, 58, 60, 0.8);
+      --bg-input: rgba(44, 44, 46, 0.9);
+
+      --border-subtle: rgba(255, 255, 255, 0.1);
+      --border-input: rgba(255, 255, 255, 0.15);
+
+      --text-primary: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-muted: #6e6e73;
+
+      --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    /* ===== Base Styles ===== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg-body);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .header img {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-md);
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-top: 4px;
+    }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding: 6px;
+      background: var(--bg-card);
+      backdrop-filter: blur(var(--blur-card));
+      -webkit-backdrop-filter: blur(var(--blur-card));
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .tab:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      color: #fff;
+      background: var(--accent-primary);
+      box-shadow: var(--shadow-button);
+    }
+
+    /* ===== Cards (Glassmorphism) ===== */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(var(--blur-card));
+      -webkit-backdrop-filter: blur(var(--blur-card));
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+    }
+
+    /* ===== Form Elements ===== */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e6e73' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    [data-theme="dark"] .form-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a1a1a6' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
+    }
+
+    .form-textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      resize: vertical;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
+    }
+
+    .form-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), opacity var(--transition-fast);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: #fff;
+      box-shadow: var(--shadow-button);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-primary-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-button-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      backdrop-filter: blur(var(--blur-card));
+      -webkit-backdrop-filter: blur(var(--blur-card));
+      color: var(--accent-primary);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-danger {
+      background: var(--accent-error);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(255, 59, 48, 0.3);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #e02020;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 59, 48, 0.4);
+    }
+
+    .btn-block {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .link-count {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* ===== Tabs List ===== */
+    .tabs-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+    }
+
+    .tab-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .tab-item:last-child {
+      border-bottom: none;
+    }
+
+    .tab-item:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .tab-item.selected {
+      background: rgba(0, 122, 255, 0.1);
+    }
+
+    .tab-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent-primary);
+    }
+
+    .tab-item-favicon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+    }
+
+    .tab-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tab-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-primary);
+    }
+
+    .tab-item-url {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .source-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .source-item:last-child {
+      border-bottom: none;
+    }
+
+    .source-item:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .source-item.selected {
+      background: rgba(255, 59, 48, 0.1);
+    }
+
+    .source-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent-primary);
+    }
+
+    .source-type-icon {
+      font-size: 20px;
+      width: 28px;
+      text-align: center;
+    }
+
+    .source-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .source-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-primary);
+    }
+
+    .source-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .select-all-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-input);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Progress ===== */
+    .progress-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress-container.visible {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-input);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), #5AC8FA);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* ===== Status ===== */
+    .status {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 16px 28px;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+      z-index: 1000;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .status.visible {
+      display: block;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .status.success {
+      background: rgba(52, 199, 89, 0.9);
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(52, 199, 89, 0.3);
+    }
+
+    .status.error {
+      background: rgba(255, 59, 48, 0.9);
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(255, 59, 48, 0.3);
+    }
+
+    .status.info {
+      background: rgba(0, 122, 255, 0.9);
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(0, 122, 255, 0.3);
+    }
+
+    .status a {
+      color: inherit;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    /* ===== Actions ===== */
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* ===== Settings Specific ===== */
+    .settings-section {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent-primary);
+      cursor: pointer;
+    }
+
+    /* ===== Theme Toggle ===== */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+    }
+
+    .theme-toggle-info {
+      flex: 1;
+    }
+
+    .theme-toggle-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .theme-toggle-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .toggle-switch {
+      width: 52px;
+      height: 28px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: 14px;
+      position: relative;
+      cursor: pointer;
+      transition: background var(--transition-normal), border-color var(--transition-normal);
+    }
+
+    .toggle-switch.active {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform var(--transition-normal);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(24px);
+    }
+
+    /* ===== Social Links ===== */
+    .social-links {
+      display: flex;
+      gap: 16px;
+      justify-content: flex-start;
+      margin-top: 16px;
+    }
+
+    .social-link {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: var(--text-secondary);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    }
+
+    .social-link:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      background: var(--bg-card-hover);
+    }
+
+    .social-link svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* Colored social icons */
+    .social-link-telegram {
+      color: #26A5E4;
+    }
+
+    .social-link-telegram:hover {
+      background: rgba(38, 165, 228, 0.15);
+      box-shadow: 0 8px 24px rgba(38, 165, 228, 0.3);
+    }
+
+    .social-link-youtube {
+      color: #FF0000;
+    }
+
+    .social-link-youtube:hover {
+      background: rgba(255, 0, 0, 0.12);
+      box-shadow: 0 8px 24px rgba(255, 0, 0, 0.25);
+    }
+
+    .social-link-github {
+      color: var(--text-primary);
+    }
+
+    .social-link-github:hover {
+      background: var(--bg-card-hover);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    [data-theme="dark"] .social-link-github {
+      color: #f5f5f7;
+    }
+
+    /* ===== About Info ===== */
+    .about-info {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .about-version {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+
+    /* ===== Hidden ===== */
+    .hidden {
+      display: none !important;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px 16px;
+      }
+
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+
+      .tab {
+        flex: 1 0 calc(33% - 8px);
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="../icons/icon48.png" alt="NotebookLM">
+      <div>
+        <h1>📔 <span data-i18n="app_title">Add to NotebookLM</span></h1>
+        <p data-i18n="app_description">Your toolkit for working with NotebookLM</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab" data-tab="tabs">🗂️ <span data-i18n="bulk_tabsTab">Browser Tabs</span></button>
+      <button class="tab active" data-tab="links">📝 <span data-i18n="bulk_linksTab">Links</span></button>
+      <button class="tab" data-tab="settings">⚙️ <span data-i18n="bulk_settingsTab">Settings</span></button>
+    </div>
+
+    <!-- Notebook Selection -->
+    <div class="card">
+      <div class="card-title">📔 <span data-i18n="bulk_selectNotebook">Select Notebook</span></div>
+      <div class="form-group">
+        <select id="notebook-select" class="form-select">
+          <option value="" data-i18n="popup_loadingNotebooks">Loading notebooks...</option>
+        </select>
+      </div>
+      <button id="new-notebook-btn" class="btn btn-secondary">
+        ➕ <span data-i18n="bulk_createNewNotebook">Create New Notebook</span>
+      </button>
+    </div>
+
+    <!-- Links Tab Content -->
+    <div id="links-panel" class="card">
+      <div class="card-title">📝 <span data-i18n="bulk_pasteLinks">Paste Links</span></div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="bulk_enterUrls">Enter URLs (one per line):</label>
+        <textarea
+          id="links-input"
+          class="form-textarea"
+          placeholder="https://youtube.com/watch?v=...
+https://example.com/article
+https://notion.so/page
+..."
+        ></textarea>
+        <div id="link-count" class="link-count">0 <span data-i18n="common_links">links</span></div>
+      </div>
+      <button id="import-links-btn" class="btn btn-primary btn-block" disabled>
+        📦 <span data-i18n="bulk_importLinks">Import Links</span>
+      </button>
+    </div>
+
+    <!-- Tabs Tab Content -->
+    <div id="tabs-panel" class="card hidden">
+      <div class="card-title">🗂️ <span data-i18n="bulk_selectTabs">Select Browser Tabs</span></div>
+      <div class="form-group">
+        <div class="tabs-list">
+          <div class="select-all-row">
+            <input type="checkbox" id="select-all-tabs">
+            <label for="select-all-tabs" data-i18n="bulk_selectAll">Select All</label>
+          </div>
+          <div id="tabs-container">
+            <div style="padding: 24px; text-align: center; color: var(--text-muted);" data-i18n="bulk_loadingTabs">
+              Loading tabs...
+            </div>
+          </div>
+        </div>
+        <div id="tabs-count" class="link-count">0 <span data-i18n="common_tabs">tabs</span></div>
+      </div>
+      <button id="import-tabs-btn" class="btn btn-primary btn-block" disabled>
+        📦 <span data-i18n="bulk_importTabs">Import Selected Tabs</span>
+      </button>
+    </div>
+
+    <!-- Settings Tab Content -->
+    <div id="settings-panel" class="card hidden">
+      <div class="card-title">⚙️ <span data-i18n="settings_title">Settings</span></div>
+
+      <!-- Theme Toggle -->
+      <div class="form-group">
+        <div class="theme-toggle">
+          <div class="theme-toggle-info">
+            <div class="theme-toggle-label" data-i18n="settings_darkMode">Dark Mode</div>
+            <div class="theme-toggle-hint" data-i18n="settings_darkModeHint">Switch between light and dark theme</div>
+          </div>
+          <div class="toggle-switch" id="theme-toggle" role="switch" aria-checked="false" tabindex="0"></div>
+        </div>
+      </div>
+
+      <!-- Language Setting -->
+      <div class="form-group">
+        <label class="form-label" data-i18n="settings_language">Language:</label>
+        <select id="settings-language-select" class="form-select">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+        </select>
+        <div class="link-count" data-i18n="settings_languageHint">Select interface language</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" data-i18n="settings_account">Google Account:</label>
+        <select id="settings-account-select" class="form-select">
+          <option value="0">Loading accounts...</option>
+        </select>
+        <div class="link-count" data-i18n="settings_accountHint">Select which Google account to use for NotebookLM</div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="auto-open-notebook">
+          <span data-i18n="settings_autoOpen">Auto-open notebook after adding sources</span>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="enable-bulk-delete" checked>
+          <span data-i18n="settings_enableBulkDelete">Enable bulk delete button in NotebookLM</span>
+        </label>
+        <div class="link-count" data-i18n="settings_bulkDeleteHint">Shows a delete button when you select multiple sources in NotebookLM</div>
+      </div>
+
+      <div class="settings-section">
+        <div class="card-title">📺 <span data-i18n="settings_youtube">YouTube Settings</span></div>
+        <div class="link-count" style="margin-bottom: 16px;" data-i18n="settings_youtubeHint">
+          For YouTube playlists and channels, use the buttons that appear directly on YouTube pages.
+          The extension will automatically extract video URLs using YouTube's InnerTube API.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="comments_modeLabel">Comments parsing mode:</label>
+          <select id="comments-mode" class="form-select">
+            <option value="top" data-i18n="comments_modeTop">Top comments (~1000 most popular)</option>
+            <option value="newest" data-i18n="comments_modeNewest">All (newest first)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="comments-limit-group" style="display: none;">
+          <label class="form-label" data-i18n="comments_limitLabel">Comment limit:</label>
+          <select id="comments-limit" class="form-select">
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+            <option value="5000">5000</option>
+            <option value="0" data-i18n="comments_limitUnlimited">Unlimited</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="comments-include-replies" checked>
+            <span data-i18n="comments_includeReplies">Load replies</span>
+          </label>
+          <div class="link-count" data-i18n="comments_includeRepliesHint">Fetch reply threads for each comment</div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="card-title">ℹ️ <span data-i18n="settings_about">About</span></div>
+        <div class="about-info" data-i18n="settings_aboutText">
+          Chrome extension for importing YouTube videos, playlists, channels, web pages and comments into Google NotebookLM. Supports bulk import and multiple Google accounts.
+        </div>
+        <div class="about-version">
+          <strong>Add to NotebookLM</strong> v1.1.0
+        </div>
+
+        <div class="social-links">
+          <a href="https://t.me/AI_Handler" target="_blank" title="Telegram" class="social-link social-link-telegram">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+            </svg>
+          </a>
+          <a href="https://www.youtube.com/@Handler_AI" target="_blank" title="YouTube" class="social-link social-link-youtube">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+          </a>
+          <a href="https://github.com/AndyShaman" target="_blank" title="GitHub" class="social-link social-link-github">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <button class="btn btn-secondary" id="open-notebooklm-btn">
+            📔 <span data-i18n="settings_openNotebookLM">Open NotebookLM</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress-container" class="progress-container">
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div id="progress-text" class="progress-text">Importing...</div>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="status"></div>
+  </div>
+
+  <script src="../lib/i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

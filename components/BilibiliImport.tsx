@@ -355,85 +355,20 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
   return (
     <div className="space-y-3">
-      {/* 哔哩哔哩 链接 label */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
-          <Tv2 className="w-4 h-4 text-[#00a1d6]" />
-          {t('bilibili.link')}
-        </label>
-      </div>
-
-      {/* Row 1: Icon dropdown + URL Input */}
-      <div className="flex gap-2">
-        <div className="flex-1 flex items-stretch" ref={dropdownRef}>
-          {/* Icon dropdown trigger */}
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              disabled={isLocked}
-              className="flex flex-col items-center justify-center w-10 h-full border border-gray-200/60 rounded-l-lg hover:bg-gray-50 transition-colors duration-150 pt-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {(() => { const Icon = modeIcon(fetchMode); return <Icon className="w-4 h-4 text-[#00a1d6]" />; })()}
-              <ChevronDown className="w-2.5 h-2.5 text-gray-400 -mt-0.5" />
-            </button>
-            {dropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200/60 rounded-lg shadow-lg z-20 min-w-[130px] py-1">
-                {MODE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setFetchMode(opt.value);
-                      setSource(null);
-                      setVideos([]);
-                      setState('idle');
-                      setDropdownOpen(false);
-                    }}
-                    className={`flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors duration-100 ${
-                      fetchMode === opt.value
-                        ? 'bg-[#00a1d6]/10 text-[#00a1d6] font-medium'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <opt.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                    {t(opt.labelKey)}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* URL Input */}
-          <div className="flex-1 relative">
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !isWorking) handleFetch(); }}
-              readOnly={isLocked}
-              placeholder={fetchMode === 'space' ? t('bilibili.spacePlaceholder') : t('bilibili.placeholder')}
-              className="w-full h-full pl-3 pr-3 py-2 border-y border-r border-gray-200/60 text-sm focus:outline-none focus:ring-2 focus:ring-[#00a1d6]/40 focus:ring-inset placeholder:text-gray-400/70 rounded-r-lg"
-            />
-          </div>
-        </div>
-
-        {/* 获取 button — separate, like YouTube */}
-        <button
-          onClick={handleFetch}
-          disabled={!url || isWorking}
-          className="px-4 py-1.5 bg-[#00a1d6] hover:bg-[#0090c0] text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press flex-shrink-0"
-        >
-          {state === 'loading' ? (
-            <><Loader2 className="w-3 h-3 animate-spin" />{t('bilibili.querying')}</>
-          ) : (
-            <>{(() => { const Icon = modeIcon(fetchMode); return <Icon className="w-3 h-3" />; })()}{t('bilibili.query')}</>
-          )}
-        </button>
-      </div>
-
-      {/* Source Info */}
+      {/* Source Info — with bilibili favicon */}
       {source && (
         <div className="bg-sky-50 border border-sky-100/60 rounded-lg p-3 flex items-center gap-3 shadow-soft">
-          <div className="w-10 h-10 rounded-lg bg-[#00a1d6]/10 flex items-center justify-center flex-shrink-0">
+          <img
+            src="https://www.bilibili.com/favicon.ico"
+            alt=""
+            className="w-10 h-10 rounded-lg flex-shrink-0 bg-white object-contain p-1"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+          <div className="w-10 h-10 rounded-lg bg-[#00a1d6]/10 flex items-center justify-center flex-shrink-0 hidden">
             <Tv2 className="w-5 h-5 text-[#00a1d6]" />
           </div>
           <div className="flex-1 min-w-0">
@@ -678,22 +613,6 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
-        </div>
-      )}
-
-      {/* Help — shown when idle and no source */}
-      {!source && state === 'idle' && (
-        <div className="text-xs text-gray-400 space-y-2 bg-surface-sunken rounded-xl p-3.5">
-          <p>{t('bilibili.supportedFormats')}</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>{t('bilibili.formatVideo')}</li>
-            <li>{t('bilibili.formatPart')}</li>
-            <li>个人主页: space.bilibili.com/xxx</li>
-          </ul>
-          <p className="flex items-center gap-1 text-amber-500">
-            <AlertCircle className="w-3 h-3 flex-shrink-0" />
-            {t('bilibili.apiNote')}
-          </p>
         </div>
       )}
     </div>

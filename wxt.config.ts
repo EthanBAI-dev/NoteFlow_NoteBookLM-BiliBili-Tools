@@ -36,6 +36,7 @@ export default defineConfig({
       'identity',
       'sidePanel',
       'webRequest',
+      'webNavigation',
     ],
     host_permissions: [
       'https://notebooklm.google.com/*',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Bookmark,
   BookmarkPlus,
@@ -9,16 +9,19 @@ import {
   FileDown,
   Copy,
   FolderPlus,
-  FolderInput,
-  ChevronDown,
-  ChevronUp,
   X,
   Upload,
+  Tv2,
+  Youtube,
+  Headphones,
+  MessageCircle,
+  Globe,
 } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import type { BookmarkItem } from '@/services/bookmarks';
 import type { PdfProgress } from '@/services/pdf-generator';
 import { t } from '@/lib/i18n';
+import { SourceInfoCard, type SourcePlatform } from './SourceInfoCard';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -27,11 +30,31 @@ interface Props {
 
 type PanelState = 'idle' | 'loading' | 'importing' | 'exporting' | 'success' | 'error';
 
-export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
+/** URL-based category detection — mirrors App.tsx detectUrl logic */
+type BookmarkCategory = 'bilibili' | 'youtube' | 'podcast' | 'ai' | 'web';
+
+const CATEGORY_ICONS: Record<BookmarkCategory, typeof Tv2> = {
+  bilibili: Tv2,
+  youtube: Youtube,
+  podcast: Headphones,
+  ai: MessageCircle,
+  web: Globe,
+};
+
+function getCategory(url: string): BookmarkCategory {
+  if (/bilibili\.com\/(video|space)/.test(url)) return 'bilibili';
+  if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) return 'youtube';
+  if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) return 'podcast';
+  if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) return 'ai';
+  return 'web';
+}
+
+export function WebImport({ onProgress, onImportHandlerChange }: Props) {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeCollection, setActiveCollection] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState<BookmarkCategory | 'all'>('all');
   const [state, setState] = useState<PanelState>('idle');
   const [error, setError] = useState('');
   const [currentTabInfo, setCurrentTabInfo] = useState<{ url: string; title: string; favicon?: string } | null>(null);
@@ -41,10 +64,69 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
   const [pdfState, setPdfState] = useState<'idle' | 'fetching' | 'generating' | 'done' | 'copied'>('idle');
   const [pdfProgress, setPdfProgress] = useState<PdfProgress | null>(null);
 
+  // ── Track last-seen tab URL to avoid redundant refreshes ──
+  const lastTabUrlRef = useRef<string>('');
+
   // Load bookmarks and current tab info
   useEffect(() => {
     loadData();
     loadCurrentTab();
+  }, []);
+
+  // ── Listen for tab switches/updates to refresh currentTabInfo ──
+  // This is the KEY fix: when user switches between two web-type sites
+  // (e.g. github.com → stackoverflow.com), the bookmark tab stays
+  // mounted, so the mount-only useEffect above won't re-fire.
+  // By listening to Chrome tab events directly, we detect URL changes
+  // regardless of tab-type transitions.
+  useEffect(() => {
+    const handleActivated = (activeInfo: chrome.tabs.TabActiveInfo) => {
+      chrome.tabs.get(activeInfo.tabId, (tab) => {
+        if (!tab?.url || tab.url === lastTabUrlRef.current) return;
+        lastTabUrlRef.current = tab.url;
+        console.log(`[WebImport] Tab activated: ${tab.url.slice(0, 80)}`);
+        if (tab.url.startsWith('http') && !/notebooklm\.google\.com/.test(tab.url)) {
+          setCurrentTabInfo({
+            url: tab.url,
+            title: tab.title || tab.url,
+            favicon: tab.favIconUrl,
+          });
+          chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
+            if (resp?.success) setIsCurrentBookmarked(resp.data);
+          });
+          // Also refresh bookmark/collection data
+          loadData();
+        }
+      });
+    };
+
+    const handleUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (changeInfo.url && changeInfo.url !== lastTabUrlRef.current) {
+        lastTabUrlRef.current = changeInfo.url;
+        console.log(`[WebImport] Tab updated: ${changeInfo.url.slice(0, 80)}`);
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const tab = tabs[0];
+          if (!tab?.url || !tab.url.startsWith('http') || /notebooklm\.google\.com/.test(tab.url)) return;
+          setCurrentTabInfo({
+            url: tab.url,
+            title: tab.title || tab.url,
+            favicon: tab.favIconUrl,
+          });
+          chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
+            if (resp?.success) setIsCurrentBookmarked(resp.data);
+          });
+          loadData();
+        });
+      }
+    };
+
+    chrome.tabs.onActivated.addListener(handleActivated);
+    chrome.tabs.onUpdated.addListener(handleUpdated);
+
+    return () => {
+      chrome.tabs.onActivated.removeListener(handleActivated);
+      chrome.tabs.onUpdated.removeListener(handleUpdated);
+    };
   }, []);
 
   const loadData = () => {
@@ -202,9 +284,24 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
     });
   };
 
-  const filteredBookmarks = activeCollection === 'all'
+  // Filter by collection first, then by category
+  const collectionFiltered = activeCollection === 'all'
     ? bookmarks
     : bookmarks.filter((b) => b.collection === activeCollection);
+
+  const filteredBookmarks = activeCategory === 'all'
+    ? collectionFiltered
+    : collectionFiltered.filter((b) => getCategory(b.url) === activeCategory);
+
+  // Category counts from all bookmarks (not filtered by collection)
+  const categoryCounts = (() => {
+    const counts: Record<string, number> = {};
+    for (const b of bookmarks) {
+      const cat = getCategory(b.url);
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  })();
 
   const selectAll = () => setSelectedIds(new Set(filteredBookmarks.map((b) => b.id)));
   const deselectAll = () => setSelectedIds(new Set());
@@ -229,25 +326,28 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
 
   return (
     <div className="space-y-3">
-      {/* Add current page */}
+      {/* Source Info Card — matches Bilibili/YouTube design pattern */}
       {currentTabInfo && (
-        <div className="bg-surface-sunken rounded-xl p-3 shadow-soft">
-          <div className="flex items-center gap-2">
-            {currentTabInfo.favicon && (
-              <img src={currentTabInfo.favicon} className="w-4 h-4 flex-shrink-0" alt="" />
-            )}
-            <span className="flex-1 text-sm text-gray-700 truncate">{currentTabInfo.title}</span>
+        <div className="space-y-2">
+          <SourceInfoCard
+            platform={getCategory(currentTabInfo.url) as SourcePlatform}
+            title={currentTabInfo.title}
+            favicon={currentTabInfo.favicon}
+            subtitle={currentTabInfo.url}
+          />
+          {/* Compact action row */}
+          <div className="flex items-center gap-1.5 justify-end">
             {isCurrentBookmarked ? (
-              <span className="flex items-center gap-1 text-xs text-notebooklm-blue bg-blue-50/80 px-2 py-1 rounded-md border border-blue-200/40">
-                <Bookmark className="w-3 h-3 fill-current" />
+              <span className="flex items-center gap-1 text-[10px] text-notebooklm-blue bg-blue-50/80 px-2 py-1 rounded-md border border-blue-200/40">
+                <Bookmark className="w-2.5 h-2.5 fill-current" />
                 {t('bookmark.bookmarked')}
               </span>
             ) : (
               <button
                 onClick={() => handleAddBookmark()}
-                className="btn-press flex items-center gap-1 px-3 py-1.5 bg-notebooklm-blue text-white text-xs rounded-md hover:bg-notebooklm-blue-dark transition-colors shadow-btn hover:shadow-btn-hover transition-all duration-150"
+                className="btn-press flex items-center gap-1 px-2.5 py-1 bg-notebooklm-blue text-white text-[10px] rounded-md hover:bg-notebooklm-blue-dark transition-colors"
               >
-                <BookmarkPlus className="w-3 h-3" />
+                <BookmarkPlus className="w-2.5 h-2.5" />
                 {t('bookmark.addBookmark')}
               </button>
             )}
@@ -269,12 +369,37 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
                 setState('importing');
               }}
               disabled={state === 'importing'}
-              className="btn-press flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white text-xs rounded-md hover:bg-amber-600 transition-colors shadow-btn hover:shadow-btn-hover transition-all duration-150"
+              className="btn-press flex items-center gap-1 px-2.5 py-1 bg-amber-500 text-white text-[10px] rounded-md hover:bg-amber-600 transition-colors"
             >
-              {state === 'importing' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+              {state === 'importing' ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Upload className="w-2.5 h-2.5" />}
               {t('bookmark.importNow')}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Category filter tabs (auto-categorization by URL) */}
+      {bookmarks.length > 0 && (
+        <div className="flex items-center gap-1 overflow-x-auto flex-wrap">
+          {(['all', 'bilibili', 'youtube', 'podcast', 'ai', 'web'] as const).map((cat) => {
+            const count = cat === 'all' ? bookmarks.length : (categoryCounts[cat] || 0);
+            if (count === 0 && cat !== 'all') return null;
+            const Icon = cat === 'all' ? Bookmark : CATEGORY_ICONS[cat as BookmarkCategory];
+            return (
+              <button
+                key={cat}
+                onClick={() => { setActiveCategory(cat); deselectAll(); }}
+                className={`btn-press flex items-center gap-1 px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-notebooklm-blue text-white shadow-sm'
+                    : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                {cat === 'all' ? t('bookmark.all') : cat} ({count})
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -284,10 +409,10 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
           <button
             onClick={() => { setActiveCollection('all'); deselectAll(); }}
             className={`btn-press px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
-              activeCollection === 'all' ? 'bg-notebooklm-blue text-white shadow-sm' : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
+              activeCollection === 'all' ? 'bg-gray-200 text-gray-700' : 'bg-gray-100/60 text-gray-500 hover:bg-gray-200'
             }`}
           >
-            {t('bookmark.all')} ({bookmarks.length})
+            📁 {t('bookmark.all')} ({bookmarks.length})
           </button>
           {collections.map((col) => {
             const count = bookmarks.filter((b) => b.collection === col).length;
@@ -296,10 +421,10 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
                 key={col}
                 onClick={() => { setActiveCollection(col); deselectAll(); }}
                 className={`btn-press px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
-                  activeCollection === col ? 'bg-notebooklm-blue text-white shadow-sm' : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
+                  activeCollection === col ? 'bg-gray-200 text-gray-700' : 'bg-gray-100/60 text-gray-500 hover:bg-gray-200'
                 }`}
               >
-                {col} ({count})
+                📁 {col} ({count})
               </button>
             );
           })}
@@ -364,44 +489,49 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
           </div>
 
           <div className="max-h-[200px] overflow-y-auto border border-border-strong rounded-lg shadow-soft">
-            {filteredBookmarks.map((item) => (
-              <label
-                key={item.id}
-                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100/60 last:border-b-0 transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(item.id)}
-                  onChange={() => toggleSelect(item.id)}
-                  className="rounded border-gray-300 text-notebooklm-blue focus:ring-blue-500"
-                />
-                {item.favicon && <img src={item.favicon} className="w-4 h-4 flex-shrink-0" alt="" />}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 truncate">{item.title}</p>
-                  <p className="text-[10px] text-gray-400 truncate">{item.url}</p>
-                </div>
-                {collections.length > 1 && (
-                  <select
-                    value=""
-                    onChange={(e) => { e.preventDefault(); e.stopPropagation(); if (e.target.value) { handleMoveItem(item.id, e.target.value); e.target.value = ''; } }}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    className="text-[10px] text-gray-400 bg-transparent border border-gray-200/60 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 flex-shrink-0 max-w-[60px]"
-                  >
-                    <option value="" disabled>{t('bookmark.moveToCollection')}</option>
-                    {collections.filter((c) => c !== item.collection).map((col) => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                )}
-                <button
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemove(item.id); }}
-                  className="btn-press p-1 text-gray-300 hover:text-red-500 flex-shrink-0"
-                  title={t('delete')}
+            {filteredBookmarks.map((item) => {
+              const cat = getCategory(item.url);
+              const CatIcon = CATEGORY_ICONS[cat];
+              return (
+                <label
+                  key={item.id}
+                  className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100/60 last:border-b-0 transition-colors"
                 >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </label>
-            ))}
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={() => toggleSelect(item.id)}
+                    className="rounded border-gray-300 text-notebooklm-blue focus:ring-blue-500"
+                  />
+                  <CatIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  {item.favicon && <img src={item.favicon} className="w-4 h-4 flex-shrink-0" alt="" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-700 truncate">{item.title}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{item.url}</p>
+                  </div>
+                  {collections.length > 1 && (
+                    <select
+                      value=""
+                      onChange={(e) => { e.preventDefault(); e.stopPropagation(); if (e.target.value) { handleMoveItem(item.id, e.target.value); e.target.value = ''; } }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      className="text-[10px] text-gray-400 bg-transparent border border-gray-200/60 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 flex-shrink-0 max-w-[60px]"
+                    >
+                      <option value="" disabled>{t('bookmark.moveToCollection')}</option>
+                      {collections.filter((c) => c !== item.collection).map((col) => (
+                        <option key={col} value={col}>{col}</option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemove(item.id); }}
+                    className="btn-press p-1 text-gray-300 hover:text-red-500 flex-shrink-0"
+                    title={t('delete')}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </label>
+              );
+            })}
           </div>
 
           {/* Action buttons */}
@@ -445,29 +575,7 @@ export function BookmarkPanel({ onProgress, onImportHandlerChange }: Props) {
             </div>
           )}
         </>
-      ) : (
-        <div className="flex flex-col items-center py-6 bg-surface-sunken rounded-xl px-5">
-          <Bookmark className="w-8 h-8 text-blue-400/60 mb-2" />
-          <p className="text-sm text-gray-600 font-medium">{t('bookmark.emptyTitle')}</p>
-          <p className="text-xs text-gray-400 mt-1.5 mb-3 text-center leading-relaxed max-w-[280px]">
-            {t('bookmark.emptyDesc')}
-          </p>
-          <div className="w-full space-y-2 text-[11px] text-gray-500 bg-white/60 rounded-lg p-3 border border-gray-100/80">
-            <div className="flex items-start gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-notebooklm-blue flex items-center justify-center text-[10px] font-bold">1</span>
-              <span>{t('bookmark.step1')}</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-notebooklm-blue flex items-center justify-center text-[10px] font-bold">2</span>
-              <span>{t('bookmark.step2')}</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-notebooklm-blue flex items-center justify-center text-[10px] font-bold">3</span>
-              <span>{t('bookmark.step3')}</span>
-            </div>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {/* Status messages */}
       {state === 'success' && (
