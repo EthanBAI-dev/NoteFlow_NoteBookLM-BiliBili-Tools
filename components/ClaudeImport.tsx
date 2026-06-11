@@ -64,17 +64,42 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
 
   const [autoExtracted, setAutoExtracted] = useState(false);
 
-  useEffect(() => {
+  // ── Detect platform from current tab on mount & on tab switch ──
+  const detectCurrentPlatform = useCallback(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
-      if (tab?.url) {
-        const info = detectPlatform(tab.url);
-        setPlatformInfo(info);
-        setCurrentTabId(info ? (tab.id || null) : null);
-        setCurrentTabFavicon(tab.favIconUrl || undefined);
-      }
+      if (!tab?.url) return;
+      const info = detectPlatform(tab.url);
+      setPlatformInfo(info);
+      setCurrentTabId(info ? (tab.id || null) : null);
+      setCurrentTabFavicon(tab.favIconUrl || undefined);
     });
   }, []);
+
+  useEffect(() => {
+    detectCurrentPlatform();
+
+    const handleActivated = () => detectCurrentPlatform();
+    const handleUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+      if (changeInfo.url && tab.active) detectCurrentPlatform();
+    };
+
+    chrome.tabs.onActivated.addListener(handleActivated);
+    chrome.tabs.onUpdated.addListener(handleUpdated);
+    return () => {
+      chrome.tabs.onActivated.removeListener(handleActivated);
+      chrome.tabs.onUpdated.removeListener(handleUpdated);
+    };
+  }, [detectCurrentPlatform]);
+
+  // Reset extraction state when platform changes
+  useEffect(() => {
+    setConversation(null);
+    setSelectedPairIds(new Set());
+    setState('idle');
+    setError('');
+    setAutoExtracted(false);
+  }, [platformInfo]);
 
   const handleExtract = useCallback(async () => {
     if (!currentTabId || !platformInfo) return;
