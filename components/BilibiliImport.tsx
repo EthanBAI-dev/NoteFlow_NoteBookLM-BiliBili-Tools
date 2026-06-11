@@ -81,6 +81,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
   const [dlProgress, setDlProgress] = useState<{ current: number; total: number; title?: string } | null>(null);
   const [activeAction, setActiveAction] = useState<'export' | 'import'>('export');
   const abortRef = useRef<{ port?: chrome.runtime.Port; cancel: () => void }>({ cancel: () => {} });
+  const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
 
   const isLocked = state === 'downloading' || state === 'importing';
   const isLockedRef = useRef(false);
@@ -203,6 +204,29 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       doFetch(mode);
     }
   }, [fetchTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Subtitle detection ──
+  useEffect(() => {
+    if (state !== 'loaded') {
+      setSubtitleStatus(undefined);
+      return;
+    }
+
+    const firstVideo = videos[0];
+    if (!firstVideo) return;
+
+    setSubtitleStatus('checking');
+    const bvid = firstVideo.bvid;
+    const cid = firstVideo.cid || 0;
+
+    fetch(`https://api.bilibili.com/x/player/v2?bvid=${bvid}&cid=${cid}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        const subtitles = data?.data?.subtitle?.subtitles;
+        setSubtitleStatus(subtitles && subtitles.length > 0 ? 'available' : 'unavailable');
+      })
+      .catch(() => setSubtitleStatus('unavailable'));
+  }, [state, videos]);
 
   const getSelectedVideos = () => videos.filter(v => selected.has(videoKey(v)));
 
@@ -359,35 +383,19 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       {/* Skeleton loader — shown while fetching data */}
       {state === 'loading' && <SourceInfoCardSkeleton platform="bilibili" />}
 
-      {/* Source Info — with bilibili favicon */}
+      {/* Source Info — using SourceInfoCard with subtitle detection */}
       {source && (
-        <div className="bg-sky-50 border border-sky-100/60 rounded-lg p-3 flex items-center gap-3 shadow-soft">
-          <img
-            src="https://www.bilibili.com/favicon.ico"
-            alt=""
-            className="w-10 h-10 rounded-lg flex-shrink-0 bg-white object-contain p-1"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
-              if (fallback) fallback.classList.remove('hidden');
-            }}
-          />
-          <div className="w-10 h-10 rounded-lg bg-[#00a1d6]/10 flex items-center justify-center flex-shrink-0 hidden">
-            <Tv2 className="w-5 h-5 text-[#00a1d6]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sky-900 truncate">{source.title}</p>
-            <p className="text-xs text-sky-600">
-              {source.owner && <span className="mr-2">UP主：{source.owner}</span>}
-              {source.type === 'series' ? (
-                <span className="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-bold mr-2">合集</span>
-              ) : source.isSeries && videos.length > 1 ? (
-                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold mr-2">分P</span>
-              ) : null}
-              <span className="font-mono tabular-nums">{source.videoCount}</span> {source.isSeries ? t('bilibili.parts') : t('bilibili.singleVideo')}
-            </p>
-          </div>
-        </div>
+        <SourceInfoCard
+          platform="bilibili"
+          title={source.title}
+          favicon="https://www.bilibili.com/favicon.ico"
+          subtitle={source.owner ? `UP主：${source.owner}` : undefined}
+          tags={[
+            source.type === 'series' ? '合集' : source.isSeries && videos.length > 1 ? '分P' : '',
+            `${source.videoCount} ${source.isSeries ? t('bilibili.parts') : t('bilibili.singleVideo')}`,
+          ].filter(Boolean)}
+          subtitleStatus={subtitleStatus}
+        />
       )}
 
       {/* Video List */}

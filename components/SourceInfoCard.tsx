@@ -18,6 +18,8 @@ interface SourceInfoCardProps {
   onClick?: () => void;
   /** When true, shows a red "没有检测到音视频内容" badge at top-right */
   noContent?: boolean;
+  /** Subtitle availability status — shows a warning at the subtitle line when unavailable */
+  subtitleStatus?: 'available' | 'unavailable' | 'checking';
 }
 
 /** Color/icon map matching BilibiliImport/YouTubeImport design conventions */
@@ -122,10 +124,39 @@ export function SourceInfoCard({
   tags,
   onClick,
   noContent,
+  subtitleStatus,
 }: SourceInfoCardProps) {
   const styles = PLATFORM_STYLES[platform];
   const Icon = styles.icon;
   const highResFavicon = upgradeFavicon(favicon, platform);
+
+  // Determine what to show in the subtitle/second-row position
+  const renderSubtitleLine = () => {
+    if (subtitleStatus === 'unavailable') {
+      return (
+        <p className="text-xs text-red-500 font-medium mt-0.5 flex items-center gap-1">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+          当前视频没有字幕
+        </p>
+      );
+    }
+    if (subtitleStatus === 'checking') {
+      return (
+        <p className="text-xs text-amber-500 mt-0.5 flex items-center gap-1">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+          检测字幕中...
+        </p>
+      );
+    }
+    if (subtitle) {
+      return (
+        <p className={`text-xs ${styles.subtitleColor} truncate mt-0.5`}>
+          {subtitle}
+        </p>
+      );
+    }
+    return null;
+  };
 
   return (
     <div
@@ -168,11 +199,7 @@ export function SourceInfoCard({
         <p className={`text-sm font-medium ${styles.titleColor} truncate leading-snug`}>
           {title || 'Untitled'}
         </p>
-        {subtitle && (
-          <p className={`text-xs ${styles.subtitleColor} truncate mt-0.5`}>
-            {subtitle}
-          </p>
-        )}
+        {renderSubtitleLine()}
         {tags && tags.length > 0 && (
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             {tags.map((tag, i) => (

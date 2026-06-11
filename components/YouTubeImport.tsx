@@ -31,6 +31,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
   const [continuation, setContinuation] = useState<string | undefined>();
+  const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
 
   const displayedVideos = useMemo(() => videos, [videos]);
 
@@ -126,6 +127,39 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onImportHandlerChange, handleImport, selected.size]);
 
+  // ── YouTube Subtitle Detection ──
+  useEffect(() => {
+    if (state !== 'loaded' || !initialUrl) {
+      setSubtitleStatus(undefined);
+      return;
+    }
+
+    // Only detect for single video pages (/watch)
+    if (!initialUrl.includes('/watch')) return;
+
+    setSubtitleStatus('checking');
+
+    chrome.tabs.query({ url: 'https://www.youtube.com/watch*' }).then((tabs) => {
+      // Find the matching tab
+      const tab = tabs.find(t => t.url === initialUrl) || tabs[0];
+      if (!tab?.id) {
+        setSubtitleStatus('unavailable');
+        return;
+      }
+
+      chrome.runtime.sendMessage(
+        { type: 'DETECT_YOUTUBE_SUBTITLES', tabId: tab.id },
+        (response: any) => {
+          if (response?.success && response.data?.available) {
+            setSubtitleStatus('available');
+          } else {
+            setSubtitleStatus('unavailable');
+          }
+        },
+      );
+    }).catch(() => setSubtitleStatus('unavailable'));
+  }, [state, initialUrl]);
+
   const toggleVideo = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -143,29 +177,15 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
       {/* Skeleton loader — shown while fetching data */}
       {state === 'loading' && <SourceInfoCardSkeleton platform="youtube" />}
 
-      {/* Source Info — with YouTube favicon */}
+      {/* Source Info — using SourceInfoCard with subtitle detection */}
       {source && (
-        <div className="bg-red-50 border border-red-100/60 rounded-lg p-3 flex items-center gap-3 shadow-soft">
-          <img
-            src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64"
-            alt=""
-            className="w-10 h-10 rounded-lg flex-shrink-0 bg-white object-contain p-1"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
-              if (fallback) fallback.classList.remove('hidden');
-            }}
-          />
-          <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0 hidden">
-            <SourceIcon className="w-5 h-5 text-red-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-red-900 truncate">{source.title}</p>
-            <p className="text-xs text-red-600">
-              <span className="font-mono tabular-nums">{displayedVideos.length}</span> {t('youtube.videos')}
-            </p>
-          </div>
-        </div>
+        <SourceInfoCard
+          platform="youtube"
+          title={source.title}
+          favicon="https://www.youtube.com/favicon.ico"
+          subtitle={`${displayedVideos.length} ${t('youtube.videos')}`}
+          subtitleStatus={subtitleStatus}
+        />
       )}
 
       {/* Video List (playlist/channel) */}
@@ -221,7 +241,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
           <SourceInfoCard
             platform="youtube"
             title="YouTube"
-            favicon="https://www.google.com/s2/favicons?domain=youtube.com&sz=64"
+            favicon="https://www.youtube.com/favicon.ico"
             subtitle={url}
             noContent
           />

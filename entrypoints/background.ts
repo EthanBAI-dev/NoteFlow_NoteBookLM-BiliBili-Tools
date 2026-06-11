@@ -859,6 +859,29 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   const type = (message as any).type;
   console.log('[background] Incoming message:', type, message);
 
+  // ── YouTube Subtitle Detection ──
+  if (type === 'DETECT_YOUTUBE_SUBTITLES') {
+    const { tabId } = message as { tabId: number };
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: 'MAIN',
+        func: () => {
+          try {
+            const playerResponse = (window as any).ytInitialPlayerResponse;
+            const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+            return { available: Array.isArray(captionTracks) && captionTracks.length > 0 };
+          } catch {
+            return { available: false };
+          }
+        },
+      });
+      return results?.[0]?.result || { available: false };
+    } catch {
+      return { available: false };
+    }
+  }
+
   // ── Force Intercept Bilibili Messages (Defensive) ──
   if (type === 'FETCH_BILIBILI') {
     const { url } = message as { url: string };
