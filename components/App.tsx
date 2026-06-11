@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { History, MessageCircle, Headphones, Youtube, Tv2, RefreshCw, Upload } from 'lucide-react';
+import { History, RefreshCw, Upload } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -11,7 +11,6 @@ import { BilibiliImport } from '@/components/BilibiliImport';
 import { NotebookSelector } from '@/components/NotebookSelector';
 import { GoogleAccountSelector } from '@/components/GoogleAccountSelector';
 import { getOpState } from '@/services/op-state';
-import { LayersIcon } from '@/components/LayersIcon';
 import { WebImport } from '@/components/WebImport';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
@@ -43,16 +42,19 @@ export default function App() {
     if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
       setActiveTab('podcast');
       setInitialPodcastUrl(url);
-    } else if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) {
+    } else if (/(?:youtube\.com|youtu\.be)\//.test(url)) {
       setActiveTab('youtube');
       setInitialYouTubeUrl(url);
-    } else if (/bilibili\.com\/(video|space)/.test(url)) {
+    } else if (/bilibili\.com\//.test(url)) {
       setActiveTab('bilibili');
       setInitialBilibiliUrl(url);
     } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
       setActiveTab('claude');
     } else if (/^https?:\/\//.test(url)) {
       // All other web pages → web (bookmark) tab
+      setActiveTab('bookmark');
+    } else {
+      // chrome://, about:, file://, edge://, etc. → web (bookmark) tab
       setActiveTab('bookmark');
     }
     if (/notebooklm\.google\.com/.test(url) && tabId) {
@@ -180,62 +182,34 @@ export default function App() {
       {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
 
       {/* ════════════════════════════════════════════════════════
-         Group 1: Web Modules — tab-based content panels
+         Content panel — auto-switched by browser URL detection
          ════════════════════════════════════════════════════════ */}
       <div className="px-4 pt-3">
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="flex border-b border-gray-200 px-2 gap-0.5" data-tour="tab-list">
-          {[
-            { value: 'bilibili', icon: Tv2, label: t('app.tabBilibili') },
-            { value: 'youtube', icon: Youtube, label: t('app.tabYouTube') },
-            { value: 'podcast', icon: Headphones, label: t('app.tabPodcast') },
-            { value: 'bookmark', icon: LayersIcon, label: t('app.tabBookmarks') },
-            { value: 'claude', icon: MessageCircle, label: t('app.tabAI') },
-          ].map(({ value, icon: Icon, label }) => (
-            <div
-              key={value}
-              data-tour={`tab-${value}`}
-              className={cn(
-                'flex-1 py-2 text-[11px] font-medium',
-                'flex flex-col items-center gap-0.5 relative',
-                'select-none',
-                value === activeTab
-                  ? 'text-notebooklm-blue'
-                  : 'text-gray-300',
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </div>
-          ))}
-        </div>
-
         {activeTab === 'bilibili' && (
-          <div className="p-4 animate-fade-in">
+          <div className="animate-fade-in">
             <BilibiliImport initialUrl={initialBilibiliUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} onImportHandlerChange={registerImportHandler} />
           </div>
         )}
         {activeTab === 'youtube' && (
-          <div className="p-4 animate-fade-in">
+          <div className="animate-fade-in">
             <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} onImportHandlerChange={registerImportHandler} />
           </div>
         )}
         {activeTab === 'podcast' && (
-          <div className="p-4 animate-fade-in">
+          <div className="animate-fade-in">
             <PodcastImport initialUrl={initialPodcastUrl} fetchTrigger={fetchTrigger} />
           </div>
         )}
         {activeTab === 'bookmark' && (
-          <div className="p-4 animate-fade-in">
+          <div className="animate-fade-in">
             <WebImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
           </div>
         )}
         {activeTab === 'claude' && (
-          <div className="p-4 animate-fade-in">
+          <div className="animate-fade-in">
             <ClaudeImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
           </div>
         )}
-        </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════

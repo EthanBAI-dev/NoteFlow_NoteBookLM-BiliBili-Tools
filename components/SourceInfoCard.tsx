@@ -16,6 +16,8 @@ interface SourceInfoCardProps {
   tags?: string[];
   /** Click handler (e.g. open source URL) */
   onClick?: () => void;
+  /** When true, shows a red "没有检测到音视频内容" badge at top-right */
+  noContent?: boolean;
 }
 
 /** Color/icon map matching BilibiliImport/YouTubeImport design conventions */
@@ -119,6 +121,7 @@ export function SourceInfoCard({
   subtitle,
   tags,
   onClick,
+  noContent,
 }: SourceInfoCardProps) {
   const styles = PLATFORM_STYLES[platform];
   const Icon = styles.icon;
@@ -126,11 +129,17 @@ export function SourceInfoCard({
 
   return (
     <div
-      className={`${styles.bg} ${styles.border} border rounded-lg p-3 flex items-center gap-3 shadow-soft ${
+      className={`${styles.bg} ${styles.border} border rounded-lg p-3 flex items-center gap-3 shadow-soft relative ${
         onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
       }`}
       onClick={onClick}
     >
+      {/* No-content badge — top-right */}
+      {noContent && (
+        <span className="absolute top-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-200/60">
+          没有检测到音视频内容
+        </span>
+      )}
       {/* Icon / Favicon */}
       {highResFavicon ? (
         <img
@@ -184,6 +193,30 @@ export function SourceInfoCard({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SourceInfoCardSkeleton — skeleton/loading placeholder for SourceInfoCard.
+ * Shows the correct platform icon + animated shimmer lines so the user sees
+ * the card frame immediately while data loads.
+ */
+export function SourceInfoCardSkeleton({ platform }: { platform: SourcePlatform }) {
+  const styles = PLATFORM_STYLES[platform];
+  const Icon = styles.icon;
+
+  return (
+    <div className={`${styles.bg} ${styles.border} border rounded-lg p-3 flex items-center gap-3 shadow-soft`}>
+      {/* Platform icon */}
+      <div className={`w-10 h-10 rounded-lg ${styles.iconBg} flex items-center justify-center flex-shrink-0`}>
+        <Icon className={`w-5 h-5 ${styles.iconColor}`} />
+      </div>
+      {/* Skeleton text lines with pulse animation */}
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="h-4 bg-gray-200/60 rounded animate-pulse-soft w-3/4" />
+        <div className="h-3 bg-gray-200/40 rounded animate-pulse-soft w-1/2" />
       </div>
     </div>
   );

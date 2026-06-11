@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 import { t } from '@/lib/i18n';
+import { SourceInfoCard, SourceInfoCardSkeleton } from './SourceInfoCard';
 
 type State = 'idle' | 'loading' | 'loaded' | 'downloading' | 'done' | 'error';
 type Platform = 'unknown' | 'apple' | 'xiaoyuzhou';
@@ -149,6 +150,9 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Skeleton loader — shown while fetching data */}
+      {state === 'loading' && <SourceInfoCardSkeleton platform="podcast" />}
+
       {/* Podcast Info */}
       {podcast && (
         <div className={`${theme.accentLight} border ${theme.border} rounded-lg p-3 flex items-center gap-3 shadow-soft`}>
@@ -228,12 +232,21 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
         </button>
       )}
 
-      {/* Error */}
+      {/* Error — show SourceInfoCard with no-content badge for recognized podcast URLs */}
       {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </div>
+        platform !== 'unknown' ? (
+          <SourceInfoCard
+            platform="podcast"
+            title={theme.name}
+            subtitle={url}
+            noContent
+          />
+        ) : (
+          <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )
       )}
 
     </div>

@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n';
 import { isBilibiliUrl, parseBilibiliUrl, isBilibiliSpaceUrl, parseBilibiliSpaceUrl } from '@/services/bilibili';
 import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili';
 import { getOpState, clearOpState } from '@/services/op-state';
+import { SourceInfoCard, SourceInfoCardSkeleton } from './SourceInfoCard';
 
 type State = 'idle' | 'loading' | 'loaded' | 'fetching' | 'downloading' | 'uploading' | 'importing' | 'done' | 'error';
 type FetchMode = 'single' | 'space' | 'favorite' | 'series' | 'season';
@@ -355,6 +356,9 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
   return (
     <div className="space-y-3">
+      {/* Skeleton loader — shown while fetching data */}
+      {state === 'loading' && <SourceInfoCardSkeleton platform="bilibili" />}
+
       {/* Source Info — with bilibili favicon */}
       {source && (
         <div className="bg-sky-50 border border-sky-100/60 rounded-lg p-3 flex items-center gap-3 shadow-soft">
@@ -608,12 +612,22 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         </div>
       )}
 
-      {/* Error */}
+      {/* Error — show SourceInfoCard with no-content badge for recognized Bilibili URLs */}
       {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </div>
+        /bilibili\.com\//.test(url) ? (
+          <SourceInfoCard
+            platform="bilibili"
+            title="Bilibili"
+            favicon="https://www.bilibili.com/favicon.ico"
+            subtitle={url}
+            noContent
+          />
+        ) : (
+          <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )
       )}
     </div>
   );

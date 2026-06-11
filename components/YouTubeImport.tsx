@@ -3,6 +3,7 @@ import { Youtube, Loader2, AlertCircle, PlayCircle, ListVideo, User } from 'luci
 import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
+import { SourceInfoCard, SourceInfoCardSkeleton } from './SourceInfoCard';
 
 type State = 'idle' | 'loading' | 'loaded' | 'importing' | 'done' | 'error';
 
@@ -139,6 +140,9 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
 
   return (
     <div className="space-y-4">
+      {/* Skeleton loader — shown while fetching data */}
+      {state === 'loading' && <SourceInfoCardSkeleton platform="youtube" />}
+
       {/* Source Info — with YouTube favicon */}
       {source && (
         <div className="bg-red-50 border border-red-100/60 rounded-lg p-3 flex items-center gap-3 shadow-soft">
@@ -211,12 +215,22 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
         </div>
       )}
 
-      {/* Error */}
+      {/* Error — show SourceInfoCard with no-content badge for recognized YouTube URLs */}
       {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </div>
+        url && isYouTubeUrl(url) ? (
+          <SourceInfoCard
+            platform="youtube"
+            title="YouTube"
+            favicon="https://www.google.com/s2/favicons?domain=youtube.com&sz=64"
+            subtitle={url}
+            noContent
+          />
+        ) : (
+          <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )
       )}
 
     </div>

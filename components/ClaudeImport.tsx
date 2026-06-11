@@ -215,13 +215,11 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   if (state === 'idle' || state === 'extracting' || (state === 'error' && !conversation)) {
     return (
       <div className="space-y-4">
-        {/* Source Info Card — matches Bilibili/YouTube design pattern */}
+        {/* Source Info Card — platform name + conversation URL */}
         <SourceInfoCard
           platform="ai"
-          title={platformInfo?.name || t('claude.aiChatTitle')}
+          title={`${platformInfo.icon} ${platformInfo.name}`}
           favicon={currentTabFavicon}
-          subtitle={platformInfo ? `${platformInfo.icon} ${platformInfo.name}` : undefined}
-          tags={platformInfo ? [platformInfo.name] : undefined}
         />
 
         <button

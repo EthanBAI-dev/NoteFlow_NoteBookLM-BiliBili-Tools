@@ -11,17 +11,13 @@ import {
   FolderPlus,
   X,
   Upload,
-  Tv2,
-  Youtube,
-  Headphones,
-  MessageCircle,
   Globe,
 } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import type { BookmarkItem } from '@/services/bookmarks';
 import type { PdfProgress } from '@/services/pdf-generator';
 import { t } from '@/lib/i18n';
-import { SourceInfoCard, type SourcePlatform } from './SourceInfoCard';
+import { SourceInfoCard } from './SourceInfoCard';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -30,31 +26,11 @@ interface Props {
 
 type PanelState = 'idle' | 'loading' | 'importing' | 'exporting' | 'success' | 'error';
 
-/** URL-based category detection — mirrors App.tsx detectUrl logic */
-type BookmarkCategory = 'bilibili' | 'youtube' | 'podcast' | 'ai' | 'web';
-
-const CATEGORY_ICONS: Record<BookmarkCategory, typeof Tv2> = {
-  bilibili: Tv2,
-  youtube: Youtube,
-  podcast: Headphones,
-  ai: MessageCircle,
-  web: Globe,
-};
-
-function getCategory(url: string): BookmarkCategory {
-  if (/bilibili\.com\/(video|space)/.test(url)) return 'bilibili';
-  if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) return 'youtube';
-  if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) return 'podcast';
-  if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) return 'ai';
-  return 'web';
-}
-
 export function WebImport({ onProgress, onImportHandlerChange }: Props) {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [collections, setCollections] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeCollection, setActiveCollection] = useState<string>('all');
-  const [activeCategory, setActiveCategory] = useState<BookmarkCategory | 'all'>('all');
   const [state, setState] = useState<PanelState>('idle');
   const [error, setError] = useState('');
   const [currentTabInfo, setCurrentTabInfo] = useState<{ url: string; title: string; favicon?: string } | null>(null);
@@ -85,15 +61,17 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
         if (!tab?.url || tab.url === lastTabUrlRef.current) return;
         lastTabUrlRef.current = tab.url;
         console.log(`[WebImport] Tab activated: ${tab.url.slice(0, 80)}`);
-        if (tab.url.startsWith('http') && !/notebooklm\.google\.com/.test(tab.url)) {
+        if (!/notebooklm\.google\.com/.test(tab.url)) {
           setCurrentTabInfo({
             url: tab.url,
             title: tab.title || tab.url,
             favicon: tab.favIconUrl,
           });
-          chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
-            if (resp?.success) setIsCurrentBookmarked(resp.data);
-          });
+          if (tab.url.startsWith('http')) {
+            chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
+              if (resp?.success) setIsCurrentBookmarked(resp.data);
+            });
+          }
           // Also refresh bookmark/collection data
           loadData();
         }
@@ -106,15 +84,17 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
         console.log(`[WebImport] Tab updated: ${changeInfo.url.slice(0, 80)}`);
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           const tab = tabs[0];
-          if (!tab?.url || !tab.url.startsWith('http') || /notebooklm\.google\.com/.test(tab.url)) return;
+          if (!tab?.url || /notebooklm\.google\.com/.test(tab.url)) return;
           setCurrentTabInfo({
             url: tab.url,
             title: tab.title || tab.url,
             favicon: tab.favIconUrl,
           });
-          chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
-            if (resp?.success) setIsCurrentBookmarked(resp.data);
-          });
+          if (tab.url.startsWith('http')) {
+            chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
+              if (resp?.success) setIsCurrentBookmarked(resp.data);
+            });
+          }
           loadData();
         });
       }
@@ -141,15 +121,17 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
   const loadCurrentTab = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
-      if (tab?.url?.startsWith('http') && !/notebooklm\.google\.com/.test(tab.url)) {
+      if (tab?.url && !/notebooklm\.google\.com/.test(tab.url)) {
         setCurrentTabInfo({
           url: tab.url,
           title: tab.title || tab.url,
           favicon: tab.favIconUrl,
         });
-        chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
-          if (resp?.success) setIsCurrentBookmarked(resp.data);
-        });
+        if (tab.url.startsWith('http')) {
+          chrome.runtime.sendMessage({ type: 'IS_BOOKMARKED', url: tab.url }, (resp) => {
+            if (resp?.success) setIsCurrentBookmarked(resp.data);
+          });
+        }
       }
     });
   };
@@ -284,24 +266,10 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
     });
   };
 
-  // Filter by collection first, then by category
-  const collectionFiltered = activeCollection === 'all'
+  // Filter by collection
+  const filteredBookmarks = activeCollection === 'all'
     ? bookmarks
     : bookmarks.filter((b) => b.collection === activeCollection);
-
-  const filteredBookmarks = activeCategory === 'all'
-    ? collectionFiltered
-    : collectionFiltered.filter((b) => getCategory(b.url) === activeCategory);
-
-  // Category counts from all bookmarks (not filtered by collection)
-  const categoryCounts = (() => {
-    const counts: Record<string, number> = {};
-    for (const b of bookmarks) {
-      const cat = getCategory(b.url);
-      counts[cat] = (counts[cat] || 0) + 1;
-    }
-    return counts;
-  })();
 
   const selectAll = () => setSelectedIds(new Set(filteredBookmarks.map((b) => b.id)));
   const deselectAll = () => setSelectedIds(new Set());
@@ -330,12 +298,13 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
       {currentTabInfo && (
         <div className="space-y-2">
           <SourceInfoCard
-            platform={getCategory(currentTabInfo.url) as SourcePlatform}
+            platform="web"
             title={currentTabInfo.title}
             favicon={currentTabInfo.favicon}
             subtitle={currentTabInfo.url}
           />
-          {/* Compact action row */}
+          {/* Compact action row — only for http pages */}
+          {currentTabInfo.url.startsWith('http') && (
           <div className="flex items-center gap-1.5 justify-end">
             {isCurrentBookmarked ? (
               <span className="flex items-center gap-1 text-[10px] text-notebooklm-blue bg-blue-50/80 px-2 py-1 rounded-md border border-blue-200/40">
@@ -375,31 +344,7 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
               {t('bookmark.importNow')}
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Category filter tabs (auto-categorization by URL) */}
-      {bookmarks.length > 0 && (
-        <div className="flex items-center gap-1 overflow-x-auto flex-wrap">
-          {(['all', 'bilibili', 'youtube', 'podcast', 'ai', 'web'] as const).map((cat) => {
-            const count = cat === 'all' ? bookmarks.length : (categoryCounts[cat] || 0);
-            if (count === 0 && cat !== 'all') return null;
-            const Icon = cat === 'all' ? Bookmark : CATEGORY_ICONS[cat as BookmarkCategory];
-            return (
-              <button
-                key={cat}
-                onClick={() => { setActiveCategory(cat); deselectAll(); }}
-                className={`btn-press flex items-center gap-1 px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
-                  activeCategory === cat
-                    ? 'bg-notebooklm-blue text-white shadow-sm'
-                    : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <Icon className="w-3 h-3" />
-                {cat === 'all' ? t('bookmark.all') : cat} ({count})
-              </button>
-            );
-          })}
+        )}
         </div>
       )}
 
@@ -490,8 +435,6 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
 
           <div className="max-h-[200px] overflow-y-auto border border-border-strong rounded-lg shadow-soft">
             {filteredBookmarks.map((item) => {
-              const cat = getCategory(item.url);
-              const CatIcon = CATEGORY_ICONS[cat];
               return (
                 <label
                   key={item.id}
@@ -503,7 +446,7 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
                     onChange={() => toggleSelect(item.id)}
                     className="rounded border-gray-300 text-notebooklm-blue focus:ring-blue-500"
                   />
-                  <CatIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <Globe className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                   {item.favicon && <img src={item.favicon} className="w-4 h-4 flex-shrink-0" alt="" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-gray-700 truncate">{item.title}</p>
