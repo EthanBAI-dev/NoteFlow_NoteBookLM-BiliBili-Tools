@@ -33,6 +33,11 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
   const [continuation, setContinuation] = useState<string | undefined>();
   const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
 
+  // ── Fetch deduplication & lifecycle guard ──
+  const fetchGenRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
   const displayedVideos = useMemo(() => videos, [videos]);
 
   const urlType = useMemo(() => {
@@ -43,9 +48,10 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
   const SourceIcon = sourceIcons[urlType as keyof typeof sourceIcons] || Youtube;
 
   const handleFetch = () => {
-    if (!url) { setError(t('youtube.enterLink')); setState('error'); return; }
-    if (urlType === 'unknown') { setError(t('youtube.unrecognized')); setState('error'); return; }
+    if (!url) { setError(t('youtube.enterLink')); setState('error'); setSource(null); return; }
+    if (urlType === 'unknown') { setError(t('youtube.unrecognized')); setState('error'); setSource(null); return; }
 
+    const gen = ++fetchGenRef.current;
     setState('loading');
     setError('');
     setSource(null);
@@ -56,6 +62,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     chrome.runtime.sendMessage(
       { type: 'FETCH_YOUTUBE', url },
       (resp) => {
+        if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
         if (resp?.success && resp.data) {
           const data = resp.data as YouTubeResult;
           setSource(data.source);
@@ -122,10 +129,10 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
 
   // Register import handler for unified button
   useEffect(() => {
-    onImportHandlerChange?.(selected.size > 0 ? handleImport : null);
+    onImportHandlerChange?.(selected.size > 0 && subtitleStatus !== 'unavailable' ? handleImport : null);
     return () => onImportHandlerChange?.(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onImportHandlerChange, handleImport, selected.size]);
+  }, [onImportHandlerChange, handleImport, selected.size, subtitleStatus]);
 
   // ── YouTube Subtitle Detection ──
   useEffect(() => {
@@ -137,9 +144,11 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     // Only detect for single video pages (/watch)
     if (!initialUrl.includes('/watch')) return;
 
+    const gen = ++fetchGenRef.current;
     setSubtitleStatus('checking');
 
     chrome.tabs.query({ url: 'https://www.youtube.com/watch*' }).then((tabs) => {
+      if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
       // Find the matching tab
       const tab = tabs.find(t => t.url === initialUrl) || tabs[0];
       if (!tab?.id) {
@@ -150,6 +159,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
       chrome.runtime.sendMessage(
         { type: 'DETECT_YOUTUBE_SUBTITLES', tabId: tab.id },
         (response: any) => {
+          if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
           if (response?.success && response.data?.available) {
             setSubtitleStatus('available');
           } else {
@@ -157,7 +167,12 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
           }
         },
       );
-    }).catch(() => setSubtitleStatus('unavailable'));
+    }).catch(() => {
+      if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
+      setSubtitleStatus('unavailable');
+    });
+
+    return () => { fetchGenRef.current = gen + 1; }; // invalidate pending on cleanup
   }, [state, initialUrl]);
 
   const toggleVideo = (id: string) => {

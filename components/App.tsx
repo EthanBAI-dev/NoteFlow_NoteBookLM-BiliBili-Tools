@@ -35,31 +35,42 @@ export default function App() {
     setHasImportHandler(handler !== null);
   }, []);
 
+  // ── Tab/URL detection with debounce ──
+  // During SPA navigation, Chrome fires onHistoryStateUpdated + onTabUpdated in
+  // rapid succession. The debounce ensures only the final URL is processed,
+  // preventing both stale state from reappearing and duplicate fetches.
+  const lastDetectedUrlRef = useRef<string>('');
+  const detectTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const detectUrl = useCallback(async (url: string, tabId?: number) => {
     if (!url) return;
-    const op = await getOpState();
-    if (op?.active) return;
-    if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
-      setActiveTab('podcast');
-      setInitialPodcastUrl(url);
-    } else if (/(?:youtube\.com|youtu\.be)\//.test(url)) {
-      setActiveTab('youtube');
-      setInitialYouTubeUrl(url);
-    } else if (/bilibili\.com\//.test(url)) {
-      setActiveTab('bilibili');
-      setInitialBilibiliUrl(url);
-    } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
-      setActiveTab('claude');
-    } else if (/^https?:\/\//.test(url)) {
-      // All other web pages → web (bookmark) tab
-      setActiveTab('bookmark');
-    } else {
-      // chrome://, about:, file://, edge://, etc. → web (bookmark) tab
-      setActiveTab('bookmark');
-    }
-    if (/notebooklm\.google\.com/.test(url) && tabId) {
-      setNotebookLMTabId(tabId);
-    }
+    if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
+
+    detectTimerRef.current = setTimeout(async () => {
+      if (url === lastDetectedUrlRef.current) return;
+      lastDetectedUrlRef.current = url;
+
+      const op = await getOpState();
+      if (op?.active) return;
+      if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
+        setActiveTab('podcast');
+        setInitialPodcastUrl(url);
+      } else if (/(?:youtube\.com|youtu\.be)\//.test(url)) {
+        setActiveTab('youtube');
+        setInitialYouTubeUrl(url);
+      } else if (/bilibili\.com\//.test(url)) {
+        setActiveTab('bilibili');
+        setInitialBilibiliUrl(url);
+      } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
+        setActiveTab('claude');
+      } else if (/^https?:\/\//.test(url)) {
+        setActiveTab('bookmark');
+      } else {
+        setActiveTab('bookmark');
+      }
+      if (/notebooklm\.google\.com/.test(url) && tabId) {
+        setNotebookLMTabId(tabId);
+      }
+    }, 200);
   }, []);
 
   const handleReadCurrentPage = useCallback(() => {
