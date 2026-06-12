@@ -298,6 +298,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
             favicon="https://www.youtube.com/favicon.ico"
             subtitle={url}
             noContent
+            onRefresh={handleFetch}
           />
         ) : (
           <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">

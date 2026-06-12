@@ -83,6 +83,11 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
   const abortRef = useRef<{ port?: chrome.runtime.Port; cancel: () => void }>({ cancel: () => {} });
   const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
 
+  // ── Fetch deduplication & lifecycle guard ──
+  const fetchGenRef = useRef(0);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
+
   const isLocked = state === 'downloading' || state === 'importing';
   const isLockedRef = useRef(false);
   isLockedRef.current = isLocked;
@@ -109,6 +114,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     const targetUrl = url || initialUrl || '';
     if (!targetUrl) { setError(t('bilibili.enterLink')); setState('error'); return; }
 
+    const gen = ++fetchGenRef.current;
     setState('loading');
     setError('');
     setSource(null);
@@ -124,6 +130,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       chrome.runtime.sendMessage(
         { type: 'FETCH_BILIBILI_SPACE', mid: mid! },
         (resp) => {
+          if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
           if (resp?.success && resp.data) {
             const data = resp.data as { source: BilibiliSourceInfo; videos: BilibiliVideoItem[] };
             setSource(data.source);
@@ -145,6 +152,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       chrome.runtime.sendMessage(
         { type: 'FETCH_BILIBILI', url: targetUrl },
         (resp) => {
+          if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
           if (resp?.success && resp.data) {
             const data = resp.data as { source: BilibiliSourceInfo; videos: BilibiliVideoItem[] };
             setSource(data.source);
@@ -215,17 +223,26 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     const firstVideo = videos[0];
     if (!firstVideo) return;
 
+    const gen = ++fetchGenRef.current;
     setSubtitleStatus('checking');
     const bvid = firstVideo.bvid;
     const cid = firstVideo.cid || 0;
 
-    fetch(`https://api.bilibili.com/x/player/v2?bvid=${bvid}&cid=${cid}`, { credentials: 'include' })
+    const controller = new AbortController();
+
+    fetch(`https://api.bilibili.com/x/player/v2?bvid=${bvid}&cid=${cid}`, { credentials: 'include', signal: controller.signal })
       .then(r => r.json())
       .then(data => {
+        if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
         const subtitles = data?.data?.subtitle?.subtitles;
         setSubtitleStatus(subtitles && subtitles.length > 0 ? 'available' : 'unavailable');
       })
-      .catch(() => setSubtitleStatus('unavailable'));
+      .catch(() => {
+        if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
+        setSubtitleStatus('unavailable');
+      });
+
+    return () => controller.abort();
   }, [state, videos]);
 
   const getSelectedVideos = () => videos.filter(v => selected.has(videoKey(v)));
@@ -389,10 +406,12 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
           platform="bilibili"
           title={source.title}
           favicon="https://www.bilibili.com/favicon.ico"
-          subtitle={source.owner ? `UP主：${source.owner}` : undefined}
+          subtitle={[
+            source.owner ? `UP主：${source.owner}` : '',
+            `${source.videoCount} ${source.isSeries ? t('bilibili.parts') : t('bilibili.singleVideo')}`,
+          ].filter(Boolean).join(' · ')}
           tags={subtitleStatus !== 'unavailable' ? [
             source.type === 'series' ? '合集' : source.isSeries && videos.length > 1 ? '分P' : '',
-            `${source.videoCount} ${source.isSeries ? t('bilibili.parts') : t('bilibili.singleVideo')}`,
           ].filter(Boolean) : undefined}
           subtitleStatus={subtitleStatus}
         />
@@ -637,6 +656,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             favicon="https://www.bilibili.com/favicon.ico"
             subtitle={url}
             noContent
+            onRefresh={handleFetch}
           />
         ) : (
           <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">

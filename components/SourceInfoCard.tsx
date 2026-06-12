@@ -1,4 +1,4 @@
-import { Globe, MessageCircle, Tv2, Youtube, Headphones, type LucideIcon } from 'lucide-react';
+import { Globe, MessageCircle, Tv2, Youtube, Headphones, RefreshCw, type LucideIcon } from 'lucide-react';
 
 /** Platform identifier for color/icon theming */
 export type SourcePlatform = 'bilibili' | 'youtube' | 'podcast' | 'ai' | 'web';
@@ -16,6 +16,8 @@ interface SourceInfoCardProps {
   tags?: string[];
   /** Click handler (e.g. open source URL) */
   onClick?: () => void;
+  /** Refresh handler — shows a refresh icon button on the right when provided */
+  onRefresh?: () => void;
   /** When true, shows a red "没有检测到音视频内容" badge at top-right */
   noContent?: boolean;
   /** Subtitle availability status — shows a warning at the subtitle line when unavailable */
@@ -125,6 +127,7 @@ export function SourceInfoCard({
   onClick,
   noContent,
   subtitleStatus,
+  onRefresh,
 }: SourceInfoCardProps) {
   const styles = PLATFORM_STYLES[platform];
   const Icon = styles.icon;
@@ -165,12 +168,6 @@ export function SourceInfoCard({
       }`}
       onClick={onClick}
     >
-      {/* No-content badge — top-right */}
-      {noContent && (
-        <span className="absolute top-2 right-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 border border-red-200/60">
-          没有检测到音视频内容
-        </span>
-      )}
       {/* Icon / Favicon */}
       {highResFavicon ? (
         <img
@@ -200,9 +197,14 @@ export function SourceInfoCard({
           {title || 'Untitled'}
         </p>
         {renderSubtitleLine()}
-        {tags && tags.length > 0 && (
+        {(tags?.length || noContent) ? (
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            {tags.map((tag, i) => (
+            {noContent && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-50 text-red-500 border border-red-200/60">
+                没有检测到音视频内容
+              </span>
+            )}
+            {tags?.map((tag, i) => (
               <span
                 key={i}
                 className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
@@ -219,8 +221,19 @@ export function SourceInfoCard({
               </span>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
+
+      {/* Refresh button */}
+      {onRefresh && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRefresh(); }}
+          className="flex-shrink-0 w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-100 transition-colors duration-150"
+          title="刷新"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }
