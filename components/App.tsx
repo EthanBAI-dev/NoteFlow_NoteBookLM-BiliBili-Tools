@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { History, RefreshCw, Upload } from 'lucide-react';
-import type { ImportProgress } from '@/lib/types';
+import type { ImportProgress, YouTubeResult } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
@@ -27,6 +27,10 @@ export default function App() {
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
+  // ── Pre-fetched YouTube result from background (via content script → YT_URL_CHANGED) ──
+  const [prefetchedYouTubeResult, setPrefetchedYouTubeResult] = useState<YouTubeResult | null>(null);
+  const prefetchedYouTubeUrlRef = useRef<string>('');
+
   // ── Shared import handler (registered by active tab) ──
   const [hasImportHandler, setHasImportHandler] = useState(false);
   const importHandlerRef = useRef<(() => void) | null>(null);
@@ -49,6 +53,12 @@ export default function App() {
       if (url === lastDetectedUrlRef.current) return;
       lastDetectedUrlRef.current = url;
 
+      // Clear any stale prefetched result when URL changes
+      if (url !== prefetchedYouTubeUrlRef.current) {
+        prefetchedYouTubeUrlRef.current = '';
+        setPrefetchedYouTubeResult(null);
+      }
+
       const op = await getOpState();
       if (op?.active) return;
       if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
@@ -57,6 +67,9 @@ export default function App() {
       } else if (/(?:youtube\.com|youtu\.be)\//.test(url)) {
         setActiveTab('youtube');
         setInitialYouTubeUrl(url);
+        // Clear stale prefetched result so YouTubeImport does a fresh manual fetch
+        prefetchedYouTubeUrlRef.current = '';
+        setPrefetchedYouTubeResult(null);
       } else if (/bilibili\.com\//.test(url)) {
         setActiveTab('bilibili');
         setInitialBilibiliUrl(url);
@@ -116,10 +129,39 @@ export default function App() {
     chrome.tabs.onActivated.addListener(handleTabActivated);
     chrome.webNavigation.onHistoryStateUpdated.addListener(handleHistoryStateUpdated);
 
+    // ── Listen for pre-fetched YouTube results from background ──
+    const handleRuntimeMessage = (msg: Record<string, unknown>) => {
+      if (msg.type === 'YT_FETCH_RESULT') {
+        const { url, result, error } = msg as { type: string; url: string; result: YouTubeResult | null; error?: string };
+        if (!url) return;
+
+        if (result && url !== prefetchedYouTubeUrlRef.current) {
+          // Valid result for a new URL
+          prefetchedYouTubeUrlRef.current = url;
+          setPrefetchedYouTubeResult(result);
+          if (/(?:youtube\.com|youtu\.be)\//.test(url)) {
+            setActiveTab('youtube');
+            setInitialYouTubeUrl(url);
+          }
+        } else if (!result && /(?:youtube\.com|youtu\.be)\//.test(url)) {
+          // Fetch failed (e.g. YouTube homepage, search — not a video/playlist/channel)
+          // Clear stale result and let detectUrl trigger YouTubeImport to show error state
+          if (url !== lastDetectedUrlRef.current) {
+            prefetchedYouTubeUrlRef.current = '';
+            setPrefetchedYouTubeResult(null);
+            setActiveTab('youtube');
+            setInitialYouTubeUrl(url);
+          }
+        }
+      }
+    };
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+
     return () => {
       chrome.tabs.onUpdated.removeListener(handleTabUpdated);
       chrome.tabs.onActivated.removeListener(handleTabActivated);
       chrome.webNavigation.onHistoryStateUpdated.removeListener(handleHistoryStateUpdated);
+      chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
     };
   }, [detectUrl]);
 
@@ -203,7 +245,13 @@ export default function App() {
         )}
         {activeTab === 'youtube' && (
           <div className="animate-fade-in">
-            <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} onImportHandlerChange={registerImportHandler} />
+            <YouTubeImport
+              initialUrl={initialYouTubeUrl}
+              onProgress={setImportProgress}
+              fetchTrigger={fetchTrigger}
+              onImportHandlerChange={registerImportHandler}
+              prefetchedResult={prefetchedYouTubeResult}
+            />
           </div>
         )}
         {activeTab === 'podcast' && (

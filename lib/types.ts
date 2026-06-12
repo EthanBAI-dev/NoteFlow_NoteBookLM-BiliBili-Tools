@@ -96,7 +96,11 @@ export type MessageType =
   | { type: 'CREATE_COLLECTION'; name: string }
   | { type: 'IS_BOOKMARKED'; url: string }
   // Notebook info
-  | { type: 'GET_NOTEBOOKS'; force?: boolean };
+  | { type: 'GET_NOTEBOOKS'; force?: boolean }
+  // YouTube SPA navigation (content script → background)
+  | { type: 'YT_URL_CHANGED'; url: string; tabId: number }
+  // YouTube fetch result (background → sidepanel)
+  | { type: 'YT_FETCH_RESULT'; url: string; result: YouTubeResult | null; error?: string };
 
 // Notebook info returned from content script
 export interface NotebookInfo {

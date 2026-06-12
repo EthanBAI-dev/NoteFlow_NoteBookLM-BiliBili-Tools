@@ -20,9 +20,11 @@ interface Props {
   onProgress: (progress: ImportProgress | null) => void;
   fetchTrigger?: number;
   onImportHandlerChange?: (handler: (() => void) | null) => void;
+  /** Pre-fetched result from background (via content script → YT_URL_CHANGED) */
+  prefetchedResult?: YouTubeResult | null;
 }
 
-export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHandlerChange }: Props) {
+export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHandlerChange, prefetchedResult }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
@@ -47,9 +49,22 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
 
   const SourceIcon = sourceIcons[urlType as keyof typeof sourceIcons] || Youtube;
 
-  const handleFetch = () => {
-    if (!url) { setError(t('youtube.enterLink')); setState('error'); setSource(null); return; }
-    if (urlType === 'unknown') { setError(t('youtube.unrecognized')); setState('error'); setSource(null); return; }
+  const handleFetch = (targetUrl?: string) => {
+    const fetchUrl = targetUrl || url;
+    if (!fetchUrl) { setError(t('youtube.enterLink')); setState('error'); setSource(null); return; }
+    if (!isYouTubeUrl(fetchUrl)) { setError(t('youtube.unrecognized')); setState('error'); setSource(null); return; }
+    const parsed = parseYouTubeUrl(fetchUrl);
+    if (parsed.type === 'unknown') {
+      // YouTube URL but not a video/playlist/channel page (e.g. homepage, search, trending)
+      setError(`无法识别页面类型: ${fetchUrl}\n目前支持视频、播放列表和频道链接。`);
+      setState('error');
+      setSource(null);
+      setVideos([]);
+      setSelected(new Set());
+      setContinuation(undefined);
+      setSubtitleStatus(undefined);
+      return;
+    }
 
     const gen = ++fetchGenRef.current;
     setState('loading');
@@ -60,7 +75,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     setContinuation(undefined);
 
     chrome.runtime.sendMessage(
-      { type: 'FETCH_YOUTUBE', url },
+      { type: 'FETCH_YOUTUBE', url: fetchUrl },
       (resp) => {
         if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
         if (resp?.success && resp.data) {
@@ -80,11 +95,18 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
 
   // Auto-fetch when opened from a YouTube tab (initialUrl provided)
   const lastAutoUrl = useRef<string | null>(null);
+  const prefetchedHandledRef = useRef(false);
   useEffect(() => {
     if (initialUrl && isYouTubeUrl(initialUrl) && lastAutoUrl.current !== initialUrl) {
+      // If background already pre-fetched data for this URL, skip auto-fetch
+      if (prefetchedHandledRef.current) {
+        prefetchedHandledRef.current = false;
+        return;
+      }
       lastAutoUrl.current = initialUrl;
       setUrl(initialUrl);
-      handleFetch();
+      // Pass initialUrl explicitly — avoids stale closure on url state
+      handleFetch(initialUrl);
     }
   }, [initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -93,9 +115,26 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     if (fetchTrigger && fetchTrigger > 0 && initialUrl && isYouTubeUrl(initialUrl)) {
       lastAutoUrl.current = null;
       setUrl(initialUrl);
-      handleFetch();
+      handleFetch(initialUrl);
     }
   }, [fetchTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Apply pre-fetched result from background (content script → YT_URL_CHANGED flow) ──
+  useEffect(() => {
+    if (!prefetchedResult || !initialUrl) return;
+    if (!isYouTubeUrl(initialUrl)) return;
+
+    // Mark as handled so the auto-fetch effect skips
+    prefetchedHandledRef.current = true;
+
+    const data = prefetchedResult;
+    setUrl(initialUrl);
+    setSource(data.source);
+    setVideos(data.videos);
+    setSelected(new Set(data.videos.slice(0, PAGE_SIZE).map((v) => v.id)));
+    setContinuation(data.continuation);
+    setState('loaded');
+  }, [prefetchedResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleImport = () => {
     const toImport = videos.filter((v) => selected.has(v.id));

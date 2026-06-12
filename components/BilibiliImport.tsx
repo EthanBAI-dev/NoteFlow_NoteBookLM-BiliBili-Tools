@@ -359,10 +359,10 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
   // Register import handler for unified button
   useEffect(() => {
-    onImportHandlerChange?.(selected.size > 0 ? handleImport : null);
+    onImportHandlerChange?.(selected.size > 0 && subtitleStatus !== 'unavailable' ? handleImport : null);
     return () => onImportHandlerChange?.(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onImportHandlerChange, handleImport, selected.size, source]);
+  }, [onImportHandlerChange, handleImport, selected.size, source, subtitleStatus]);
 
   const toggleVideo = (key: string) => {
     setSelected(prev => {
@@ -390,16 +390,24 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
           title={source.title}
           favicon="https://www.bilibili.com/favicon.ico"
           subtitle={source.owner ? `UP主：${source.owner}` : undefined}
-          tags={[
+          tags={subtitleStatus !== 'unavailable' ? [
             source.type === 'series' ? '合集' : source.isSeries && videos.length > 1 ? '分P' : '',
             `${source.videoCount} ${source.isSeries ? t('bilibili.parts') : t('bilibili.singleVideo')}`,
-          ].filter(Boolean)}
+          ].filter(Boolean) : undefined}
           subtitleStatus={subtitleStatus}
         />
       )}
 
-      {/* Video List */}
-      {videos.length > 1 && (
+      {/* Subtitle unavailable notice */}
+      {state === 'loaded' && subtitleStatus === 'unavailable' && (
+        <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 border border-amber-100/60 rounded-lg p-3">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          该视频没有可用字幕，无法导入
+        </div>
+      )}
+
+      {/* Video List — hidden when no subtitles */}
+      {subtitleStatus !== 'unavailable' && videos.length > 1 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
@@ -450,8 +458,8 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         </div>
       )}
 
-      {/* Tabs: 导出字幕 | 导入notebookLM */}
-      {videos.length > 0 && (
+      {/* Tabs: 导出字幕 | 导入notebookLM — hidden when no subtitles */}
+      {subtitleStatus !== 'unavailable' && videos.length > 0 && (
         <div>
           <div className="flex border-b border-gray-200 mb-3">
             <button
@@ -528,7 +536,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
               <button
                 onClick={handleDownload}
-                disabled={selected.size === 0 || isWorking}
+                disabled={selected.size === 0 || isWorking || subtitleStatus === 'unavailable' || subtitleStatus === 'checking'}
                 className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
               >
                 {state === 'downloading' ? (

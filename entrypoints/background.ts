@@ -60,6 +60,21 @@ try {
 const MENU_ID_PAGE = 'import-page';
 const MENU_ID_LINK = 'import-link';
 
+// ── YouTube URL tracking: per-tab seq + debounce ──
+const ytUrlStates = new Map<number, {
+  debounceTimer?: ReturnType<typeof setTimeout>;
+  seq: number;
+  latestUrl: string | null;
+}>();
+
+async function broadcastToSidepanel(msg: Record<string, unknown>): Promise<void> {
+  try {
+    await chrome.runtime.sendMessage(msg);
+  } catch {
+    // Sidepanel may not be open — ignore
+  }
+}
+
 export default defineBackground(() => {
   console.log('Flow2Note background service started');
 
@@ -858,6 +873,67 @@ async function _tabBasedExtract(
 async function handleMessage(message: MessageType, senderTabId?: number): Promise<unknown> {
   const type = (message as any).type;
   console.log('[background] Incoming message:', type, message);
+
+  // ── Background self-broadcast guard (e.g. YT_FETCH_RESULT) ──
+  if (type === 'YT_FETCH_RESULT') {
+    return; // Broadcast from background to sidepanel — ignore in background
+  }
+
+  // ── YouTube SPA URL change (from content script) ──
+  if (type === 'YT_URL_CHANGED') {
+    const { url } = message as { url: string; tabId: number };
+    const tabId = senderTabId || 0;
+
+    if (!url || !tabId) return { acknowledged: true };
+
+    let state = ytUrlStates.get(tabId);
+    if (!state) {
+      state = { seq: 0, latestUrl: null };
+      ytUrlStates.set(tabId, state);
+    }
+
+    // Clear any pending debounce
+    if (state.debounceTimer) clearTimeout(state.debounceTimer);
+    state.latestUrl = url;
+
+    // Return immediately — actual fetch happens after debounce
+    state.debounceTimer = setTimeout(async () => {
+      const currentUrl = state!.latestUrl;
+      if (!currentUrl) return;
+
+      state!.seq++;
+      const requestSeq = state!.seq;
+
+      console.log(`[background] YT fetch debounced: ${currentUrl.slice(0, 80)} (seq=${requestSeq})`);
+
+      try {
+        const result = await fetchYouTube(currentUrl);
+
+        // Check if still the latest request for this tab
+        if (state!.seq !== requestSeq) {
+          console.log(`[background] YT result stale (seq ${requestSeq} != ${state!.seq}), discarding`);
+          return;
+        }
+
+        // Broadcast to sidepanel
+        broadcastToSidepanel({
+          type: 'YT_FETCH_RESULT',
+          url: currentUrl,
+          result,
+        });
+      } catch (err) {
+        if (state!.seq !== requestSeq) return;
+        broadcastToSidepanel({
+          type: 'YT_FETCH_RESULT',
+          url: currentUrl,
+          result: null,
+          error: err instanceof Error ? err.message : 'Fetch failed',
+        });
+      }
+    }, 500);
+
+    return { acknowledged: true };
+  }
 
   // ── YouTube Subtitle Detection ──
   if (type === 'DETECT_YOUTUBE_SUBTITLES') {

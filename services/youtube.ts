@@ -173,14 +173,20 @@ async function fetchPlaylistViaInnerTube(playlistId: string): Promise<YouTubeRes
   });
 
   const playlistTitle = extractPlaylistTitle(data) || playlistId;
+  const playlistNumVideos = extractPlaylistNumVideos(data);
   const { videos, continuation } = extractPlaylistItems(data);
+
+  // If InnerTube returned no videos, throw to trigger RSS fallback
+  if (videos.length === 0) {
+    throw new Error('No videos found via InnerTube');
+  }
 
   return {
     source: {
       type: 'playlist',
       id: playlistId,
       title: playlistTitle,
-      videoCount: videos.length,
+      videoCount: playlistNumVideos ?? videos.length,
     },
     videos,
     continuation,
@@ -194,6 +200,31 @@ function extractPlaylistTitle(data: any): string | undefined {
       data?.header?.playlistHeaderRenderer?.title?.simpleText ||
       data?.metadata?.playlistMetadataRenderer?.title
     );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Extract the total number of videos in a playlist from the InnerTube response header.
+ * This is the true total, not just the first-page count.
+ * The field may be a simpleText string ("50"), a runs array, or a plain number.
+ */
+function extractPlaylistNumVideos(data: any): number | undefined {
+  try {
+    const raw = data?.header?.playlistHeaderRenderer?.numVideos;
+    if (raw == null) return undefined;
+    // simpleText: { simpleText: "50 videos" } | { simpleText: "50" }
+    if (typeof raw === 'object') {
+      const text = raw.simpleText || raw.runs?.[0]?.text || '';
+      const num = parseInt(text.replace(/[^0-9]/g, ''), 10);
+      return isNaN(num) ? undefined : num;
+    }
+    // Plain number
+    if (typeof raw === 'number') return raw;
+    // String like "50"
+    const num = parseInt(String(raw).replace(/[^0-9]/g, ''), 10);
+    return isNaN(num) ? undefined : num;
   } catch {
     return undefined;
   }
@@ -280,6 +311,10 @@ async function fetchPlaylistViaRss(playlistId: string): Promise<YouTubeResult> {
   const xml = await resp.text();
 
   const { title, videos } = parseYouTubeRss(xml);
+
+  if (videos.length === 0) {
+    throw new Error('No videos found via RSS for playlist');
+  }
 
   return {
     source: {
@@ -409,6 +444,10 @@ async function fetchChannelViaRss(
   const xml = await resp.text();
 
   const { title, videos } = parseYouTubeRss(xml);
+
+  if (videos.length === 0) {
+    throw new Error('No videos found via RSS for channel');
+  }
 
   return {
     source: {

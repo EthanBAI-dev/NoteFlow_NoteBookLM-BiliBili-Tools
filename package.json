@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
+    "clean": "node -e \"['dist','dist-dev'].forEach(d=>require('fs').rmSync(d,{recursive:true,force:true}))\"",
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
