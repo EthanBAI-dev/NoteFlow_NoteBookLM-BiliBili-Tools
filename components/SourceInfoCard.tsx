@@ -135,6 +135,14 @@ export function SourceInfoCard({
 
   // Determine what to show in the subtitle/second-row position
   const renderSubtitleLine = () => {
+    if (noContent) {
+      return (
+        <p className="text-xs text-red-500 font-semibold mt-0.5 flex items-center gap-1">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+          没有检测到音视频内容
+        </p>
+      );
+    }
     if (subtitleStatus === 'unavailable') {
       return (
         <p className="text-xs text-red-500 font-medium mt-0.5 flex items-center gap-1">
@@ -197,14 +205,9 @@ export function SourceInfoCard({
           {title || 'Untitled'}
         </p>
         {renderSubtitleLine()}
-        {(tags?.length || noContent) ? (
+        {tags?.length ? (
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            {noContent && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-50 text-red-500 border border-red-200/60">
-                没有检测到音视频内容
-              </span>
-            )}
-            {tags?.map((tag, i) => (
+            {tags.map((tag, i) => (
               <span
                 key={i}
                 className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${

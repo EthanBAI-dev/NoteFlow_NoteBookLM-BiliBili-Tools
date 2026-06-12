@@ -199,7 +199,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
         { type: 'DETECT_YOUTUBE_SUBTITLES', tabId: tab.id },
         (response: any) => {
           if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
-          if (response?.success && response.data?.available) {
+          if (response?.available) {
             setSubtitleStatus('available');
           } else {
             setSubtitleStatus('unavailable');
