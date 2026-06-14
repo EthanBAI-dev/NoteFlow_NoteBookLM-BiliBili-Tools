@@ -1,4 +1,4 @@
-import { Globe, MessageCircle, Tv2, Youtube, Headphones, RefreshCw, type LucideIcon } from 'lucide-react';
+import { Globe, MessageCircle, Tv2, Youtube, Headphones, type LucideIcon } from 'lucide-react';
 
 /** Platform identifier for color/icon theming */
 export type SourcePlatform = 'bilibili' | 'youtube' | 'podcast' | 'ai' | 'web';
@@ -16,12 +16,14 @@ interface SourceInfoCardProps {
   tags?: string[];
   /** Click handler (e.g. open source URL) */
   onClick?: () => void;
-  /** Refresh handler — shows a refresh icon button on the right when provided */
-  onRefresh?: () => void;
   /** When true, shows a red "没有检测到音视频内容" badge at top-right */
   noContent?: boolean;
   /** Subtitle availability status — shows a warning at the subtitle line when unavailable */
   subtitleStatus?: 'available' | 'unavailable' | 'checking';
+  /** When true, renders tags inline in the subtitle row instead of on a separate line below */
+  inlineTags?: boolean;
+  /** When true, shows a "页面连接已断开" warning inside the card with a refresh button */
+  connectionLost?: boolean;
 }
 
 /** Color/icon map matching BilibiliImport/YouTubeImport design conventions */
@@ -127,11 +129,30 @@ export function SourceInfoCard({
   onClick,
   noContent,
   subtitleStatus,
-  onRefresh,
+  inlineTags,
+  connectionLost,
 }: SourceInfoCardProps) {
   const styles = PLATFORM_STYLES[platform];
   const Icon = styles.icon;
   const highResFavicon = upgradeFavicon(favicon, platform);
+
+  // Render a single tag badge (reused for both inline and standalone tags)
+  const renderTagBadge = (tag: string, i?: number) => (
+    <span
+      key={i ?? 0}
+      className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+        platform === 'bilibili'
+          ? 'bg-sky-100 text-sky-700'
+          : platform === 'youtube'
+          ? 'bg-red-100 text-red-700'
+          : platform === 'ai'
+          ? 'bg-violet-100 text-violet-700'
+          : 'bg-slate-200/60 text-slate-600'
+      }`}
+    >
+      {tag}
+    </span>
+  );
 
   // Determine what to show in the subtitle/second-row position
   const renderSubtitleLine = () => {
@@ -161,8 +182,17 @@ export function SourceInfoCard({
     }
     if (subtitle) {
       return (
-        <p className={`text-xs ${styles.subtitleColor} truncate mt-0.5`}>
-          {subtitle}
+        <p className={`text-xs ${styles.subtitleColor} mt-0.5 flex items-center gap-1.5 ${inlineTags ? '' : 'truncate'}`}>
+          {inlineTags ? (() => {
+            const parts = subtitle.split('|');
+            return (
+              <>
+                <span className="truncate">{parts[0]}</span>
+                {tags?.map((tag, i) => renderTagBadge(tag, i))}
+                {parts[1] && <span className="truncate">{parts[1]}</span>}
+              </>
+            );
+          })() : <span className="truncate">{subtitle}</span>}
         </p>
       );
     }
@@ -201,42 +231,28 @@ export function SourceInfoCard({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${styles.titleColor} truncate leading-snug`}>
-          {title || 'Untitled'}
-        </p>
-        {renderSubtitleLine()}
-        {tags?.length ? (
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            {tags.map((tag, i) => (
-              <span
-                key={i}
-                className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                  platform === 'bilibili'
-                    ? 'bg-sky-100 text-sky-700'
-                    : platform === 'youtube'
-                    ? 'bg-red-100 text-red-700'
-                    : platform === 'ai'
-                    ? 'bg-violet-100 text-violet-700'
-                    : 'bg-slate-200/60 text-slate-600'
-                }`}
-              >
-                {tag}
-              </span>
-            ))}
+        {connectionLost ? (
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-amber-800">页面连接已断开</p>
+            <p className="text-xs text-amber-600/80">
+              标签页太久没有刷新，导致扩展无法与页面通信。请刷新页面后重试。
+            </p>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <p className={`text-sm font-medium ${styles.titleColor} truncate leading-snug`}>
+              {title || 'Untitled'}
+            </p>
+            {renderSubtitleLine()}
+            {!inlineTags && tags?.length ? (
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                {tags.map((tag, i) => renderTagBadge(tag, i))}
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
 
-      {/* Refresh button */}
-      {onRefresh && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-          className="flex-shrink-0 w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-100 transition-colors duration-150"
-          title="刷新"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      )}
     </div>
   );
 }

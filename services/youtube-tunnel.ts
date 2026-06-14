@@ -199,3 +199,31 @@ export async function fetchYouTubeText(path: string): Promise<string> {
   }
   return resp.body;
 }
+
+/**
+ * POST /youtubei/v1/player to get video player data (including captions).
+ * Uses Android client context per youtube-transcript-api's approach —
+ * YouTube returns richer captions data to mobile clients.
+ */
+export async function innertubePlayer(videoId: string): Promise<unknown> {
+  const resp = await tunnelFetch('/youtubei/v1/player?prettyPrint=false', {
+    method: 'POST',
+    body: JSON.stringify({
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: '20.10.38',
+          hl: 'en',
+        },
+      },
+      videoId,
+    }),
+  });
+  if (!resp.ok) {
+    throw new Error(`InnerTube player tunnel failed: HTTP ${resp.status}`);
+  }
+  if (!resp.contentType?.includes('json')) {
+    throw new Error(`InnerTube player tunnel returned non-JSON: ${resp.contentType}`);
+  }
+  return JSON.parse(resp.body);
+}

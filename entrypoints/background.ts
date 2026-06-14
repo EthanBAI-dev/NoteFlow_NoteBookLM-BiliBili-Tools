@@ -10,17 +10,17 @@ import {
 import { convertHtmlToMarkdown } from '@/services/pdf-generator';
 import { getHistory, clearHistory } from '@/services/history';
 import { fetchPodcast, sanitizeFilename, buildFilename } from '@/services/podcast';
-import { fetchYouTube, fetchYouTubeMore } from '@/services/youtube';
+import { fetchYouTube, fetchYouTubeMore, checkYouTubeSubtitles } from '@/services/youtube';
 import {
   fetchBilibiliVideo,
   fetchVideoSubtitle,
   sanitizeBilibiliFilename,
   parseBilibiliUrl,
   mergeBilibiliSubtitles,
-  parseBilibiliSpaceUrl,
   fetchBilibiliUserVideos,
+  fetchBilibiliFavoriteList,
+  convertSubtitleOutput,
 } from '@/services/bilibili';
-import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili';
 import { polishSubtitlesWithChunks } from '@/services/ai-polish';
 import { setOpState, clearOpState, type OpState } from '@/services/op-state';
 import { uploadToDrive } from '@/services/google-drive';
@@ -261,7 +261,7 @@ export default defineBackground(() => {
       port.onMessage.addListener(async (msg) => {
         if (msg.type !== 'BILIBILI_DOWNLOAD_SEPARATE' && msg.type !== 'BILIBILI_DOWNLOAD_MERGED') return;
 
-        const { videos, ownerName, desc, source, aiPolish } = msg as any;
+        const { videos, ownerName, desc, source, aiPolish, outputFormat } = msg as any;
         const isMerged = msg.type === 'BILIBILI_DOWNLOAD_MERGED';
 
         await setOpState({
@@ -303,14 +303,16 @@ export default defineBackground(() => {
               }
               if (polished.success) mergedMd = polished.polished;
             }
-            const filename = `${sanitizeBilibiliFilename(source.title)}_合并内容.md`;
-            const encoded = btoa(unescape(encodeURIComponent(mergedMd)));
-            const dataUrl = `data:text/markdown;base64,${encoded}`;
-            await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
+            const fmt = convertSubtitleOutput(outputFormat || 'md', mergedMd);
+            const mergedFilename = `${sanitizeBilibiliFilename(source.title)}_合并内容${fmt.ext}`;
+            const encoded = btoa(unescape(encodeURIComponent(fmt.content)));
+            const dataUrl = `data:${fmt.mime};base64,${encoded}`;
+            await chrome.downloads.download({ url: dataUrl, filename: mergedFilename, saveAs: false });
             sendProgress({ phase: 'done' });
             clearOpState();
           } else {
-            let downloaded = 0; let skipped = 0;
+            const zip = new JSZip();
+            let skipped = 0;
             for (let i = 0; i < videos.length; i++) {
               const video = videos[i];
               sendProgress({ phase: 'downloading', current: i + 1, total: videos.length, title: video.part || video.title, bvid: video.bvid });
@@ -330,17 +332,24 @@ export default defineBackground(() => {
                   if (polished.success) markdown = polished.polished;
                 }
                 const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
-                const filename = `${sanitizeBilibiliFilename(displayTitle)}.md`;
-                const encoded = btoa(unescape(encodeURIComponent(markdown)));
-                const dataUrl = `data:text/markdown;base64,${encoded}`;
-                await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
-                downloaded++;
+                const fmt = convertSubtitleOutput(outputFormat || 'md', markdown, result.rawBody);
+                const filename = `${sanitizeBilibiliFilename(displayTitle)}${fmt.ext}`;
+                zip.file(filename, fmt.content);
               }
               if (i < videos.length - 1) {
                 await new Promise(r => setTimeout(r, 1500));
               }
             }
-            sendProgress({ phase: 'done', downloaded, skipped });
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const reader = new FileReader();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(zipBlob);
+            });
+            const zipName = `${sanitizeBilibiliFilename(source?.title || '字幕')}.zip`;
+            await chrome.downloads.download({ url: dataUrl, filename: zipName, saveAs: true });
+            sendProgress({ phase: 'done', downloaded: videos.length - skipped, skipped });
             clearOpState();
           }
         } catch (err) {
@@ -937,22 +946,10 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
   // ── YouTube Subtitle Detection ──
   if (type === 'DETECT_YOUTUBE_SUBTITLES') {
-    const { tabId } = message as { tabId: number };
+    const videoId = (message as any).videoId as string;
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        world: 'MAIN',
-        func: () => {
-          try {
-            const playerResponse = (window as any).ytInitialPlayerResponse;
-            const captionTracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-            return { available: Array.isArray(captionTracks) && captionTracks.length > 0 };
-          } catch {
-            return { available: false };
-          }
-        },
-      });
-      return results?.[0]?.result || { available: false };
+      const available = await checkYouTubeSubtitles(videoId);
+      return { available };
     } catch {
       return { available: false };
     }
@@ -968,6 +965,10 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   if (type === 'FETCH_BILIBILI_SPACE') {
     const { mid } = message as { mid: string };
     return await fetchBilibiliUserVideos(mid);
+  }
+  if (type === 'FETCH_BILIBILI_FAVORITE') {
+    const { url } = message as { url: string };
+    return await fetchBilibiliFavoriteList(url);
   }
   if (type === 'DOWNLOAD_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
@@ -990,6 +991,21 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       }
     }
     return { downloaded, skipped };
+  }
+  // Single video subtitle download (TXT button on each list item)
+  if (type === 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE') {
+    const { video, ownerName, desc: videoDesc } = message as any;
+    const result = await fetchVideoSubtitle(video, ownerName || '', videoDesc || '');
+    if (!result.markdown) {
+      return { success: false, error: '该视频没有字幕' };
+    }
+    const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
+    const filename = `${sanitizeBilibiliFilename(displayTitle)}.txt`;
+    const plainText = result.markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    const encoded = btoa(unescape(encodeURIComponent(plainText)));
+    const dataUrl = `data:text/plain;base64,${encoded}`;
+    await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
+    return { success: true };
   }
   if (type === 'DOWNLOAD_BILIBILI_ZIP') {
     const { videos, ownerName, desc } = message as any;

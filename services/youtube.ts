@@ -12,7 +12,7 @@
  */
 
 import type { YouTubeVideoItem, YouTubeSourceInfo, YouTubeResult } from '@/lib/types';
-import { innertubeBrowse, fetchYouTubeText } from './youtube-tunnel';
+import { innertubeBrowse, fetchYouTubeText, innertubePlayer } from './youtube-tunnel';
 
 // ── URL Parsing ──
 
@@ -521,4 +521,21 @@ function parseYouTubeRss(xml: string): {
   }
 
   return { title, videos };
+}
+
+// ── Subtitle Detection ──
+
+/**
+ * Check whether a YouTube video has captions/subtitles available.
+ * Uses the InnerTube player API (Android client context), following the
+ * approach from youtube-transcript-api (https://github.com/jdepoix/youtube-transcript-api).
+ */
+export async function checkYouTubeSubtitles(videoId: string): Promise<boolean> {
+  try {
+    const data = await innertubePlayer(videoId);
+    const captionTracks = (data as any)?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    return Array.isArray(captionTracks) && captionTracks.length > 0;
+  } catch {
+    return false;
+  }
 }

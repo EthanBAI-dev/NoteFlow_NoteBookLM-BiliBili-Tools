@@ -53,9 +53,10 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
-export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
+export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
   const [state, setState] = useState<ImportState>('idle');
   const [error, setError] = useState('');
+  const [needsRefresh, setNeedsRefresh] = useState(false); // "Receiving end does not exist" flag
   const [conversation, setConversation] = useState<ClaudeConversation | null>(null);
   const [selectedPairIds, setSelectedPairIds] = useState<Set<string>>(new Set());
   const [platformInfo, setPlatformInfo] = useState<ReturnType<typeof detectPlatform>>(null);
@@ -99,6 +100,7 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
     setState('idle');
     setError('');
     setAutoExtracted(false);
+    setNeedsRefresh(false);
   }, [platformInfo]);
 
   const handleExtract = useCallback(async () => {
@@ -106,6 +108,7 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
 
     setState('extracting');
     setError('');
+    setNeedsRefresh(false);
 
     try {
       await chrome.scripting.executeScript({
@@ -119,6 +122,11 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
     chrome.runtime.sendMessage(
       { type: 'EXTRACT_CLAUDE_CONVERSATION', tabId: currentTabId },
       (response) => {
+        if (chrome.runtime.lastError) {
+          setState('error');
+          setNeedsRefresh(true);
+          return;
+        }
         if (response?.success && response.data) {
           const conv = response.data as ClaudeConversation;
           setConversation(conv);
@@ -127,11 +135,24 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
           setState('ready');
         } else {
           setState('error');
-          setError(response?.error || t('claude.extractFailed'));
+          const errMsg = response?.error || t('claude.extractFailed');
+          if (/receiving end does not exist/i.test(errMsg)) {
+            setNeedsRefresh(true);
+          } else {
+            setError(errMsg);
+          }
         }
       }
     );
   }, [currentTabId, platformInfo]);
+
+  const handleRefreshPage = useCallback(() => {
+    if (!currentTabId) return;
+    chrome.tabs.reload(currentTabId);
+    setNeedsRefresh(false);
+    setError('');
+    setState('idle');
+  }, [currentTabId]);
 
   // Auto-extract when on a specific conversation page (not homepage)
   useEffect(() => {
@@ -240,26 +261,36 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   if (state === 'idle' || state === 'extracting' || (state === 'error' && !conversation)) {
     return (
       <div className="space-y-4">
-        {/* Source Info Card — platform name + conversation URL */}
         <SourceInfoCard
           platform="ai"
           title={`${platformInfo.icon} ${platformInfo.name}`}
           favicon={currentTabFavicon}
+          connectionLost={needsRefresh}
         />
 
-        <button
-          onClick={handleExtract}
-          disabled={state === 'extracting'}
-          className="w-full py-3 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-        >
-          {state === 'extracting' ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.extracting')}</>
-          ) : (
-            <><MessageCircle className="w-4 h-4" />{t('claude.extractCurrent')}</>
-          )}
-        </button>
+        {needsRefresh ? (
+          <button
+            onClick={handleRefreshPage}
+            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+          >
+            <RefreshCw className="w-4 h-4" />
+            刷新 {platformInfo?.name} 页面
+          </button>
+        ) : (
+          <button
+            onClick={handleExtract}
+            disabled={state === 'extracting'}
+            className="w-full py-3 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+          >
+            {state === 'extracting' ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.extracting')}</>
+            ) : (
+              <><MessageCircle className="w-4 h-4" />{t('claude.extractCurrent')}</>
+            )}
+          </button>
+        )}
 
-        {state === 'error' && (
+        {state === 'error' && !needsRefresh && (
           <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
@@ -273,6 +304,14 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
   // Ready state — show Q&A pairs
   return (
     <div className="space-y-4">
+      {/* SourceInfoCard — shows connection-lost warning when needsRefresh */}
+      <SourceInfoCard
+        platform="ai"
+        title={`${platformInfo.icon} ${platformInfo.name}`}
+        favicon={currentTabFavicon}
+        connectionLost={needsRefresh}
+      />
+
       {/* Header */}
       <div className="bg-surface-sunken rounded-xl p-3 shadow-soft">
         <div className="flex items-center justify-between mb-2">
@@ -340,18 +379,6 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
         ))}
       </div>
 
-      {/* Action buttons — share card only, import moved to unified button */}
-      <div className="flex gap-2">
-        <button
-          onClick={handleShareCard}
-          disabled={state === 'importing' || selectedPairIds.size === 0}
-          className="py-2.5 px-4 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-          title={t('claude.shareCard')}
-        >
-          <Share2 className="w-4 h-4" />
-        </button>
-      </div>
-
       {/* Status */}
       {state === 'success' && (
         <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 border border-green-100/60 rounded-lg p-3 shadow-soft">
@@ -359,7 +386,7 @@ export function ClaudeImport({ onProgress, onImportHandlerChange }: Props) {
           {t('importSuccess')}
         </div>
       )}
-      {state === 'error' && (
+      {state === 'error' && !needsRefresh && (
         <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}

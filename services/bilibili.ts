@@ -66,6 +66,40 @@ export function parseBilibiliSpaceUrl(url: string): string | null {
   }
 }
 
+// ── Favorite / Collection List Parsing ──
+
+export function isBilibiliFavUrl(url: string): boolean {
+  return /bilibili\.com\/(list\/(watchlater|fav|ml)|medialist\/play\/ml)/.test(url);
+}
+
+export function parseBilibiliFavUrl(url: string): { type: 'watchlater' | 'fav' | 'ml'; id: string | null } | null {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+
+    // /list/watchlater
+    if (/\/list\/watchlater/.test(path)) {
+      return { type: 'watchlater', id: null };
+    }
+
+    // /list/fav/{id} or /list/ml/{id}
+    const favMatch = path.match(/\/list\/(fav|ml)\/(\d+)/);
+    if (favMatch) {
+      return { type: favMatch[1] as 'fav' | 'ml', id: favMatch[2] };
+    }
+
+    // /medialist/play/ml{id}
+    const mlPlayMatch = path.match(/\/medialist\/play\/ml(\d+)/);
+    if (mlPlayMatch) {
+      return { type: 'ml', id: mlPlayMatch[1] };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ── API Helpers ──
 
 const BILIBILI_HEADERS = {
@@ -240,6 +274,102 @@ export async function fetchBilibiliUserVideos(mid: string): Promise<BilibiliSpac
   };
 }
 
+// ── Fetch Favorite / Collection List Videos ──
+
+export interface BilibiliFavListResult {
+  source: BilibiliSourceInfo;
+  videos: BilibiliVideoItem[];
+}
+
+/**
+ * Fetch videos from a Bilibili favorite/collection list.
+ * Supports: watch later, favorite folders (/list/fav/{media_id}), media lists (/list/ml/{id}).
+ */
+export async function fetchBilibiliFavoriteList(url: string): Promise<BilibiliFavListResult> {
+  const parsed = parseBilibiliFavUrl(url);
+  if (!parsed) throw new Error('无法解析的收藏夹链接');
+
+  const { type } = parsed;
+  let title = '';
+  let owner = '';
+  const allVideos: BilibiliVideoItem[] = [];
+
+  if (type === 'watchlater') {
+    // 稍后再看: no pagination needed, returns all items
+    const data = await apiFetch('https://api.bilibili.com/x/v2/history/toview') as any;
+    title = '稍后再看';
+    const list: any[] = data?.list || data?.data?.list || [];
+    let page = 1;
+    for (const v of list) {
+      allVideos.push({
+        bvid: v.bvid,
+        cid: v.cid || 0,
+        aid: v.aid,
+        title: v.title || '',
+        part: undefined,
+        page: page++,
+        url: `https://www.bilibili.com/video/${v.bvid}`,
+        duration: v.duration,
+      });
+      if (!owner && v.owner?.name) owner = v.owner.name;
+    }
+  } else {
+    // Fav folder or media list: use medialist resource/list API
+    const bizId = parsed.id;
+    if (!bizId) throw new Error('无法解析的收藏夹 ID');
+
+    let ps = 20;
+    let pn = 1;
+    let hasMore = true;
+    let infoTitle = '';
+    let infoOwner = '';
+
+    while (hasMore && allVideos.length < 200) {
+      const data = await apiFetch(
+        `https://api.bilibili.com/x/v3/fav/resource/list?media_id=${bizId}&ps=${ps}&pn=${pn}&platform=web`
+      ) as any;
+
+      if (!infoTitle) {
+        infoTitle = data?.info?.title || type === 'ml' ? '媒体列表' : '收藏夹';
+        infoOwner = data?.info?.upper?.name || '';
+      }
+
+      const medias: any[] = data?.medias || [];
+      for (const m of medias) {
+        allVideos.push({
+          bvid: m.bvid,
+          cid: 0, // Resolved later
+          aid: m.aid,
+          title: m.title || m.name || '',
+          part: undefined,
+          page: m.page || allVideos.length + 1,
+          url: `https://www.bilibili.com/video/${m.bvid}`,
+          duration: m.duration,
+        });
+      }
+
+      hasMore = data?.has_more === true && medias.length > 0;
+      pn++;
+    }
+
+    title = infoTitle;
+    owner = infoOwner;
+  }
+
+  return {
+    source: {
+      bvid: parsed.id || type,
+      title,
+      owner,
+      desc: '',
+      videoCount: allVideos.length,
+      isSeries: true,
+      type: 'series',
+    },
+    videos: allVideos,
+  };
+}
+
 // ── Fetch Subtitles (FlowToLM approach) ──
 
 interface SubtitleTrack {
@@ -323,6 +453,80 @@ export function buildSubtitleMarkdown(
   ];
 
   return lines.join('\n');
+}
+
+// ── Format converters ──
+
+type SubtitleFormat = 'md' | 'txt' | 'json' | 'srt';
+
+export function convertSubtitleOutput(
+  format: SubtitleFormat,
+  markdown: string,
+  rawBody?: BilibiliSubtitleBody[],
+): { content: string; ext: string; mime: string } {
+  switch (format) {
+    case 'txt':
+      return {
+        content: rawBody
+          ? buildSubtitlePlainText(rawBody)
+          : markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+        ext: '.txt',
+        mime: 'text/plain',
+      };
+    case 'json':
+      return {
+        content: rawBody ? buildSubtitleJson(rawBody) : JSON.stringify({ text: markdown }),
+        ext: '.json',
+        mime: 'application/json',
+      };
+    case 'srt':
+      return {
+        content: rawBody ? buildSubtitleSrt(rawBody) : markdown,
+        ext: '.srt',
+        mime: 'text/plain',
+      };
+    default:
+      return { content: markdown, ext: '.md', mime: 'text/markdown' };
+  }
+}
+
+function formatTimestamp(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.round((seconds % 1) * 1000);
+  if (h > 0) {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+}
+
+export function buildSubtitleSrt(
+  subtitleBody: BilibiliSubtitleBody[],
+): string {
+  return subtitleBody.map((body, i) => {
+    const from = formatTimestamp(body.from);
+    const to = formatTimestamp(body.to);
+    const text = body.content.replace(/<[^>]+>/g, '').trim();
+    return `${i + 1}\n${from} --> ${to}\n${text}\n`;
+  }).join('\n');
+}
+
+export function buildSubtitleJson(
+  subtitleBody: BilibiliSubtitleBody[],
+): string {
+  return JSON.stringify(subtitleBody.map((b, i) => ({
+    index: i + 1,
+    from: b.from,
+    to: b.to,
+    content: b.content.replace(/<[^>]+>/g, '').trim(),
+  })), null, 2);
+}
+
+export function buildSubtitlePlainText(
+  subtitleBody: BilibiliSubtitleBody[],
+): string {
+  return subtitleBody.map(b => b.content.replace(/<[^>]+>/g, '').trim()).join('\n');
 }
 
 export function mergeBilibiliSubtitles(

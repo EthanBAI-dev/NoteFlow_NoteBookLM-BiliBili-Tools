@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Tv2, Loader2, CheckCircle, AlertCircle, ChevronDown, Download, Upload, User, PlayCircle, Heart, Layers, X } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, ChevronDown, Download, X } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
-import { isBilibiliUrl, parseBilibiliUrl, isBilibiliSpaceUrl, parseBilibiliSpaceUrl } from '@/services/bilibili';
+import { isBilibiliUrl, parseBilibiliUrl, isBilibiliSpaceUrl, parseBilibiliSpaceUrl, isBilibiliFavUrl } from '@/services/bilibili';
 import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili';
 import { getOpState, clearOpState } from '@/services/op-state';
 import { SourceInfoCard, SourceInfoCardSkeleton } from './SourceInfoCard';
@@ -19,18 +19,6 @@ const OUTPUT_FORMATS: { value: OutputFormat; label: string }[] = [
   { value: 'json', label: '.json' },
   { value: 'srt', label: '.srt' },
 ];
-
-const MODE_OPTIONS: { value: FetchMode; icon: typeof Tv2; labelKey: Parameters<typeof t>[0] }[] = [
-  { value: 'single', icon: Tv2, labelKey: 'bilibili.modeSingle' },
-  { value: 'season', icon: PlayCircle, labelKey: 'bilibili.modeSeason' },
-  { value: 'series', icon: Layers, labelKey: 'bilibili.modeSeries' },
-  { value: 'favorite', icon: Heart, labelKey: 'bilibili.modeFavorite' },
-  { value: 'space', icon: User, labelKey: 'bilibili.modeSpace' },
-];
-
-function modeIcon(mode: FetchMode) {
-  return MODE_OPTIONS.find(o => o.value === mode)?.icon || Tv2;
-}
 
 interface Props {
   initialUrl?: string;
@@ -75,13 +63,39 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
   const [fetchMode, setFetchMode] = useState<FetchMode>('single');
   const [exportMode, setExportMode] = useState<ExportMode>('merged');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('md');
-  const [aiPolish, setAiPolish] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dlProgress, setDlProgress] = useState<{ current: number; total: number; title?: string } | null>(null);
-  const [activeAction, setActiveAction] = useState<'export' | 'import'>('export');
   const abortRef = useRef<{ port?: chrome.runtime.Port; cancel: () => void }>({ cancel: () => {} });
   const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
+
+  // ── Resizable list height ──
+  const [listHeight, setListHeight] = useState<number>(144); // default ~9 rows (36*4)
+  const listRef = useRef<HTMLDivElement>(null);
+  const isResizing = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    const startY = e.clientY;
+    const startHeight = listRef.current?.offsetHeight || listHeight;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isResizing.current) return;
+      const delta = ev.clientY - startY;
+      const newHeight = Math.max(80, Math.min(400, startHeight + delta));
+      setListHeight(newHeight);
+    };
+
+    const onMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [listHeight]);
 
   // ── Fetch deduplication & lifecycle guard ──
   const fetchGenRef = useRef(0);
@@ -108,10 +122,8 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
   const videoKey = (v: BilibiliVideoItem) => `${v.bvid}-${v.page}`;
 
-  const doFetch = useCallback((mode: FetchMode) => {
-    if (!url && !initialUrl) return;
-
-    const targetUrl = url || initialUrl || '';
+  const doFetch = useCallback((mode: FetchMode, targetUrlOverride?: string) => {
+    const targetUrl = targetUrlOverride || url || initialUrl || '';
     if (!targetUrl) { setError(t('bilibili.enterLink')); setState('error'); return; }
 
     const gen = ++fetchGenRef.current;
@@ -129,6 +141,28 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       const mid = parseBilibiliSpaceUrl(targetUrl);
       chrome.runtime.sendMessage(
         { type: 'FETCH_BILIBILI_SPACE', mid: mid! },
+        (resp) => {
+          if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
+          if (resp?.success && resp.data) {
+            const data = resp.data as { source: BilibiliSourceInfo; videos: BilibiliVideoItem[] };
+            setSource(data.source);
+            setVideos(data.videos);
+            setSelected(new Set(data.videos.map(videoKey)));
+            setDisplayCount(PAGE_SIZE);
+            setFetchMode(refineMode(data.source, data.videos));
+            setState('loaded');
+          } else {
+            setState('error');
+            setError(resp?.error || t('bilibili.fetchFailed'));
+          }
+        },
+      );
+    } else if (mode === 'favorite') {
+      if (!isBilibiliFavUrl(targetUrl)) {
+        setError(t('bilibili.unrecognized')); setState('error'); return;
+      }
+      chrome.runtime.sendMessage(
+        { type: 'FETCH_BILIBILI_FAVORITE', url: targetUrl },
         (resp) => {
           if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
           if (resp?.success && resp.data) {
@@ -170,10 +204,6 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     }
   }, [t, url, initialUrl]);
 
-  const handleFetch = useCallback(() => {
-    doFetch(fetchMode);
-  }, [doFetch, fetchMode]);
-
   // On first mount: recover lock if popup was closed during an operation
   useEffect(() => {
     getOpState().then((op) => {
@@ -197,7 +227,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       setUrl(initialUrl);
       const mode = detectFetchMode(initialUrl);
       setFetchMode(mode);
-      doFetch(mode);
+      doFetch(mode, initialUrl); // Pass URL explicitly to avoid stale closure on `url` state
     });
   }, [initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -209,7 +239,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       setUrl(initialUrl);
       const mode = detectFetchMode(initialUrl);
       setFetchMode(mode);
-      doFetch(mode);
+      doFetch(mode, initialUrl); // Pass URL explicitly to avoid stale closure on `url` state
     }
   }, [fetchTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -259,16 +289,18 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     setError('操作已取消');
   };
 
-  const handleDownload = () => {
+  const handleDownload = (modeOverride?: ExportMode) => {
     const toProcess = getSelectedVideos();
     if (toProcess.length === 0) { setError(t('bilibili.selectAtLeastOne')); setState('error'); return; }
 
+    const effectiveMode = modeOverride || exportMode;
+    setExportMode(effectiveMode);
     setState('downloading');
     setError('');
     setDoneMsg('');
     setDlProgress({ current: 0, total: toProcess.length });
 
-    const msgType = exportMode === 'merged' ? 'BILIBILI_DOWNLOAD_MERGED' : 'BILIBILI_DOWNLOAD_SEPARATE';
+    const msgType = effectiveMode === 'merged' ? 'BILIBILI_DOWNLOAD_MERGED' : 'BILIBILI_DOWNLOAD_SEPARATE';
     const port = chrome.runtime.connect({ name: 'bilibili-download' });
     abortRef.current = { port, cancel: () => {} };
     let cancelled = false;
@@ -279,7 +311,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       ownerName: source?.owner || '',
       desc: source?.desc || '',
       source: source,
-      aiPolish,
+      outputFormat: outputFormat,
     });
 
     port.onMessage.addListener((msg) => {
@@ -321,65 +353,12 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     abortRef.current.cancel = () => { cancelled = true; };
   };
 
-  const handleImport = () => {
-    const toProcess = getSelectedVideos();
-    if (toProcess.length === 0) { setError(t('bilibili.selectAtLeastOne')); setState('error'); return; }
-
-    setState('importing');
-    setError('');
-    setDoneMsg('');
-    setDlProgress({ current: 0, total: toProcess.length });
-
-    const progress: ImportProgress = {
-      total: toProcess.length,
-      completed: 0,
-      items: toProcess.map(v => ({ url: v.url, title: v.part || v.title, status: 'pending' })),
-    };
-    onProgress(progress);
-
-    if (exportMode === 'merged' && toProcess.length > 1) {
-      chrome.runtime.sendMessage(
-        { type: 'IMPORT_BILIBILI_MERGED', videos: toProcess, ownerName: source?.owner || '', desc: source?.desc || '', source: source, aiPolish },
-        (resp) => {
-          onProgress(null);
-          setDlProgress(null);
-          if (resp?.success) {
-            setDoneMsg(`已成功合并导入 ${toProcess.length} 个视频内容`);
-            setState('done');
-          } else {
-            setState('error');
-            setError(resp?.error || t('importFailed'));
-          }
-        },
-      );
-    } else {
-      chrome.runtime.sendMessage(
-        { type: 'IMPORT_BILIBILI_SUBTITLES', videos: toProcess, ownerName: source?.owner || '', desc: source?.desc || '', aiPolish },
-        (resp) => {
-          onProgress(null);
-          setDlProgress(null);
-          if (resp?.success) {
-            const { imported, skipped } = resp.data as { imported: number; skipped: number };
-            setDoneMsg(skipped > 0
-              ? `已导入 ${imported} 个字幕，${skipped} 个无字幕`
-              : `已导入 ${imported} 个字幕`
-            );
-            setState('done');
-          } else {
-            setState('error');
-            setError(resp?.error || t('importFailed'));
-          }
-        },
-      );
-    }
-  };
-
-  // Register import handler for unified button
+  // Register download handler for unified App-level "导入 NotebookLM" button
   useEffect(() => {
-    onImportHandlerChange?.(selected.size > 0 && subtitleStatus !== 'unavailable' ? handleImport : null);
+    onImportHandlerChange?.(selected.size > 0 && subtitleStatus !== 'unavailable' ? () => handleDownload() : null);
     return () => onImportHandlerChange?.(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onImportHandlerChange, handleImport, selected.size, source, subtitleStatus]);
+  }, [onImportHandlerChange, handleDownload, selected.size, subtitleStatus]);
 
   const toggleVideo = (key: string) => {
     setSelected(prev => {
@@ -408,10 +387,11 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
           favicon="https://www.bilibili.com/favicon.ico"
           subtitle={[
             source.owner ? `UP主：${source.owner}` : '',
-            `${source.videoCount} ${source.isSeries ? t('bilibili.parts') : t('bilibili.singleVideo')}`,
-          ].filter(Boolean).join(' · ')}
+            `${source.videoCount || videos.length} 个视频`,
+          ].filter(Boolean).join('|')}
+          inlineTags
           tags={subtitleStatus !== 'unavailable' ? [
-            source.type === 'series' ? '合集' : source.isSeries && videos.length > 1 ? '分P' : '',
+            source.type === 'series' ? '合集' : source.isSeries && videos.length > 1 ? '视频选集' : '',
           ].filter(Boolean) : undefined}
           subtitleStatus={subtitleStatus}
         />
@@ -428,6 +408,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       {/* Video List — hidden when no subtitles */}
       {subtitleStatus !== 'unavailable' && videos.length > 1 && (
         <div>
+          {/* Top row: selected count + 全选/取消全选 */}
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
               {t('bilibili.selectedParts', { selected: selected.size, total: displayedVideos.length })}
@@ -437,35 +418,114 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
               <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
             </div>
           </div>
-          <div className="max-h-36 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
-            {displayedVideos.map((video) => {
-              const key = videoKey(video);
-              return (
-                <label
-                  key={key}
-                  className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(key)}
-                    onChange={() => toggleVideo(key)}
-                    className="mt-1 rounded border-gray-300 text-[#00a1d6] focus:ring-[#00a1d6]"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 line-clamp-1">
-                      <span className="text-gray-400 mr-1">P{video.page}</span>
-                      {video.part || video.title}
-                    </p>
-                    {video.duration && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
+
+          {/* Unified container: list + action bar + resize handle */}
+          <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
+            <div
+              ref={listRef}
+              className="overflow-y-auto"
+              style={{ height: listHeight }}
+            >
+              {displayedVideos.map((video) => {
+                const key = videoKey(video);
+                const handleSingleDownload = () => {
+                  chrome.runtime.sendMessage(
+                    { type: 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE', video: video, ownerName: source?.owner || '', desc: source?.desc || '' },
+                    (resp) => {
+                      if (resp?.success) {
+                        setDoneMsg(`"${video.part || video.title}" 字幕下载完成`);
+                      } else {
+                        setError(resp?.error || '字幕下载失败');
+                        setState('error');
+                      }
+                    }
+                  );
+                };
+
+                return (
+                  <label
+                    key={key}
+                    className="flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(key)}
+                      onChange={() => toggleVideo(key)}
+                      className="mt-1 rounded border-gray-300 text-[#00a1d6] focus:ring-[#00a1d6]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">
+                        <span className="text-gray-400 mr-1">P{video.page}</span>
+                        {video.part || video.title}
                       </p>
-                    )}
-                  </div>
-                </label>
-              );
-            })}
+                      {video.duration ? (
+                        <p className="text-[11px] text-gray-400 mt-0.5">
+                          {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-gray-300 mt-0.5">--:--</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleSingleDownload(); }}
+                      className="flex-shrink-0 px-2 py-1 text-[11px] rounded-md border border-gray-300 bg-white/70 text-gray-400 hover:bg-white hover:text-gray-600 hover:border-gray-400 transition-all duration-150 btn-press"
+                    >
+                      TXT
+                    </button>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Resize handle — between list and action bar */}
+            <div
+              onMouseDown={handleResizeStart}
+              className="flex items-center justify-center py-0.5 cursor-ns-resize select-none bg-gray-50/50 hover:bg-gray-100/80 transition-colors duration-150 border-t border-gray-100"
+            >
+              <div className="flex items-center gap-1">
+                <div className="w-0.5 h-3 rounded-full bg-gray-300" />
+                <div className="w-0.5 h-3 rounded-full bg-gray-300" />
+                <div className="w-0.5 h-3 rounded-full bg-gray-300" />
+              </div>
+            </div>
+
+            {/* Bottom action bar — output format + 分开 + 合并 */}
+            <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-gray-50/80 border-t border-gray-100">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-gray-500">{t('bilibili.outputType')}</span>
+                <select
+                  value={outputFormat}
+                  onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
+                  className="text-[11px] border border-gray-200/60 rounded-md px-1.5 py-0.5 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#00a1d6]/40"
+                >
+                  {OUTPUT_FORMATS.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleDownload('separate')}
+                  disabled={selected.size === 0 || isWorking}
+                  className="px-2.5 py-1 text-[11px] rounded-md text-[#00a1d6] border border-[#00a1d6]/30 bg-white hover:bg-[#00a1d6] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-[#00a1d6] transition-all duration-150 btn-press flex items-center gap-1"
+                  title="分开下载"
+                >
+                  <Download className="w-3 h-3" />
+                  分开
+                </button>
+                <button
+                  onClick={() => handleDownload('merged')}
+                  disabled={selected.size === 0 || isWorking}
+                  className="px-2.5 py-1 text-[11px] rounded-md text-[#00a1d6] border border-[#00a1d6]/30 bg-white hover:bg-[#00a1d6] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-[#00a1d6] transition-all duration-150 btn-press flex items-center gap-1"
+                  title="合并下载"
+                >
+                  <Download className="w-3 h-3" />
+                  合并
+                </button>
+              </div>
+            </div>
           </div>
+
           {canLoadMore && (
             <button
               onClick={() => setDisplayCount(c => Math.min(c + PAGE_SIZE, videos.length))}
@@ -477,139 +537,15 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         </div>
       )}
 
-      {/* Tabs: 导出字幕 | 导入notebookLM — hidden when no subtitles */}
-      {subtitleStatus !== 'unavailable' && videos.length > 0 && (
-        <div>
-          <div className="flex border-b border-gray-200 mb-3">
-            <button
-              onClick={() => setActiveAction('export')}
-              className={`flex-1 py-2 text-xs font-medium transition-colors duration-150 border-b-2 -mb-px ${
-                activeAction === 'export'
-                  ? 'border-[#00a1d6] text-[#00a1d6]'
-                  : 'border-transparent text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Download className="w-3.5 h-3.5 inline mr-1" />
-              {t('bilibili.tabExport')}
-            </button>
-            <button
-              onClick={() => setActiveAction('import')}
-              className={`flex-1 py-2 text-xs font-medium transition-colors duration-150 border-b-2 -mb-px ${
-                activeAction === 'import'
-                  ? 'border-[#00a1d6] text-[#00a1d6]'
-                  : 'border-transparent text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5 inline mr-1" />
-              {t('bilibili.tabImport')}
-            </button>
-          </div>
-
-          {activeAction === 'export' ? (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500">{t('bilibili.outputType')}</p>
-              <div className="flex items-center gap-1.5">
-                <div className="flex rounded-lg border border-gray-200/60 overflow-hidden">
-                  <button
-                    onClick={() => setExportMode('separate')}
-                    className={`px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 ${
-                      exportMode === 'separate'
-                        ? 'bg-[#00a1d6] text-white'
-                        : 'bg-white text-gray-400 hover:text-gray-500'
-                    }`}
-                  >
-                    {t('bilibili.separate')}
-                  </button>
-                  <button
-                    onClick={() => setExportMode('merged')}
-                    className={`px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 border-l border-gray-200/60 ${
-                      exportMode === 'merged'
-                        ? 'bg-[#00a1d6] text-white'
-                        : 'bg-white text-gray-400 hover:text-gray-500'
-                    }`}
-                  >
-                    {t('bilibili.merged')}
-                  </button>
-                </div>
-                <select
-                  value={outputFormat}
-                  onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
-                  className="text-[11px] border border-gray-200/60 rounded-lg px-2 py-1 bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#00a1d6]/40"
-                >
-                  {OUTPUT_FORMATS.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-                <div className="flex-1" />
-                <span className="text-[11px] text-gray-500">{t('bilibili.aiPolish')}</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={aiPolish}
-                    onChange={(e) => setAiPolish(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-7 h-4 bg-gray-200 peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-[#00a1d6]/40 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#00a1d6]"></div>
-                </label>
-              </div>
-
-              <button
-                onClick={handleDownload}
-                disabled={selected.size === 0 || isWorking || subtitleStatus === 'unavailable' || subtitleStatus === 'checking'}
-                className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-              >
-                {state === 'downloading' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />{t('bilibili.fetchingSubtitles')}</>
-                ) : (
-                  <><Download className="w-4 h-4" />{t('bilibili.downloadOneClick')}（{selected.size}）</>
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500">{t('bilibili.importType')}</p>
-              <div className="flex rounded-lg border border-gray-200/60 overflow-hidden">
-                <button
-                  onClick={() => setExportMode('separate')}
-                  className={`px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 ${
-                    exportMode === 'separate'
-                      ? 'bg-[#00a1d6] text-white'
-                      : 'bg-white text-gray-400 hover:text-gray-500'
-                  }`}
-                >
-                  {t('bilibili.separate')}
-                </button>
-                <button
-                  onClick={() => setExportMode('merged')}
-                  className={`px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 border-l border-gray-200/60 ${
-                    exportMode === 'merged'
-                      ? 'bg-[#00a1d6] text-white'
-                      : 'bg-white text-gray-400 hover:text-gray-500'
-                  }`}
-                >
-                  {t('bilibili.merged')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Lock Overlay — shown during download/import */}
       {isLocked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 w-[280px] text-center space-y-4 animate-fade-in">
             <div className="w-12 h-12 mx-auto rounded-full bg-[#00a1d6]/10 flex items-center justify-center">
-              {state === 'downloading' ? (
-                <Download className="w-6 h-6 text-[#00a1d6]" />
-              ) : (
-                <Upload className="w-6 h-6 text-[#00a1d6]" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">
-                {state === 'downloading' ? '正在导出字幕…' : '正在导入 NotebookLM…'}
-              </p>
+            <Download className="w-6 h-6 text-[#00a1d6]" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-800">正在导出字幕…</p>
               {dlProgress && (
                 <p className="text-xs text-gray-400 mt-1">
                   {dlProgress.title || `${dlProgress.current}/${dlProgress.total}`}
@@ -656,7 +592,6 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             favicon="https://www.bilibili.com/favicon.ico"
             subtitle={url}
             noContent
-            onRefresh={handleFetch}
           />
         ) : (
           <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">

@@ -183,33 +183,27 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     // Only detect for single video pages (/watch)
     if (!initialUrl.includes('/watch')) return;
 
+    // Extract video ID from URL
+    const videoId = new URL(initialUrl).searchParams.get('v');
+    if (!videoId) {
+      setSubtitleStatus('unavailable');
+      return;
+    }
+
     const gen = ++fetchGenRef.current;
     setSubtitleStatus('checking');
 
-    chrome.tabs.query({ url: 'https://www.youtube.com/watch*' }).then((tabs) => {
-      if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
-      // Find the matching tab
-      const tab = tabs.find(t => t.url === initialUrl) || tabs[0];
-      if (!tab?.id) {
-        setSubtitleStatus('unavailable');
-        return;
-      }
-
-      chrome.runtime.sendMessage(
-        { type: 'DETECT_YOUTUBE_SUBTITLES', tabId: tab.id },
-        (response: any) => {
-          if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
-          if (response?.available) {
-            setSubtitleStatus('available');
-          } else {
-            setSubtitleStatus('unavailable');
-          }
-        },
-      );
-    }).catch(() => {
-      if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
-      setSubtitleStatus('unavailable');
-    });
+    chrome.runtime.sendMessage(
+      { type: 'DETECT_YOUTUBE_SUBTITLES', videoId },
+      (response: any) => {
+        if (!mountedRef.current || fetchGenRef.current !== gen) return; // stale
+        if (response?.data?.available) {
+          setSubtitleStatus('available');
+        } else {
+          setSubtitleStatus('unavailable');
+        }
+      },
+    );
 
     return () => { fetchGenRef.current = gen + 1; }; // invalidate pending on cleanup
   }, [state, initialUrl]);
@@ -298,7 +292,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
             favicon="https://www.youtube.com/favicon.ico"
             subtitle={url}
             noContent
-            onRefresh={handleFetch}
           />
         ) : (
           <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">

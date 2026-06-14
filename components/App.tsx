@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import { PodcastImport } from '@/components/PodcastImport';
-import { ClaudeImport } from '@/components/ClaudeImport';
+import { AIchatImport } from '@/components/AIchatImport';
 import { YouTubeImport } from '@/components/YouTubeImport';
 import { BilibiliImport } from '@/components/BilibiliImport';
 import { NotebookSelector } from '@/components/NotebookSelector';
@@ -178,16 +178,7 @@ export default function App() {
       {/* Header — frosted glass */}
       <div className="glass px-3.5 py-1.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleReadCurrentPage}
-            className="px-2 py-1 text-[10px] font-medium text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press flex items-center gap-1"
-            title={t('app.readCurrentPage')}
-          >
-            <RefreshCw className="w-3 h-3" />
-            {t('app.readCurrentPage')}
-          </button>
-        </div>
-        <div className="flex items-center gap-1">
+          {/* Language toggle — moved as the only header-left element */}
           <button
             onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
             className="px-1.5 py-1 text-[10px] font-medium text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press"
@@ -195,6 +186,8 @@ export default function App() {
           >
             {locale === 'zh' ? 'EN' : '中'}
           </button>
+        </div>
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setShowHistory(true)}
             className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
@@ -237,7 +230,17 @@ export default function App() {
       {/* ════════════════════════════════════════════════════════
          Content panel — auto-switched by browser URL detection
          ════════════════════════════════════════════════════════ */}
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 space-y-2">
+        <div className="flex items-center">
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">网站信息</label>
+          <button
+            onClick={handleReadCurrentPage}
+            className="p-0.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press"
+            title={t('app.readCurrentPage')}
+          >
+            <RefreshCw className="w-3 h-3" />
+          </button>
+        </div>
         {activeTab === 'bilibili' && (
           <div className="animate-fade-in">
             <BilibiliImport initialUrl={initialBilibiliUrl} onProgress={setImportProgress} fetchTrigger={fetchTrigger} onImportHandlerChange={registerImportHandler} />
@@ -266,7 +269,7 @@ export default function App() {
         )}
         {activeTab === 'claude' && (
           <div className="animate-fade-in">
-            <ClaudeImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
+            <AIchatImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
           </div>
         )}
       </div>
