@@ -232,7 +232,7 @@ export default function App() {
          ════════════════════════════════════════════════════════ */}
       <div className="px-4 pt-3 space-y-2">
         <div className="flex items-center">
-          <label className="text-[11px] font-medium text-gray-500 tracking-wide">网站信息</label>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">当前网站</label>
           <button
             onClick={handleReadCurrentPage}
             className="p-0.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press"

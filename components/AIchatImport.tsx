@@ -64,6 +64,14 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
   const [currentTabFavicon, setCurrentTabFavicon] = useState<string | undefined>();
 
   const [autoExtracted, setAutoExtracted] = useState(false);
+  const [autoExtractError, setAutoExtractError] = useState(false);
+
+  // Compute SourceInfoCard subtitle: show conversation title as second line
+  const sourceSubtitle = conversation?.title
+    ? `对话: ${conversation.title}`
+    : state === 'extracting'
+      ? '正在提取对话...'
+      : undefined;
 
   // ── Detect platform from current tab on mount & on tab switch ──
   const detectCurrentPlatform = useCallback(() => {
@@ -101,6 +109,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
     setError('');
     setAutoExtracted(false);
     setNeedsRefresh(false);
+    setAutoExtractError(false);
   }, [platformInfo]);
 
   const handleExtract = useCallback(async () => {
@@ -109,6 +118,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
     setState('extracting');
     setError('');
     setNeedsRefresh(false);
+    setAutoExtractError(false);
 
     try {
       await chrome.scripting.executeScript({
@@ -129,8 +139,15 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
         }
         if (response?.success && response.data) {
           const conv = response.data as ClaudeConversation;
-          setConversation(conv);
           const pairs = conv.pairs || [];
+          // 提取成功但没有对话名称和内容，视为提取失败，引导刷新
+          if (!conv.title && pairs.length === 0) {
+            setState('error');
+            setNeedsRefresh(true);
+            setAutoExtractError(true);
+            return;
+          }
+          setConversation(conv);
           setSelectedPairIds(new Set(pairs.map((p) => p.id)));
           setState('ready');
         } else {
@@ -141,6 +158,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
           } else {
             setError(errMsg);
           }
+          setAutoExtractError(true);
         }
       }
     );
@@ -150,6 +168,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
     if (!currentTabId) return;
     chrome.tabs.reload(currentTabId);
     setNeedsRefresh(false);
+    setAutoExtractError(false);
     setError('');
     setState('idle');
   }, [currentTabId]);
@@ -263,12 +282,13 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
       <div className="space-y-4">
         <SourceInfoCard
           platform="ai"
-          title={`${platformInfo.icon} ${platformInfo.name}`}
+          title={platformInfo.name}
+          subtitle={sourceSubtitle}
           favicon={currentTabFavicon}
-          connectionLost={needsRefresh}
+          connectionLost={needsRefresh || autoExtractError}
         />
 
-        {needsRefresh ? (
+        {needsRefresh || autoExtractError ? (
           <button
             onClick={handleRefreshPage}
             className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
@@ -307,76 +327,65 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
       {/* SourceInfoCard — shows connection-lost warning when needsRefresh */}
       <SourceInfoCard
         platform="ai"
-        title={`${platformInfo.icon} ${platformInfo.name}`}
+        title={platformInfo.name}
+        subtitle={sourceSubtitle}
         favicon={currentTabFavicon}
-        connectionLost={needsRefresh}
+        connectionLost={needsRefresh || autoExtractError}
       />
 
-      {/* Header */}
-      <div className="bg-surface-sunken rounded-xl p-3 shadow-soft">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-gray-900 truncate flex items-center gap-2">
-            <span>{platformInfo.icon}</span>
-            {conversation?.title}
-          </h3>
-          <button
-            onClick={handleExtract}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded"
-            title={t('claude.reExtract')}
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-        <p className="text-xs text-gray-500">
-          {t('claude.qaPairs', { total: pairs.length, selected: selectedPairIds.size })}
-        </p>
-      </div>
-
-      {/* Selection controls */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setSelectedPairIds(new Set(pairs.map((p) => p.id)))}
-          disabled={allSelected}
-          className="flex-1 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors duration-150 btn-press"
-        >
-          {t('selectAll')}
-        </button>
-        <button
-          onClick={() => setSelectedPairIds(new Set())}
-          disabled={selectedPairIds.size === 0}
-          className="flex-1 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors duration-150 btn-press"
-        >
-          {t('deselectAll')}
-        </button>
-      </div>
-
       {/* Q&A pair list */}
-      <div className="max-h-[240px] overflow-y-auto border border-border-strong rounded-lg shadow-soft">
-        {pairs.map((pair, index) => (
-          <label
-            key={pair.id}
-            className="flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100/80 last:border-b-0"
-          >
-            <input
-              type="checkbox"
-              checked={selectedPairIds.has(pair.id)}
-              onChange={() => togglePair(pair.id)}
-              className="mt-1 rounded border-gray-300 text-notebooklm-blue focus:ring-notebooklm-blue"
-            />
-            <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-xs text-gray-700 line-clamp-2">
-                  <span className="text-xs font-mono tabular-nums text-gray-400 mr-1">#{index + 1}</span>
-                  <span className="text-gray-400">Q：</span>
-                  {pair.question || t('claude.noQuestion')}
-                </p>
-                <p className="text-xs text-gray-500 line-clamp-2">
-                  <span className="text-gray-400">A：</span>
-                  {stripMarkdown(pair.answer).slice(0, 100) || t('claude.noAnswer')}
-                  {pair.answer.length > 100 && '...'}
-                </p>
-            </div>
-          </label>
-        ))}
+      <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
+        {/* Top row: count on left, select/deselect on right (Bilibili-style) */}
+        <div className="flex items-center justify-between px-3 py-2 bg-gray-50/80 border-b border-border-strong">
+          <span className="text-sm text-gray-600">
+            {t('claude.qaPairs', { total: pairs.length, selected: selectedPairIds.size })}
+          </span>
+          <div className="flex gap-2 text-xs">
+            <button
+              onClick={() => setSelectedPairIds(new Set(pairs.map((p) => p.id)))}
+              disabled={allSelected}
+              className="text-notebooklm-blue hover:underline disabled:opacity-40 disabled:no-underline"
+            >
+              {t('selectAll')}
+            </button>
+            <button
+              onClick={() => setSelectedPairIds(new Set())}
+              disabled={selectedPairIds.size === 0}
+              className="text-gray-400 hover:underline disabled:opacity-40 disabled:no-underline"
+            >
+              {t('deselectAll')}
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable pair list */}
+        <div className="max-h-[240px] overflow-y-auto">
+          {pairs.map((pair, index) => (
+            <label
+              key={pair.id}
+              className="flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100/80 last:border-b-0"
+            >
+              <input
+                type="checkbox"
+                checked={selectedPairIds.has(pair.id)}
+                onChange={() => togglePair(pair.id)}
+                className="mt-1 rounded border-gray-300 text-notebooklm-blue focus:ring-notebooklm-blue"
+              />
+              <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-xs text-gray-700 line-clamp-2">
+                    <span className="text-xs font-mono tabular-nums text-gray-400 mr-1">#{index + 1}</span>
+                    <span className="text-gray-400">Q：</span>
+                    {pair.question || t('claude.noQuestion')}
+                  </p>
+                  <p className="text-xs text-gray-500 line-clamp-2">
+                    <span className="text-gray-400">A：</span>
+                    {stripMarkdown(pair.answer).slice(0, 100) || t('claude.noAnswer')}
+                    {pair.answer.length > 100 && '...'}
+                  </p>
+              </div>
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* Status */}

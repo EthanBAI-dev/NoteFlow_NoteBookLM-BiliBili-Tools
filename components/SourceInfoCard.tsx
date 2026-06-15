@@ -65,12 +65,12 @@ const PLATFORM_STYLES: Record<SourcePlatform, {
   },
   ai: {
     icon: MessageCircle,
-    bg: 'bg-violet-50',
-    border: 'border-violet-100/60',
-    iconBg: 'bg-violet-100',
-    iconColor: 'text-violet-500',
-    titleColor: 'text-violet-900',
-    subtitleColor: 'text-violet-600',
+    bg: 'bg-white',
+    border: 'border-gray-200/60',
+    iconBg: 'bg-gray-100',
+    iconColor: 'text-gray-500',
+    titleColor: 'text-gray-900',
+    subtitleColor: 'text-gray-500',
   },
   web: {
     icon: Globe,
@@ -146,7 +146,7 @@ export function SourceInfoCard({
           : platform === 'youtube'
           ? 'bg-red-100 text-red-700'
           : platform === 'ai'
-          ? 'bg-violet-100 text-violet-700'
+          ? 'bg-gray-100 text-gray-700'
           : 'bg-slate-200/60 text-slate-600'
       }`}
     >
