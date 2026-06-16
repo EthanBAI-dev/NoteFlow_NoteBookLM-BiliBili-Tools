@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { History, RefreshCw, Upload } from 'lucide-react';
+import { History, RefreshCw, Upload, LogOut, User, CircleUserRound } from 'lucide-react';
 import type { ImportProgress, YouTubeResult } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -15,6 +15,8 @@ import { WebImport } from '@/components/WebImport';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
 import { OnboardingTour } from '@/components/OnboardingTour';
+import { LoginPanel } from './LoginPanel';
+import { signOut, restoreSession } from '@/lib/auth';
 
 export default function App() {
   const { t, locale, setLocale } = useI18n();
@@ -26,6 +28,25 @@ export default function App() {
   const [initialBilibiliUrl, setInitialBilibiliUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email?: string; avatar_url?: string; name?: string } | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+
+  // Restore session on mount
+  useEffect(() => {
+    (async () => {
+      const { session } = await restoreSession();
+      if (session?.user) {
+        setCurrentUser({
+          id: session.user.id,
+          email: session.user.email || undefined,
+          avatar_url: session.user.user_metadata?.avatar_url || undefined,
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || undefined,
+        });
+      }
+      setAuthReady(true);
+    })();
+  }, []);
 
   // ── Pre-fetched YouTube result from background (via content script → YT_URL_CHANGED) ──
   const [prefetchedYouTubeResult, setPrefetchedYouTubeResult] = useState<YouTubeResult | null>(null);
@@ -178,7 +199,7 @@ export default function App() {
       {/* Header — frosted glass */}
       <div className="glass px-3.5 py-1.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-1">
-          {/* Language toggle — moved as the only header-left element */}
+          {/* Language toggle */}
           <button
             onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
             className="px-1.5 py-1 text-[10px] font-medium text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press"
@@ -188,6 +209,41 @@ export default function App() {
           </button>
         </div>
         <div className="flex items-center gap-1">
+          {/* User / Login button */}
+          {currentUser ? (
+            <>
+              {currentUser.avatar_url ? (
+                <img
+                  src={currentUser.avatar_url}
+                  alt=""
+                  className="w-6 h-6 rounded-full border border-gray-200 cursor-pointer"
+                  onClick={() => setShowLogin(true)}
+                />
+              ) : (
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="w-6 h-6 rounded-full bg-notebooklm-blue/10 flex items-center justify-center hover:bg-notebooklm-blue/20 transition-colors"
+                >
+                  <User className="w-3.5 h-3.5 text-notebooklm-blue" />
+                </button>
+              )}
+              <button
+                onClick={async () => { await signOut(); setCurrentUser(null); }}
+                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150 btn-press"
+                title="退出登录"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setShowLogin(true)}
+              className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
+              title="登录"
+            >
+              <CircleUserRound className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowHistory(true)}
             className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
@@ -297,6 +353,24 @@ export default function App() {
 
       {/* First-time onboarding tour */}
       <OnboardingTour />
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLogin(false); }}
+        >
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <button
+              onClick={() => setShowLogin(false)}
+              className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 z-10"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <LoginPanel onAuthSuccess={() => setShowLogin(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
