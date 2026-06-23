@@ -32,16 +32,6 @@ import {
   extractClaudeConversation,
   formatConversationForImport,
 } from '@/services/claude-conversation';
-import {
-  addBookmark,
-  removeBookmark,
-  removeBookmarks,
-  moveBookmark,
-  getBookmarks,
-  getCollections,
-  createCollection,
-  isBookmarked,
-} from '@/services/bookmarks';
 import type { MessageType, MessageResponse, ClaudeConversation } from '@/lib/types';
 
 // Dev reload: allow external messages to trigger extension reload
@@ -355,6 +345,52 @@ export default defineBackground(() => {
         } catch (err) {
           sendProgress({ phase: 'error', error: String(err) });
           clearOpState();
+        }
+      });
+      return;
+    }
+
+    // ── PDF Export (Web Import) ──
+    if (port.name === 'pdf-export') {
+      port.onMessage.addListener(async (msg) => {
+        if (msg.type !== 'GENERATE_PDF') return;
+
+        const pages = msg.siteInfo?.pages || [];
+        const sendProgress = (data: Record<string, unknown>) => {
+          try { port.postMessage(data); } catch { /* disconnected */ }
+        };
+
+        try {
+          const markdownParts: string[] = [];
+          for (let i = 0; i < pages.length; i++) {
+            const page = pages[i];
+            sendProgress({ phase: 'fetching', current: i + 1, total: pages.length, title: page.title });
+
+            // Fetch page content
+            const resp = await fetch(page.url);
+            if (!resp.ok) throw new Error(`Failed to fetch ${page.url}: ${resp.status}`);
+            const html = await resp.text();
+
+            // Convert to markdown via offscreen
+            sendProgress({ phase: 'rendering', current: i + 1, total: pages.length });
+            const { markdown } = await convertHtmlToMarkdown(html);
+
+            if (markdown?.trim()) {
+              markdownParts.push(`# ${page.title || page.url}\n\n${markdown}`);
+              if (i < pages.length - 1) markdownParts.push('\n\n---\n\n');
+            }
+          }
+
+          // Generate downloadable markdown file
+          const mergedMd = markdownParts.join('');
+          const filename = `web_export_${Date.now()}.md`;
+          const encoded = btoa(unescape(encodeURIComponent(mergedMd || 'No content')));
+          const dataUrl = `data:text/markdown;base64,${encoded}`;
+          await chrome.downloads.download({ url: dataUrl, filename, saveAs: true });
+
+          sendProgress({ phase: 'done' });
+        } catch (err) {
+          sendProgress({ phase: 'error', error: String(err) });
         }
       });
       return;
@@ -1231,41 +1267,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     case 'DOWNLOAD_PODCAST':
       // Handled via port connection (onConnect), not onMessage
       return { success: true };
-
-    // ── Bookmarks ──
-    case 'ADD_BOOKMARK':
-      return await addBookmark(message.url, message.title, message.favicon, message.collection);
-
-    case 'REMOVE_BOOKMARK':
-      await removeBookmark(message.id);
-      return true;
-
-    case 'REMOVE_BOOKMARKS':
-      await removeBookmarks(message.ids);
-      return true;
-
-    case 'GET_BOOKMARKS':
-      return await getBookmarks();
-
-    case 'GET_COLLECTIONS':
-      return await getCollections();
-
-    case 'CREATE_COLLECTION':
-      await createCollection(message.name);
-      return true;
-
-    case 'MOVE_BOOKMARK':
-      await moveBookmark(message.id, message.collection);
-      return true;
-
-    case 'MOVE_BOOKMARKS':
-      for (const id of message.ids) {
-        await moveBookmark(id, message.collection);
-      }
-      return true;
-
-    case 'IS_BOOKMARKED':
-      return await isBookmarked(message.url);
 
     // ── Notebook Info (Refactored: Pure API approach) ──
     // Replaced the legacy two-phase strategy (API → content-script fallback)
