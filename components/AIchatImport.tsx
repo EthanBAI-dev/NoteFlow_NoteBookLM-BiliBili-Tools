@@ -283,11 +283,24 @@ export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }
         selectedMessageIds: [], // Not used in new flow
       },
       (response) => {
-        onProgress(null);
         if (response?.success) {
+          onProgress({
+            total: 1,
+            completed: 1,
+            current: undefined,
+            items: [{ url: conversation.url, status: 'success' }],
+          });
+          setTimeout(() => onProgress(null), 300);
           setState('success');
           setTimeout(() => setState('ready'), 3000);
         } else {
+          onProgress({
+            total: 1,
+            completed: 1,
+            current: undefined,
+            items: [{ url: conversation.url, status: 'error' }],
+          });
+          setTimeout(() => onProgress(null), 300);
           setState('error');
           setError(response?.error || t('importFailed'));
         }
@@ -403,17 +416,17 @@ export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }
         connectionLost={needsRefresh || autoExtractError}
       />
 
-      {/* 对话列表 label + Q&A pair list (compact, matching "当前网站" + "浏览窗口" pattern) */}
-      <div className="space-y-1">
+      {/* 对话列表 */}
+      <div>
         <label className="text-[11px] font-medium text-gray-500 tracking-wide block">对话列表</label>
 
-        <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
-        {/* Top row: count on left, select/deselect on right (Bilibili-style) */}
-        <div className="flex items-center justify-between px-3 py-2 bg-gray-50/80 border-b border-border-strong">
+        <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
+        {/* Top row: count on left, select/deselect on right */}
+        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
           <span className="text-xs text-gray-600">
             {t('claude.qaPairs', { total: pairs.length, selected: selectedPairIds.size })}
           </span>
-          <div className="flex gap-2 text-[11px]">
+          <div className="flex gap-2 text-xs">
             <button
               onClick={() => setSelectedPairIds(new Set(pairs.map((p) => p.id)))}
               disabled={allSelected}

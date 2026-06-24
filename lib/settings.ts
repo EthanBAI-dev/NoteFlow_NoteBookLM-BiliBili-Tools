@@ -3,34 +3,15 @@
  * the rest of the extension (notebook cache, bookmarks, history all use local).
  */
 
-export interface AISettings {
-  enabled: boolean;
-  provider: string;
-  apiKey: string;
-  model: string;
-  promptStyle: string;
-  customPrompt: string;
-}
-
 export interface Settings {
   /** Auto-rename sources NotebookLM names with a default placeholder like "Pasted Text". */
   autoRenamePastedSources: boolean;
-  /** AI polish settings for subtitle/text processing */
-  ai: AISettings;
 }
 
 const STORAGE_KEY = 'noteflowSettings';
 
 const DEFAULTS: Settings = {
   autoRenamePastedSources: true,
-  ai: {
-    enabled: false,
-    provider: 'deepseek',
-    apiKey: '',
-    model: '',
-    promptStyle: 'smooth',
-    customPrompt: '',
-  },
 };
 
 export async function getSettings(): Promise<Settings> {

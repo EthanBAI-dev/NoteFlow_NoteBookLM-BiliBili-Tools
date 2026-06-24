@@ -26,7 +26,7 @@ function isZh(): boolean {
 const i18n = {
   question: () => isZh() ? '提问' : 'Question',
   answer: () => isZh() ? '回答' : 'Answer',
-  madeWith: () => isZh() ? 'Made with ❤️ by Ethan BAI' : 'Made with ❤️ by Flow2Note',
+  madeWith: () => isZh() ? 'Made with ❤️ by Ethan BAI' : 'Made with ❤️ by NoteFlow',
   platformLabel: (key: string, fallback: string) => {
     const zh: Record<string, string> = {
       claude: 'Claude · AI 对话',

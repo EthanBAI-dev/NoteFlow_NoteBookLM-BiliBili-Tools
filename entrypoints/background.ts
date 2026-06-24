@@ -21,7 +21,6 @@ import {
   fetchBilibiliFavoriteList,
   convertSubtitleOutput,
 } from '@/services/bilibili';
-import { polishSubtitlesWithChunks } from '@/services/ai-polish';
 import { setOpState, clearOpState, type OpState } from '@/services/op-state';
 import { uploadToDrive } from '@/services/google-drive';
 import { fetchAndCacheAccounts, logSlotDebug } from '@/services/account-slots';
@@ -66,7 +65,7 @@ async function broadcastToSidepanel(msg: Record<string, unknown>): Promise<void>
 }
 
 export default defineBackground(() => {
-  console.log('Flow2Note background service started');
+  console.log('NoteFlow background service started');
 
   // ── Google Account List Auto-Detection ──
   // Uses the shared fetchAndCacheAccounts from services/account-slots.ts
@@ -251,7 +250,7 @@ export default defineBackground(() => {
       port.onMessage.addListener(async (msg) => {
         if (msg.type !== 'BILIBILI_DOWNLOAD_SEPARATE' && msg.type !== 'BILIBILI_DOWNLOAD_MERGED') return;
 
-        const { videos, ownerName, desc, source, aiPolish, outputFormat } = msg as any;
+        const { videos, ownerName, desc, source, outputFormat } = msg as any;
         const isMerged = msg.type === 'BILIBILI_DOWNLOAD_MERGED';
 
         await setOpState({
@@ -281,18 +280,6 @@ export default defineBackground(() => {
               }
             }
             let mergedMd = mergeBilibiliSubtitles(results, source);
-            if (aiPolish) {
-              const allBodies = results.flatMap(r => (r as any).rawBody || []);
-              const polished = await polishSubtitlesWithChunks(mergedMd, allBodies.length > 0 ? allBodies : undefined, (c, t) => {
-                sendProgress({ phase: 'polishing', current: c, total: t, title: `AI 润色 ${c}/${t}` });
-              });
-              if (!polished.success && polished.error) {
-                sendProgress({ phase: 'error', error: `AI 润色失败：${polished.error}，请稍后重试` });
-                clearOpState();
-                return;
-              }
-              if (polished.success) mergedMd = polished.polished;
-            }
             const fmt = convertSubtitleOutput(outputFormat || 'md', mergedMd);
             const mergedFilename = `${sanitizeBilibiliFilename(source.title)}_合并内容${fmt.ext}`;
             const encoded = btoa(unescape(encodeURIComponent(fmt.content)));
@@ -310,17 +297,6 @@ export default defineBackground(() => {
               if (!result.markdown) { skipped++; }
               else {
                 let markdown = result.markdown;
-                if (aiPolish) {
-                  const polished = await polishSubtitlesWithChunks(markdown, result.rawBody, (c, t) => {
-                    sendProgress({ phase: 'polishing', current: c, total: t, title: `${video.part || video.title} ${c}/${t}` });
-                  });
-                  if (!polished.success && polished.error) {
-                    sendProgress({ phase: 'error', error: `AI 润色失败：${polished.error}，请稍后重试` });
-                    clearOpState();
-                    return;
-                  }
-                  if (polished.success) markdown = polished.polished;
-                }
                 const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
                 const fmt = convertSubtitleOutput(outputFormat || 'md', markdown, result.rawBody);
                 const filename = `${sanitizeBilibiliFilename(displayTitle)}${fmt.ext}`;
@@ -1026,7 +1002,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     return { added };
   }
   if (type === 'IMPORT_BILIBILI_SUBTITLES') {
-    const { videos, ownerName, desc, aiPolish } = message as any;
+    const { videos, ownerName, desc } = message as any;
     let imported = 0; let skipped = 0;
     setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: '准备导入…', timestamp: Date.now() });
     for (const video of videos) {
@@ -1034,15 +1010,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       const result = await fetchVideoSubtitle(video, ownerName, desc);
       if (!result.markdown) { skipped++; continue; }
       let markdown = result.markdown;
-      if (aiPolish) {
-        setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: `AI润色 ${video.part || video.title}`, timestamp: Date.now() });
-        const polished = await polishSubtitlesWithChunks(markdown, result.rawBody);
-        if (!polished.success && polished.error) {
-          clearOpState();
-          throw new Error(`AI 润色失败：${polished.error}，请稍后重试`);
-        }
-        if (polished.success) markdown = polished.polished;
-      }
       const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
       const success = await importText(markdown, displayTitle, senderTabId);
       if (success) { imported++; } else { skipped++; }
@@ -1056,7 +1023,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   }
 
   if (type === 'IMPORT_BILIBILI_MERGED') {
-    const { videos, ownerName, desc, source, aiPolish } = message as any;
+    const { videos, ownerName, desc, source } = message as any;
     const results = [];
     setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: '获取字幕…', timestamp: Date.now() });
     console.log(`[background] Starting merged import for ${videos.length} videos...`);
@@ -1075,16 +1042,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       throw new Error('所选视频都没有字幕');
     }
     let mergedMd = mergeBilibiliSubtitles(results, source);
-    if (aiPolish) {
-      const allBodies2 = results.flatMap(r => (r as any).rawBody || []);
-      setOpState({ active: true, phase: 'polishing', kind: 'import', current: 0, total: 1, title: 'AI润色合并内容…', timestamp: Date.now() });
-      const polished = await polishSubtitlesWithChunks(mergedMd, allBodies2.length > 0 ? allBodies2 : undefined);
-      if (!polished.success && polished.error) {
-        clearOpState();
-        throw new Error(`AI 润色失败：${polished.error}，请稍后重试`);
-      }
-      if (polished.success) mergedMd = polished.polished;
-    }
     const success = await importText(mergedMd, `合并内容：${source.title}`, senderTabId);
     clearOpState();
     return { success };

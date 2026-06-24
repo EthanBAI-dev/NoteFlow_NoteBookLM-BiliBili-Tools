@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Youtube, Loader2, AlertCircle, PlayCircle, ListVideo, User } from 'lucide-react';
-import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
+import type { ImportItem, ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
 import { SourceInfoCard, SourceInfoCardSkeleton } from './SourceInfoCard';
@@ -14,6 +14,44 @@ const sourceIcons = {
   playlist: ListVideo,
   channel: User,
 };
+
+function getCurrentYouTubeVideoId(url: string): string | null {
+  try {
+    const normalized = url.replace('m.youtube.com', 'www.youtube.com');
+    const urlObj = new URL(normalized);
+    const hostname = urlObj.hostname.replace('www.', '');
+
+    if (hostname === 'youtu.be') {
+      return urlObj.pathname.slice(1).split('/')[0] || null;
+    }
+
+    if (hostname !== 'youtube.com') return null;
+
+    if (urlObj.pathname === '/watch') {
+      return urlObj.searchParams.get('v');
+    }
+
+    if (urlObj.pathname.startsWith('/shorts/')) {
+      return urlObj.pathname.split('/shorts/')[1]?.split(/[?/]/)[0] || null;
+    }
+
+    if (urlObj.pathname.startsWith('/live/')) {
+      return urlObj.pathname.split('/live/')[1]?.split(/[?/]/)[0] || null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getDefaultSelectedVideoIds(videos: YouTubeVideoItem[], targetUrl: string): Set<string> {
+  const currentVideoId = getCurrentYouTubeVideoId(targetUrl);
+  if (!currentVideoId) return new Set();
+
+  const match = videos.find((video) => video.id === currentVideoId);
+  return match ? new Set([match.id]) : new Set();
+}
 
 interface Props {
   initialUrl?: string;
@@ -31,7 +69,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
   const [source, setSource] = useState<YouTubeSourceInfo | null>(null);
   const [videos, setVideos] = useState<YouTubeVideoItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
   const [continuation, setContinuation] = useState<string | undefined>();
   const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
 
@@ -71,7 +108,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     setError('');
     setSource(null);
     setVideos([]);
-    setResults(null);
     setContinuation(undefined);
 
     chrome.runtime.sendMessage(
@@ -82,7 +118,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
           const data = resp.data as YouTubeResult;
           setSource(data.source);
           setVideos(data.videos);
-          setSelected(new Set(data.videos.slice(0, PAGE_SIZE).map((v) => v.id)));
+          setSelected(getDefaultSelectedVideoIds(data.videos, fetchUrl));
           setContinuation(data.continuation);
           setState('loaded');
         } else {
@@ -131,7 +167,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     setUrl(initialUrl);
     setSource(data.source);
     setVideos(data.videos);
-    setSelected(new Set(data.videos.slice(0, PAGE_SIZE).map((v) => v.id)));
+    setSelected(getDefaultSelectedVideoIds(data.videos, initialUrl));
     setContinuation(data.continuation);
     setState('loaded');
   }, [prefetchedResult]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -145,12 +181,13 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
 
     let successCount = 0;
     let failedCount = 0;
+    const itemStatuses: ImportItem[] = urls.map((u) => ({ url: u, status: 'pending' }));
 
     onProgress({
       total: urls.length,
       completed: 0,
       current: { url: urls[0], status: 'pending' },
-      items: urls.map((u) => ({ url: u, status: 'pending' })),
+      items: itemStatuses,
     });
 
     for (let i = 0; i < urls.length; i++) {
@@ -158,23 +195,26 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
         const resp: any = await chrome.runtime.sendMessage({ type: 'IMPORT_URL', url: urls[i] });
         if (resp?.success) {
           successCount++;
+          itemStatuses[i] = { url: urls[i], status: 'success' };
         } else {
           failedCount++;
+          itemStatuses[i] = { url: urls[i], status: 'error' };
         }
       } catch (err) {
         failedCount++;
+        itemStatuses[i] = { url: urls[i], status: 'error' };
       }
 
       onProgress({
         total: urls.length,
         completed: successCount + failedCount,
         current: i + 1 < urls.length ? { url: urls[i + 1], status: 'pending' } : undefined,
-        items: urls.map((u) => ({ url: u, status: 'pending' })),
+        items: itemStatuses,
       });
     }
 
+    await new Promise((r) => setTimeout(r, 300));
     onProgress(null);
-    setResults({ success: successCount, failed: failedCount });
     setState('done');
   };
 
@@ -259,7 +299,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
                 {t('youtube.selectedVideos', { selected: selected.size, total: displayedVideos.length })}
               </span>
               <div className="flex gap-2 text-xs">
-                <button onClick={selectAll} className="text-red-500 hover:underline">{t('selectAll')}</button>
+                <button onClick={selectAll} className="text-[#00a1d6] hover:underline">{t('selectAll')}</button>
                 <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
               </div>
             </div>
@@ -273,7 +313,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
                     type="checkbox"
                     checked={selected.has(video.id)}
                     onChange={() => toggleVideo(video.id)}
-                    className="mt-1 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                    className="mt-1 rounded border-gray-300 text-[#00a1d6] focus:ring-[#00a1d6]"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-700 line-clamp-1">{video.title}</p>
@@ -285,17 +325,6 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
               ))}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Results */}
-      {results && (
-        <div className="text-sm text-center">
-          {results.failed === 0 ? (
-            <span className="text-green-600">{t('successCount', { success: results.success })}</span>
-          ) : (
-            <span className="text-amber-600">{t('successFailCount', { success: results.success, failed: results.failed })}</span>
-          )}
         </div>
       )}
 

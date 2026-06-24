@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
+import type { ImportItem, ImportProgress } from '@/lib/types';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 import { t } from '@/lib/i18n';
 import { SourceInfoCard, SourceInfoCardSkeleton } from './SourceInfoCard';
@@ -30,11 +31,11 @@ function getPlatformConfig(platform: string) {
 interface Props {
   initialUrl?: string;
   fetchTrigger?: number;
-  onProgress?: (progress: any) => void;
+  onProgress?: (progress: ImportProgress | null) => void;
   onImportHandlerChange?: (handler: (() => void) | null) => void;
 }
 
-export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
+export function PodcastImport({ initialUrl, fetchTrigger, onProgress }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [count, setCount] = useState<number | undefined>(undefined);
   const [state, setState] = useState<State>('idle');
@@ -110,6 +111,13 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
 
     setState('downloading');
     setProgress({ current: 0, total: toDownload.length });
+    const itemStatuses: ImportItem[] = toDownload.map((ep) => ({ url: ep.title, status: 'pending' }));
+    onProgress?.({
+      total: toDownload.length,
+      completed: 0,
+      current: itemStatuses[0],
+      items: itemStatuses,
+    });
 
     const port = chrome.runtime.connect({ name: 'podcast-download' });
     port.postMessage({
@@ -121,10 +129,36 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
     port.onMessage.addListener((msg) => {
       if (msg.phase === 'downloading') {
         setProgress({ current: msg.current, total: msg.total, title: msg.title });
+        const currentIndex = Math.max((msg.current as number) - 1, 0);
+        for (let i = 0; i < currentIndex; i++) itemStatuses[i] = { ...itemStatuses[i], status: 'success' };
+        if (itemStatuses[currentIndex]) itemStatuses[currentIndex] = { ...itemStatuses[currentIndex], status: 'importing' };
+        onProgress?.({
+          total: toDownload.length,
+          completed: currentIndex,
+          current: itemStatuses[currentIndex],
+          items: itemStatuses,
+        });
       } else if (msg.phase === 'done') {
+        for (let i = 0; i < itemStatuses.length; i++) itemStatuses[i] = { ...itemStatuses[i], status: 'success' };
+        onProgress?.({
+          total: toDownload.length,
+          completed: toDownload.length,
+          current: undefined,
+          items: itemStatuses,
+        });
+        setTimeout(() => onProgress?.(null), 300);
         setState('done');
         port.disconnect();
       } else if (msg.phase === 'error') {
+        const currentIndex = Math.max(progress.current - 1, 0);
+        if (itemStatuses[currentIndex]) itemStatuses[currentIndex] = { ...itemStatuses[currentIndex], status: 'error' };
+        onProgress?.({
+          total: toDownload.length,
+          completed: Math.min(progress.current, toDownload.length),
+          current: undefined,
+          items: itemStatuses,
+        });
+        setTimeout(() => onProgress?.(null), 300);
         setState('error');
         setError(msg.error || t('podcast.downloadFailed'));
         port.disconnect();
@@ -172,16 +206,18 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
       {/* Episode List */}
       {episodes.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">
-              {t('podcast.selectedEpisodes', { selected: selected.size, total: episodes.length })}
-            </span>
-            <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="text-notebooklm-blue hover:underline">{t('selectAll')}</button>
-              <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">播客列表</label>
+          <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
+              <span className="text-xs text-gray-600">
+                {t('podcast.selectedEpisodes', { selected: selected.size, total: episodes.length })}
+              </span>
+              <div className="flex gap-2 text-xs">
+                <button onClick={selectAll} className="text-[#00a1d6] hover:underline">{t('selectAll')}</button>
+                <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
+              </div>
             </div>
-          </div>
-          <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
+          <div className="max-h-48 overflow-y-auto">
             {episodes.map((ep) => (
               <label
                 key={ep.id}
@@ -191,7 +227,7 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
                   type="checkbox"
                   checked={selected.has(ep.id)}
                   onChange={() => toggleEpisode(ep.id)}
-                  className={`mt-1 rounded border-gray-300 ${theme.check} ${theme.ring}`}
+                  className="mt-1 rounded border-gray-300 text-[#00a1d6] focus:ring-[#00a1d6]"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-700 line-clamp-1">{ep.title}</p>
@@ -201,6 +237,7 @@ export function PodcastImport({ initialUrl, fetchTrigger }: Props) {
                 </div>
               </label>
             ))}
+          </div>
           </div>
         </div>
       )}

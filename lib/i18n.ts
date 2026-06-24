@@ -127,7 +127,6 @@ const zh = {
   'bilibili.outputType': '输出字幕方式',
   'bilibili.importType': '导入方式',
   'bilibili.outputFormat': '输出格式',
-  'bilibili.aiPolish': 'AI 润色',
   'bilibili.downloadOneClick': '一键下载',
   'bilibili.downloadProgress': '下载进度',
   'bilibili.importOneClick': '一键导入 NotebookLM',
@@ -210,7 +209,7 @@ const zh = {
   'claude.conversation': '对话',
   'claude.guideTitle': '如何使用',
   'claude.guideStep1': '打开 Claude、ChatGPT 或 Gemini 的对话页面',
-  'claude.guideStep2': '点击浏览器工具栏中的 Flow2Note 图标打开本面板',
+  'claude.guideStep2': '点击浏览器工具栏中的 NoteFlow 图标打开本面板',
   'claude.guideStep3': '点击「提取当前对话」，选择要导入的问答对',
   'claude.guideStep4': '一键导入到 NotebookLM，AI 对话秒变知识来源',
   'claude.shareCard': '生成分享卡片',
@@ -253,7 +252,7 @@ const zh = {
   'batch.batchImport': '批量导入',
 
   // ── Onboarding ──
-  'onboarding.welcomeTitle': '欢迎使用 Flow2Note!',
+  'onboarding.welcomeTitle': '欢迎使用 NoteFlow!',
   'onboarding.welcomeDesc': '将各种内容一键导入 NotebookLM。需要快速了解一下吗？',
   'onboarding.skip': '跳过',
   'onboarding.showMeAround': '开始引导',
@@ -281,25 +280,15 @@ const zh = {
   'more.ghDesc': '开源项目 · 欢迎 Star',
   'more.madeBy': 'Ethan BAI',
   'more.tutorial': '使用教程',
-  'more.tutorialDesc': '5 分钟上手 Flow2Note',
-  'more.rateTitle': '喜欢 Flow2Note？',
+  'more.tutorialDesc': '5 分钟上手 NoteFlow',
+  'more.rateTitle': '喜欢 NoteFlow？',
   'more.rateDesc': '在 Chrome 商店留下评价，帮助更多人发现我们',
   'more.rateBtn': '去评价',
   'more.settings': '设置',
   'more.autoRenameTitle': '自动重命名默认名来源',
   'more.autoRenameDesc': '文本导入后，若 NotebookLM 给出 "Pasted Text" 等默认名，自动改成真实标题',
-  'more.aiPolish': 'AI 润色设置',
-  'more.aiEnable': '启用 AI 润色',
-  'more.aiProvider': 'AI 服务商',
-  'more.aiApiKey': 'API Key',
-  'more.aiApiKeyPlaceholder': '请输入 API Key',
-  'more.aiModel': '模型（可选）',
-  'more.aiModelPlaceholder': '默认模型',
-  'more.aiPromptStyle': '提示词风格',
-  'more.aiPromptCustom': '自定义',
-  'more.aiCustomPrompt': '自定义提示词',
-  'more.aiCustomPromptPlaceholder': '输入自定义提示词...',
-  'more.aiPolishNote': 'AI 润色会调用第三方 API，请确保你有对应的 API Key。提示词将被发送到所选服务商进行处理。',
+  'more.saving': '保存中...',
+  'more.saved': '已保存',
 
   // ── RssImport ──
   'rss.feedUrl': 'RSS 订阅地址',
@@ -445,7 +434,6 @@ const en: Record<keyof typeof zh, string> = {
   'bilibili.outputType': 'Output Mode',
   'bilibili.importType': 'Import Mode',
   'bilibili.outputFormat': 'Format',
-  'bilibili.aiPolish': 'AI Polish',
   'bilibili.downloadOneClick': 'Download All',
   'bilibili.downloadProgress': 'Progress',
   'bilibili.importOneClick': 'Import to NotebookLM',
@@ -528,7 +516,7 @@ const en: Record<keyof typeof zh, string> = {
   'claude.conversation': 'Conversation',
   'claude.guideTitle': 'How to use',
   'claude.guideStep1': 'Open a conversation on Claude, ChatGPT, or Gemini',
-  'claude.guideStep2': 'Click the Flow2Note icon in the toolbar to open this panel',
+  'claude.guideStep2': 'Click the NoteFlow icon in the toolbar to open this panel',
   'claude.guideStep3': 'Click "Extract Current Conversation" and select Q&A pairs',
   'claude.guideStep4': 'Import to NotebookLM — turn AI chats into knowledge sources',
   'claude.shareCard': 'Share Card',
@@ -571,7 +559,7 @@ const en: Record<keyof typeof zh, string> = {
   'batch.batchImport': 'Batch Import',
 
   // ── Onboarding ──
-  'onboarding.welcomeTitle': 'Welcome to Flow2Note!',
+  'onboarding.welcomeTitle': 'Welcome to NoteFlow!',
   'onboarding.welcomeDesc': 'Import content from anywhere into NotebookLM. Want a quick tour?',
   'onboarding.skip': 'Skip',
   'onboarding.showMeAround': 'Show Me Around',
@@ -599,25 +587,15 @@ const en: Record<keyof typeof zh, string> = {
   'more.ghDesc': 'Open Source · Star',
   'more.madeBy': 'Ethan BAI',
   'more.tutorial': 'Tutorial',
-  'more.tutorialDesc': 'Get started with Flow2Note in 5 min',
-  'more.rateTitle': 'Enjoying Flow2Note?',
+  'more.tutorialDesc': 'Get started with NoteFlow in 5 min',
+  'more.rateTitle': 'Enjoying NoteFlow?',
   'more.rateDesc': 'Leave a review on Chrome Web Store to help others find us',
   'more.rateBtn': 'Rate',
   'more.settings': 'Settings',
   'more.autoRenameTitle': 'Auto-rename default-named sources',
   'more.autoRenameDesc': 'When NotebookLM leaves a pasted source as "Pasted Text", automatically rename it to the real title',
-  'more.aiPolish': 'AI Polish Settings',
-  'more.aiEnable': 'Enable AI Polish',
-  'more.aiProvider': 'AI Provider',
-  'more.aiApiKey': 'API Key',
-  'more.aiApiKeyPlaceholder': 'Enter your API Key',
-  'more.aiModel': 'Model (optional)',
-  'more.aiModelPlaceholder': 'Default model',
-  'more.aiPromptStyle': 'Prompt Style',
-  'more.aiPromptCustom': 'Custom',
-  'more.aiCustomPrompt': 'Custom Prompt',
-  'more.aiCustomPromptPlaceholder': 'Enter custom prompt...',
-  'more.aiPolishNote': 'AI polish sends prompts to third-party APIs. Make sure you have a valid API key.',
+  'more.saving': 'Saving...',
+  'more.saved': 'Saved',
 
   // ── RssImport ──
   'rss.feedUrl': 'RSS Feed URL',
@@ -650,7 +628,8 @@ function detectLocale(): Locale {
   }
 }
 
-const STORAGE_KEY = 'flow2note_locale';
+const STORAGE_KEY = 'noteflow_locale';
+const LEGACY_STORAGE_KEY = 'flow2note_locale';
 
 let currentLocale: Locale | null = null;
 const listeners = new Set<() => void>();
@@ -659,6 +638,12 @@ function loadLocale(): Locale {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'zh' || stored === 'en') return stored;
+
+    const legacyStored = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyStored === 'zh' || legacyStored === 'en') {
+      localStorage.setItem(STORAGE_KEY, legacyStored);
+      return legacyStored;
+    }
   } catch { /* ignore */ }
   return detectLocale();
 }

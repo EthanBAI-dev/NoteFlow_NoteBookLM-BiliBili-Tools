@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Flow2Note",
+    "message": "NoteFlow",
     "description": "扩展名称"
   },
   "extensionDescription": {
@@ -8,7 +8,7 @@
     "description": "Chrome Web Store 和 chrome://extensions 中显示的扩展描述。"
   },
   "actionTitle": {
-    "message": "Flow2Note",
+    "message": "NoteFlow",
     "description": "鼠标悬停在工具栏扩展图标时显示的提示文字。"
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Loader2, CheckCircle, AlertCircle, ChevronDown, Download, X } from 'lucide-react';
-import type { ImportProgress } from '@/lib/types';
+import type { ImportItem, ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isBilibiliUrl, parseBilibiliUrl, isBilibiliSpaceUrl, parseBilibiliSpaceUrl, isBilibiliFavUrl } from '@/services/bilibili';
 import type { BilibiliVideoItem, BilibiliSourceInfo } from '@/services/bilibili';
@@ -50,6 +50,22 @@ function refineMode(source: BilibiliSourceInfo, _videos: BilibiliVideoItem[]): F
   return 'single';
 }
 
+function getDefaultSelectedVideoKeys(videos: BilibiliVideoItem[], targetUrl: string): Set<string> {
+  const parsed = parseBilibiliUrl(targetUrl);
+  if (!parsed) return new Set();
+
+  const exactMatch = videos.find((video) => video.bvid === parsed.bvid && video.page === parsed.page);
+  if (exactMatch) return new Set([`${exactMatch.bvid}-${exactMatch.page}`]);
+
+  const sameVideoMatches = videos.filter((video) => video.bvid === parsed.bvid);
+  if (sameVideoMatches.length === 1) {
+    const match = sameVideoMatches[0];
+    return new Set([`${match.bvid}-${match.page}`]);
+  }
+
+  return new Set();
+}
+
 export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportHandlerChange }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
   const [state, setState] = useState<State>('idle');
@@ -62,7 +78,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
   const [fetchMode, setFetchMode] = useState<FetchMode>('single');
   const [exportMode, setExportMode] = useState<ExportMode>('merged');
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('md');
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('txt');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dlProgress, setDlProgress] = useState<{ current: number; total: number; title?: string } | null>(null);
@@ -147,7 +163,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             const data = resp.data as { source: BilibiliSourceInfo; videos: BilibiliVideoItem[] };
             setSource(data.source);
             setVideos(data.videos);
-            setSelected(new Set(data.videos.map(videoKey)));
+            setSelected(getDefaultSelectedVideoKeys(data.videos, targetUrl));
             setDisplayCount(PAGE_SIZE);
             setFetchMode(refineMode(data.source, data.videos));
             setState('loaded');
@@ -169,7 +185,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             const data = resp.data as { source: BilibiliSourceInfo; videos: BilibiliVideoItem[] };
             setSource(data.source);
             setVideos(data.videos);
-            setSelected(new Set(data.videos.map(videoKey)));
+            setSelected(getDefaultSelectedVideoKeys(data.videos, targetUrl));
             setDisplayCount(PAGE_SIZE);
             setFetchMode(refineMode(data.source, data.videos));
             setState('loaded');
@@ -191,7 +207,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             const data = resp.data as { source: BilibiliSourceInfo; videos: BilibiliVideoItem[] };
             setSource(data.source);
             setVideos(data.videos);
-            setSelected(new Set(data.videos.map(videoKey)));
+            setSelected(getDefaultSelectedVideoKeys(data.videos, targetUrl));
             setDisplayCount(PAGE_SIZE);
             setFetchMode(refineMode(data.source, data.videos));
             setState('loaded');
@@ -318,11 +334,6 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       if (cancelled) return;
       if (msg.phase === 'downloading') {
         setDlProgress({ current: Number(msg.current), total: Number(msg.total), title: String(msg.title || '') });
-      } else if (msg.phase === 'polishing') {
-        const cur = Number(msg.current || 0);
-        const tot = Number(msg.total || 0);
-        const pct = tot > 0 ? Math.round((cur / tot) * 100) : 0;
-        setDlProgress({ current: cur, total: tot, title: `AI 润色 ${pct}% (${cur}/${tot})` });
       } else if (msg.phase === 'done') {
         setDlProgress(null);
         port.disconnect();
@@ -358,42 +369,52 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     const toProcess = getSelectedVideos();
     if (toProcess.length === 0) { setError(t('bilibili.selectAtLeastOne')); setState('error'); return; }
 
-    setState('importing');
     setError('');
     setDoneMsg('');
-    onProgress?.({
+
+    const itemStatuses = toProcess.map<ImportItem>((v) => ({ url: v.part || v.title, status: 'pending' }));
+
+    onProgress({
       total: toProcess.length,
       completed: 0,
-      current: { url: toProcess[0].bvid, status: 'pending' },
-      items: toProcess.map((v) => ({ url: v.bvid, status: 'pending' })),
+      current: { ...itemStatuses[0], status: 'importing' },
+      items: itemStatuses,
     });
 
     try {
-      const resp = await chrome.runtime.sendMessage({
-        type: 'IMPORT_BILIBILI_SUBTITLES',
-        videos: toProcess,
-        ownerName: source?.owner || '',
-        desc: source?.desc || '',
-      });
+      for (let i = 0; i < toProcess.length; i++) {
+        itemStatuses[i] = { ...itemStatuses[i], status: 'importing' };
+        onProgress({
+          total: toProcess.length,
+          completed: i,
+          current: itemStatuses[i],
+          items: itemStatuses,
+        });
 
-      // Response is wrapped as { success: true, data: { imported, skipped } } by background's onMessage handler
-      if (resp?.success && resp?.data) {
-        const { imported = 0, skipped = 0 } = resp.data as { imported: number; skipped: number };
-        onProgress?.(null);
-        setDoneMsg(
-          skipped > 0
-            ? `已导入 ${imported} 个视频字幕到 NotebookLM，${skipped} 个无字幕`
-            : `已导入 ${imported} 个视频字幕到 NotebookLM`
-        );
-        setState('done');
-      } else {
-        onProgress?.(null);
-        setState('error');
-        setError(resp?.error || '导入失败');
+        const resp = await chrome.runtime.sendMessage({
+          type: 'IMPORT_BILIBILI_SUBTITLES',
+          videos: [toProcess[i]],
+          ownerName: source?.owner || '',
+          desc: source?.desc || '',
+        });
+
+        itemStatuses[i] = {
+          ...itemStatuses[i],
+          status: resp?.success && resp?.data && (resp.data as { imported: number }).imported > 0 ? 'success' : 'error',
+        };
+
+        onProgress({
+          total: toProcess.length,
+          completed: i + 1,
+          current: i + 1 < toProcess.length ? { ...itemStatuses[i + 1], status: 'importing' } : undefined,
+          items: itemStatuses,
+        });
       }
+
+      await new Promise((r) => setTimeout(r, 300));
+      onProgress(null);
     } catch (err) {
       onProgress?.(null);
-      setState('error');
       setError(err instanceof Error ? err.message : '导入失败');
     }
   };
@@ -461,19 +482,20 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       {/* Video List — hidden when no subtitles */}
       {subtitleStatus !== 'unavailable' && videos.length > 1 && (
         <div>
-          {/* Top row: selected count + 全选/取消全选 */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">
-              {t('bilibili.selectedParts', { selected: selected.size, total: displayedVideos.length })}
-            </span>
-            <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="text-[#00a1d6] hover:underline">{t('selectAll')}</button>
-              <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
-            </div>
-          </div>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">视频列表</label>
 
           {/* Unified container: list + action bar + resize handle */}
-          <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
+          <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
+              <span className="text-xs text-gray-600">
+                {t('bilibili.selectedParts', { selected: selected.size, total: displayedVideos.length })}
+              </span>
+              <div className="flex gap-2 text-xs">
+                <button onClick={selectAll} className="text-[#00a1d6] hover:underline">{t('selectAll')}</button>
+                <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
+              </div>
+            </div>
+
             <div
               ref={listRef}
               className="overflow-y-auto"
@@ -533,13 +555,9 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             {/* Resize handle — between list and action bar */}
             <div
               onMouseDown={handleResizeStart}
-              className="flex items-center justify-center py-0.5 cursor-ns-resize select-none bg-gray-50/50 hover:bg-gray-100/80 transition-colors duration-150 border-t border-gray-100"
+              className="flex items-center justify-center py-1 cursor-ns-resize select-none bg-gray-100 hover:bg-gray-200 transition-colors duration-150 border-t border-gray-200"
             >
-              <div className="flex items-center gap-1">
-                <div className="w-0.5 h-3 rounded-full bg-gray-300" />
-                <div className="w-0.5 h-3 rounded-full bg-gray-300" />
-                <div className="w-0.5 h-3 rounded-full bg-gray-300" />
-              </div>
+              <div className="w-6 h-0.5 rounded-full bg-red-400" />
             </div>
 
             {/* Bottom action bar — output format + 分开 + 合并 */}

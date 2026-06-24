@@ -15,6 +15,7 @@ import { WebImport } from '@/components/WebImport';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
 import { OnboardingTour } from '@/components/OnboardingTour';
+import { SettingsPanel } from '@/components/SettingsPanel';
 
 export default function App() {
   const { t, locale, setLocale } = useI18n();
@@ -22,12 +23,14 @@ export default function App() {
   const [importFinished, setImportFinished] = useState<{ success: boolean; message: string } | null>(null);
   const importFinishedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState('bilibili');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
   const [initialYouTubeUrl, setInitialYouTubeUrl] = useState('');
   const [initialBilibiliUrl, setInitialBilibiliUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
+  const [forceShowTour, setForceShowTour] = useState(false);
 
   // ── Pre-fetched YouTube result from background (via content script → YT_URL_CHANGED) ──
   const [prefetchedYouTubeResult, setPrefetchedYouTubeResult] = useState<YouTubeResult | null>(null);
@@ -48,11 +51,19 @@ export default function App() {
     const curr = importProgress;
     prevImportProgressRef.current = curr;
 
+    if (curr) {
+      if (importFinishedTimerRef.current) clearTimeout(importFinishedTimerRef.current);
+      setImportFinished(null);
+    }
+
     // Detect transition: non-null → null
     if (prev && !curr && prev.completed > 0) {
-      setImportFinished({ success: true, message: `导入成功 (${prev.completed}/${prev.total})` });
-      const timer = setTimeout(() => setImportFinished(null), 20000);
-      return () => clearTimeout(timer);
+      const failed = prev.items ? prev.items.filter((i) => i.status === 'error').length : 0;
+      const success = Math.max(prev.completed - failed, 0);
+      const msg = `导入完成（成功 ${success} 个，失败 ${failed} 个）`;
+
+      setImportFinished({ success: true, message: msg });
+      importFinishedTimerRef.current = setTimeout(() => setImportFinished(null), 20000);
     }
   }, [importProgress]);
 
@@ -191,6 +202,18 @@ export default function App() {
     return <HistoryPanel onClose={() => setShowHistory(false)} />;
   }
 
+  if (showSettings) {
+    return (
+      <SettingsPanel
+        onClose={() => setShowSettings(false)}
+        onReplayTour={() => {
+          setShowSettings(false);
+          setForceShowTour(true);
+        }}
+      />
+    );
+  }
+
   const handleSharedImport = () => {
     importHandlerRef.current?.();
   };
@@ -219,6 +242,7 @@ export default function App() {
             <History className="w-4 h-4" />
           </button>
           <button
+            onClick={() => setShowSettings(true)}
             className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
             title="设置"
           >
@@ -304,7 +328,7 @@ export default function App() {
         )}
         {activeTab === 'podcast' && (
           <div className="animate-fade-in">
-            <PodcastImport initialUrl={initialPodcastUrl} fetchTrigger={fetchTrigger} />
+            <PodcastImport initialUrl={initialPodcastUrl} fetchTrigger={fetchTrigger} onProgress={setImportProgress} />
           </div>
         )}
         {activeTab === 'web' && (
@@ -338,7 +362,7 @@ export default function App() {
       </div>
 
       {/* First-time onboarding tour */}
-      <OnboardingTour />
+      <OnboardingTour forceShow={forceShowTour} onComplete={() => setForceShowTour(false)} />
     </div>
   );
 }

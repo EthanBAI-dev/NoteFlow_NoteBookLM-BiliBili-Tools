@@ -1,4 +1,4 @@
-# Flow2Note LOGO 设计提案
+# NoteFlow LOGO 设计提案
 
 > 项目: Bilibili 字幕自动导入 NotebookLM 的 Chrome 扩展工具
 > 设计时间: 2026-06-08
@@ -40,9 +40,9 @@
 
 | 布局 | 文件 | 用途 |
 |------|------|------|
-| 横向 | `flow2note-fused-horizontal.svg` | 网站header、工具栏、文档页眉 |
-| 竖向 | `flow2note-fused-vertical.svg` | App图标、侧边栏 |
-| 纯图标 | `flow2note-fused-icon.svg` | Favicon、扩展图标、Chrome 商店图标 |
+| 横向 | `noteflow-fused-horizontal.svg` | 网站header、工具栏、文档页眉 |
+| 竖向 | `noteflow-fused-vertical.svg` | App图标、侧边栏 |
+| 纯图标 | `noteflow-fused-icon.svg` | Favicon、扩展图标、Chrome 商店图标 |
 
 ### 设计特点
 | 维度 | 说明 |

@@ -69,7 +69,7 @@ export function LoginPanel({ onAuthSuccess }: Props) {
       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-notebooklm-blue to-blue-500 flex items-center justify-center shadow-lg mb-4">
         <LogIn className="w-7 h-7 text-white" />
       </div>
-      <h1 className="text-lg font-semibold text-gray-900 mb-1">登录 Flow2Note</h1>
+      <h1 className="text-lg font-semibold text-gray-900 mb-1">登录 NoteFlow</h1>
       <p className="text-xs text-gray-500 mb-8 text-center max-w-[220px]">
         登录后即可使用全部功能，包括导入到 NotebookLM
       </p>

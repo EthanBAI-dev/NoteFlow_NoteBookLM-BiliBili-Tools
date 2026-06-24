@@ -1,13 +1,14 @@
 import { supabase } from './supabase';
 import type { Session, AuthError } from '@supabase/supabase-js';
 
-const SESSION_STORAGE_KEY = 'flow2note_auth_session';
+const SESSION_STORAGE_KEY = 'noteflow_auth_session';
+const LEGACY_SESSION_STORAGE_KEY = 'flow2note_auth_session';
 
 /** Restore a persisted session from chrome.storage.local */
 export async function restoreSession(): Promise<{ session: Session | null; error: AuthError | null }> {
   try {
-    const result = await chrome.storage.local.get(SESSION_STORAGE_KEY);
-    const sessionData = result[SESSION_STORAGE_KEY];
+    const result = await chrome.storage.local.get([SESSION_STORAGE_KEY, LEGACY_SESSION_STORAGE_KEY]);
+    const sessionData = result[SESSION_STORAGE_KEY] || result[LEGACY_SESSION_STORAGE_KEY];
     if (!sessionData) return { session: null, error: null };
 
     // Validate expiry
@@ -16,7 +17,7 @@ export async function restoreSession(): Promise<{ session: Session | null; error
       // Session expired — try to refresh
       const { data, error } = await supabase.auth.refreshSession();
       if (error || !data.session) {
-        await chrome.storage.local.remove(SESSION_STORAGE_KEY);
+        await chrome.storage.local.remove([SESSION_STORAGE_KEY, LEGACY_SESSION_STORAGE_KEY]);
         return { session: null, error };
       }
       await persistSession(data.session);
@@ -30,8 +31,13 @@ export async function restoreSession(): Promise<{ session: Session | null; error
     });
 
     if (error || !data.session) {
-      await chrome.storage.local.remove(SESSION_STORAGE_KEY);
+      await chrome.storage.local.remove([SESSION_STORAGE_KEY, LEGACY_SESSION_STORAGE_KEY]);
       return { session: null, error };
+    }
+
+    if (result[LEGACY_SESSION_STORAGE_KEY] && !result[SESSION_STORAGE_KEY]) {
+      await persistSession(data.session);
+      await chrome.storage.local.remove(LEGACY_SESSION_STORAGE_KEY);
     }
 
     return { session: data.session, error: null };
@@ -55,6 +61,7 @@ async function persistSession(session: Session): Promise<void> {
       },
     },
   });
+  await chrome.storage.local.remove(LEGACY_SESSION_STORAGE_KEY);
 }
 
 /** Sign up with email & password */
@@ -105,7 +112,7 @@ export async function signInWithGoogle(): Promise<{ data: { session: Session | n
 
 /** Sign out */
 export async function signOut() {
-  await chrome.storage.local.remove(SESSION_STORAGE_KEY);
+  await chrome.storage.local.remove([SESSION_STORAGE_KEY, LEGACY_SESSION_STORAGE_KEY]);
   await supabase.auth.signOut();
 }
 
@@ -117,8 +124,8 @@ export async function getCachedUser(): Promise<{
   name: string | undefined;
 } | null> {
   try {
-    const result = await chrome.storage.local.get(SESSION_STORAGE_KEY);
-    return result[SESSION_STORAGE_KEY]?.user || null;
+    const result = await chrome.storage.local.get([SESSION_STORAGE_KEY, LEGACY_SESSION_STORAGE_KEY]);
+    return result[SESSION_STORAGE_KEY]?.user || result[LEGACY_SESSION_STORAGE_KEY]?.user || null;
   } catch {
     return null;
   }

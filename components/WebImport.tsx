@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Globe,
   ExternalLink,
+  Info,
 } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { SourceInfoCard } from './SourceInfoCard';
@@ -24,13 +25,29 @@ interface Props {
   onProgress?: (progress: ImportProgress | null) => void;
 }
 
+function isDedicatedImportUrl(url: string): boolean {
+  return (
+    /notebooklm\.google\.com/.test(url) ||
+    /(?:youtube\.com|youtu\.be)\//.test(url) ||
+    /bilibili\.com\//.test(url) ||
+    /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url) ||
+    /podcasts\.apple\.com\//.test(url) ||
+    /claude\.ai\//.test(url) ||
+    /chatgpt\.com\//.test(url) ||
+    /chat\.openai\.com\//.test(url) ||
+    /gemini\.google\.com\//.test(url)
+  );
+}
+
 export function WebImport({ onImportHandlerChange, onProgress }: Props) {
   const [windows, setWindows] = useState<WindowGroup[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [currentTabInfo, setCurrentTabInfo] = useState<{ url: string; title: string; favicon?: string } | null>(null);
   const [currentTabId, setCurrentTabId] = useState<number | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const lastTabUrlRef = useMemo(() => ({ current: '' }), []);
+  const helpRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadTabs();
@@ -48,8 +65,24 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
     const match = allTabs.find((t) => t.id === currentTabId);
     if (match) {
       setSelectedIds(new Set([match.id]));
+    } else {
+      setSelectedIds((prev) => {
+        const validIds = new Set(allTabs.map((t) => t.id));
+        const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+        return next.size === prev.size ? prev : next;
+      });
     }
   }, [windows, currentTabId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!helpRef.current?.contains(event.target as Node)) {
+        setHelpOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Listen for tab switches/updates
   useEffect(() => {
@@ -98,7 +131,7 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
       const groups: WindowGroup[] = ws.map((w) => ({
         windowId: w.id!,
         tabs: (w.tabs || [])
-          .filter((tab) => tab.url && tab.url.startsWith('http') && !/notebooklm\.google\.com/.test(tab.url!))
+          .filter((tab) => tab.url && tab.url.startsWith('http') && !isDedicatedImportUrl(tab.url!))
           .map((tab) => ({
             id: tab.id!,
             windowId: w.id!,
@@ -128,7 +161,7 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
   const allTabs = useMemo(() => windows.flatMap((w) => w.tabs), [windows]);
 
   const canImport = useMemo(() => {
-    return currentTabInfo?.url.startsWith('http') && !/notebooklm\.google\.com/.test(currentTabInfo.url);
+    return !!currentTabInfo?.url.startsWith('http') && !isDedicatedImportUrl(currentTabInfo.url);
   }, [currentTabInfo]);
 
   const toggleTab = (id: number) => {
@@ -176,15 +209,19 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
       })
     );
 
-    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === 'success').length;
+    const itemStatuses = urls.map((u, index) => {
+      const result = results[index];
+      return {
+        url: u,
+        status: result.status === 'fulfilled' && result.value === 'success' ? 'success' as const : 'error' as const,
+      };
+    });
 
     // Force one final progress update with the correct count
     // (React may batch the rapid finally-block updates, so this guarantees the last state)
-    onProgress?.({ total, completed: total, items: urls.map((u) => ({ url: u, status: 'pending' as const })) });
+    onProgress?.({ total, completed: total, items: itemStatuses });
     await new Promise((r) => setTimeout(r, 300));
     onProgress?.(null);
-
-    return { successCount, total };
   };
 
   // Register import handler for the global button
@@ -217,7 +254,25 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
       {windows.length > 0 ? (
         <div>
           {/* Section label */}
-          <label className="text-[11px] font-medium text-gray-500 tracking-wide">浏览窗口</label>
+          <div className="relative inline-flex items-center gap-1.5" ref={helpRef}>
+            <label className="text-[11px] font-medium text-gray-500 tracking-wide">浏览器窗口</label>
+            <button
+              type="button"
+              onClick={() => setHelpOpen((v) => !v)}
+              className="flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:text-[#00a1d6] hover:bg-sky-50 transition-colors"
+              aria-label="查看列表说明"
+              title="查看列表说明"
+            >
+              <Info className="w-3 h-3" />
+            </button>
+
+            {helpOpen && (
+              <div className="absolute left-0 top-full mt-1.5 z-20 w-64 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-[11px] text-gray-500 leading-5">
+                <p className="font-medium text-gray-700 mb-1">此列表用于导入普通网页内容到 NotebookLM。</p>
+                <p>已自动排除插件有专用导入入口的网站，例如：哔哩哔哩、YouTube、小宇宙、Apple Podcasts、ChatGPT、Claude、Gemini，以及 NotebookLM 页面。</p>
+              </div>
+            )}
+          </div>
 
           {/* Tab list container */}
           <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
@@ -285,6 +340,7 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
           <p className="text-[10px] text-gray-300 mt-1">请打开需要导入的网页后重试</p>
         </div>
       )}
+
     </div>
   );
 }

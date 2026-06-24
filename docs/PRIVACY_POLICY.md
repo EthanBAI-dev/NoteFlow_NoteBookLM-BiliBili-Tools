@@ -70,4 +70,4 @@ https://github.com/crazynomad/noteflow/issues
 
 ---
 
-*Flow2Note is made by Ethan BAI*
+*NoteFlow is made by Ethan BAI*

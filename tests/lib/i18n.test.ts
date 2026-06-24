@@ -52,7 +52,7 @@ describe('i18n', () => {
 
     it('persists to localStorage', () => {
       setLocale('en');
-      expect(localStorage.getItem('flow2note_locale')).toBe('en');
+      expect(localStorage.getItem('noteflow_locale')).toBe('en');
     });
   });
 
