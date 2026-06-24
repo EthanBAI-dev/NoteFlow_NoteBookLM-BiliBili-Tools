@@ -314,7 +314,7 @@ export default function App() {
         )}
         {activeTab === 'claude' && (
           <div className="animate-fade-in">
-            <AIchatImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} />
+            <AIchatImport onProgress={setImportProgress} onImportHandlerChange={registerImportHandler} fetchTrigger={fetchTrigger} />
           </div>
         )}
       </div>

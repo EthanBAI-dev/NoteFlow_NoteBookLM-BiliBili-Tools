@@ -353,12 +353,57 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     abortRef.current.cancel = () => { cancelled = true; };
   };
 
-  // Register download handler for unified App-level "导入 NotebookLM" button
+  // ── Import selected videos' subtitles into NotebookLM ──
+  const handleImport = async () => {
+    const toProcess = getSelectedVideos();
+    if (toProcess.length === 0) { setError(t('bilibili.selectAtLeastOne')); setState('error'); return; }
+
+    setState('importing');
+    setError('');
+    setDoneMsg('');
+    onProgress?.({
+      total: toProcess.length,
+      completed: 0,
+      current: { url: toProcess[0].bvid, status: 'pending' },
+      items: toProcess.map((v) => ({ url: v.bvid, status: 'pending' })),
+    });
+
+    try {
+      const resp = await chrome.runtime.sendMessage({
+        type: 'IMPORT_BILIBILI_SUBTITLES',
+        videos: toProcess,
+        ownerName: source?.owner || '',
+        desc: source?.desc || '',
+      });
+
+      // Response is wrapped as { success: true, data: { imported, skipped } } by background's onMessage handler
+      if (resp?.success && resp?.data) {
+        const { imported = 0, skipped = 0 } = resp.data as { imported: number; skipped: number };
+        onProgress?.(null);
+        setDoneMsg(
+          skipped > 0
+            ? `已导入 ${imported} 个视频字幕到 NotebookLM，${skipped} 个无字幕`
+            : `已导入 ${imported} 个视频字幕到 NotebookLM`
+        );
+        setState('done');
+      } else {
+        onProgress?.(null);
+        setState('error');
+        setError(resp?.error || '导入失败');
+      }
+    } catch (err) {
+      onProgress?.(null);
+      setState('error');
+      setError(err instanceof Error ? err.message : '导入失败');
+    }
+  };
+
+  // Register import handler for unified App-level "导入 NotebookLM" button
   useEffect(() => {
-    onImportHandlerChange?.(selected.size > 0 && subtitleStatus !== 'unavailable' ? () => handleDownload() : null);
+    onImportHandlerChange?.(selected.size > 0 && subtitleStatus !== 'unavailable' ? handleImport : null);
     return () => onImportHandlerChange?.(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onImportHandlerChange, handleDownload, selected.size, subtitleStatus]);
+  }, [onImportHandlerChange, handleImport, selected.size, subtitleStatus]);
 
   const toggleVideo = (key: string) => {
     setSelected(prev => {
@@ -402,6 +447,14 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 border border-amber-100/60 rounded-lg p-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           该视频没有可用字幕，无法导入
+        </div>
+      )}
+
+      {/* Error notice — shown inline when source is already displayed */}
+      {state === 'error' && source && error && (
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3 shadow-soft">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
         </div>
       )}
 
@@ -583,8 +636,8 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         </div>
       )}
 
-      {/* Error — show SourceInfoCard with no-content badge for recognized Bilibili URLs */}
-      {state === 'error' && (
+      {/* Error — only show if no source info is already displayed (avoid duplicate cards) */}
+      {state === 'error' && !source && (
         /bilibili\.com\//.test(url) ? (
           <SourceInfoCard
             platform="bilibili"

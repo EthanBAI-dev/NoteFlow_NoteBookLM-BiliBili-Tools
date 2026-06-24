@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MessageCircle,
   Loader2,
@@ -14,6 +14,7 @@ import { SourceInfoCard } from './SourceInfoCard';
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
   onImportHandlerChange?: (handler: (() => void) | null) => void;
+  fetchTrigger?: number;
 }
 
 type ImportState = 'idle' | 'extracting' | 'ready' | 'importing' | 'success' | 'error';
@@ -53,7 +54,7 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
-export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
+export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }: Props) {
   const [state, setState] = useState<ImportState>('idle');
   const [error, setError] = useState('');
   const [needsRefresh, setNeedsRefresh] = useState(false); // "Receiving end does not exist" flag
@@ -62,16 +63,22 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
   const [platformInfo, setPlatformInfo] = useState<ReturnType<typeof detectPlatform>>(null);
   const [currentTabId, setCurrentTabId] = useState<number | null>(null);
   const [currentTabFavicon, setCurrentTabFavicon] = useState<string | undefined>();
+  const [currentTabTitle, setCurrentTabTitle] = useState<string>('');
+  const [currentTabUrl, setCurrentTabUrl] = useState<string>('');
 
   const [autoExtracted, setAutoExtracted] = useState(false);
   const [autoExtractError, setAutoExtractError] = useState(false);
+  const isRefreshingRef = useRef(false);
 
-  // Compute SourceInfoCard subtitle: show conversation title as second line
+  // Compute SourceInfoCard subtitle: second line shows conversation/dialog name
+  // Before extraction, use the page title (which IS often the conversation name on AI chat sites)
   const sourceSubtitle = conversation?.title
-    ? `对话: ${conversation.title}`
-    : state === 'extracting'
-      ? '正在提取对话...'
-      : undefined;
+    ? conversation.title
+    : currentTabTitle
+      ? currentTabTitle
+      : state === 'extracting'
+        ? '正在提取对话...'
+        : undefined;
 
   // ── Detect platform from current tab on mount & on tab switch ──
   const detectCurrentPlatform = useCallback(() => {
@@ -82,6 +89,8 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
       setPlatformInfo(info);
       setCurrentTabId(info ? (tab.id || null) : null);
       setCurrentTabFavicon(tab.favIconUrl || undefined);
+      setCurrentTabTitle(tab.title || '');
+      setCurrentTabUrl(tab.url);
     });
   }, []);
 
@@ -112,7 +121,33 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
     setAutoExtractError(false);
   }, [platformInfo]);
 
-  const handleExtract = useCallback(async () => {
+  // Reset extraction state when tab URL changes within the same platform
+  // (e.g. navigating from one ChatGPT conversation to another via SPA)
+  const lastExtractedUrlRef = useRef('');
+  useEffect(() => {
+    if (!currentTabUrl || !platformInfo) return;
+    if (lastExtractedUrlRef.current && lastExtractedUrlRef.current !== currentTabUrl) {
+      // URL changed within same platform — reset and re-extract
+      setConversation(null);
+      setSelectedPairIds(new Set());
+      setState('idle');
+      setError('');
+      setAutoExtracted(false);
+      setNeedsRefresh(false);
+      setAutoExtractError(false);
+    }
+    lastExtractedUrlRef.current = currentTabUrl;
+  }, [currentTabUrl, platformInfo]);
+
+  // Re-extract when refresh button next to "当前网站" is clicked
+  useEffect(() => {
+    if (!fetchTrigger || fetchTrigger <= 0) return;
+    if (!currentTabId || !platformInfo) return;
+    handleExtract();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchTrigger]);
+
+  const handleExtract = useCallback(async (maxRetries = 0) => {
     if (!currentTabId || !platformInfo) return;
 
     setState('extracting');
@@ -120,62 +155,97 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
     setNeedsRefresh(false);
     setAutoExtractError(false);
 
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: currentTabId },
-        files: [platformInfo.script],
-      });
-    } catch { /* already injected */ }
+    const tryExtract = async (attempt: number): Promise<void> => {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: currentTabId },
+          files: [platformInfo.script],
+        });
+      } catch { /* already injected */ }
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-    chrome.runtime.sendMessage(
-      { type: 'EXTRACT_CLAUDE_CONVERSATION', tabId: currentTabId },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          setState('error');
-          setNeedsRefresh(true);
-          return;
-        }
-        if (response?.success && response.data) {
-          const conv = response.data as ClaudeConversation;
-          const pairs = conv.pairs || [];
-          // 提取成功但没有对话名称和内容，视为提取失败，引导刷新
-          if (!conv.title && pairs.length === 0) {
+      chrome.runtime.sendMessage(
+        { type: 'EXTRACT_CLAUDE_CONVERSATION', tabId: currentTabId },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            // Retry if still within limit and page just refreshed
+            if (attempt < maxRetries) {
+              setTimeout(() => tryExtract(attempt + 1), 1200);
+              return;
+            }
             setState('error');
-            setNeedsRefresh(true);
-            setAutoExtractError(true);
+            if (!isRefreshingRef.current) setNeedsRefresh(true);
             return;
           }
-          setConversation(conv);
-          setSelectedPairIds(new Set(pairs.map((p) => p.id)));
-          setState('ready');
-        } else {
-          setState('error');
-          const errMsg = response?.error || t('claude.extractFailed');
-          if (/receiving end does not exist/i.test(errMsg)) {
-            setNeedsRefresh(true);
+          if (response?.success && response.data) {
+            const conv = response.data as ClaudeConversation;
+            const pairs = conv.pairs || [];
+            // 提取成功但没有对话名称和内容，视为提取失败，引导刷新
+            if (!conv.title && pairs.length === 0) {
+              setState('error');
+              if (!isRefreshingRef.current) setNeedsRefresh(true);
+              setAutoExtractError(true);
+              return;
+            }
+            setConversation(conv);
+            setSelectedPairIds(new Set(pairs.map((p) => p.id)));
+            setState('ready');
           } else {
-            setError(errMsg);
+            setState('error');
+            const errMsg = response?.error || t('claude.extractFailed');
+            if (/receiving end does not exist/i.test(errMsg)) {
+              if (attempt < maxRetries) {
+                setTimeout(() => tryExtract(attempt + 1), 1200);
+                return;
+              }
+              if (!isRefreshingRef.current) setNeedsRefresh(true);
+            } else {
+              setError(errMsg);
+            }
+            setAutoExtractError(true);
           }
-          setAutoExtractError(true);
         }
-      }
-    );
+      );
+    };
+
+    await tryExtract(0);
   }, [currentTabId, platformInfo]);
 
   const handleRefreshPage = useCallback(() => {
     if (!currentTabId) return;
-    chrome.tabs.reload(currentTabId);
     setNeedsRefresh(false);
     setAutoExtractError(false);
     setError('');
     setState('idle');
-  }, [currentTabId]);
+    setAutoExtracted(false);
+
+    // Block auto-extract effect from firing during page reload
+    isRefreshingRef.current = true;
+
+    // Reload the page
+    chrome.tabs.reload(currentTabId);
+
+    // Wait for the tab to finish loading before extracting
+    const onTabUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (_tabId !== currentTabId) return;
+      if (changeInfo.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(onTabUpdated);
+        // Unblock auto-extract before manual extraction
+        isRefreshingRef.current = false;
+        setAutoExtracted(true);
+        // Small extra wait for content scripts to initialize after page load
+        setTimeout(() => handleExtract(3), 800);
+      }
+    };
+    chrome.tabs.onUpdated.addListener(onTabUpdated);
+  }, [currentTabId, handleExtract]);
 
   // Auto-extract when on a specific conversation page (not homepage)
   useEffect(() => {
     if (!currentTabId || !platformInfo || autoExtracted || state !== 'idle') return;
+    // Don't auto-extract during manual page refresh (handleRefreshPage handles it)
+    if (isRefreshingRef.current) return;
     chrome.tabs.get(currentTabId, (tab) => {
       if (chrome.runtime.lastError || !tab?.url) return;
       const url = tab.url;
@@ -298,7 +368,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
           </button>
         ) : (
           <button
-            onClick={handleExtract}
+            onClick={() => handleExtract()}
             disabled={state === 'extracting'}
             className="w-full py-3 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
           >
@@ -333,14 +403,17 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
         connectionLost={needsRefresh || autoExtractError}
       />
 
-      {/* Q&A pair list */}
-      <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
+      {/* 对话列表 label + Q&A pair list (compact, matching "当前网站" + "浏览窗口" pattern) */}
+      <div className="space-y-1">
+        <label className="text-[11px] font-medium text-gray-500 tracking-wide block">对话列表</label>
+
+        <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
         {/* Top row: count on left, select/deselect on right (Bilibili-style) */}
         <div className="flex items-center justify-between px-3 py-2 bg-gray-50/80 border-b border-border-strong">
-          <span className="text-sm text-gray-600">
+          <span className="text-xs text-gray-600">
             {t('claude.qaPairs', { total: pairs.length, selected: selectedPairIds.size })}
           </span>
-          <div className="flex gap-2 text-xs">
+          <div className="flex gap-2 text-[11px]">
             <button
               onClick={() => setSelectedPairIds(new Set(pairs.map((p) => p.id)))}
               disabled={allSelected}
@@ -387,6 +460,15 @@ export function AIchatImport({ onProgress, onImportHandlerChange }: Props) {
           ))}
         </div>
       </div>
+      </div>
+
+      {/* Always visible extract button — re-fetches conversation from the page */}
+      <button
+        onClick={() => handleExtract()}
+        className="w-full py-2.5 bg-notebooklm-blue hover:bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+      >
+        <MessageCircle className="w-4 h-4" />刷新对话
+      </button>
 
       {/* Status */}
       {state === 'success' && (
