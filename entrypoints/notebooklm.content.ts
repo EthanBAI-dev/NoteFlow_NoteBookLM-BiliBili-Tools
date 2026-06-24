@@ -12,7 +12,7 @@ export default defineContentScript({
     if ((window as unknown as Record<string, boolean>).__NLM_IMPORTER_LOADED__) return;
     (window as unknown as Record<string, boolean>).__NLM_IMPORTER_LOADED__ = true;
 
-    console.log('NotebookLM Jetpack content script loaded');
+    console.log('NoteFlow content script loaded');
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       // Readiness check — returns true if the page has the "Add source" button

@@ -68,7 +68,6 @@ export type MessageType =
   | { type: 'CLEAR_HISTORY' }
   | { type: 'EXTRACT_CLAUDE_CONVERSATION'; tabId: number }
   | { type: 'IMPORT_CLAUDE_CONVERSATION'; conversation: ClaudeConversation; selectedMessageIds: string[] }
-  | { type: 'EXPORT_PDF'; blobUrl: string; title: string }
   | { type: 'FETCH_PODCAST'; url: string; count?: number }
   | { type: 'FETCH_YOUTUBE'; url: string }
   | { type: 'FETCH_YOUTUBE_MORE'; continuation: string }

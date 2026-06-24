@@ -14,7 +14,11 @@ import {
 /** Consistent label style used across the panel */
 const LABEL_CLS = 'text-[11px] font-medium text-gray-500 tracking-wide';
 
-export function GoogleAccountSelector() {
+interface Props {
+  compact?: boolean;
+}
+
+export function GoogleAccountSelector({ compact }: Props) {
   const [slots, setSlots] = useState<GoogleAccountSlot[]>([]);
   const [activeSlot, setActiveSlot] = useState<GoogleAccountSlot | null>(null);
   const [open, setOpen] = useState(false);
@@ -144,7 +148,9 @@ export function GoogleAccountSelector() {
 
   // ── Loading state ──
   if (loading) {
-    return (
+    return compact ? (
+      <div className="h-7 w-32 bg-gray-100 rounded animate-pulse" />
+    ) : (
       <div className="space-y-2">
         <div className="h-3 w-28 bg-gray-100 rounded animate-pulse" />
         <div className="h-9 bg-white rounded-lg border border-gray-200 flex items-center px-3 gap-2">
@@ -156,30 +162,34 @@ export function GoogleAccountSelector() {
   }
 
   return (
-    <div ref={dropdownRef}>
-      {/* "NotebookLM Account" label — consistent with other labels */}
-      <label className={LABEL_CLS}>NotebookLM Account</label>
+    <div ref={dropdownRef} className={compact ? 'relative' : ''}>
+      {/* "NotebookLM Account" label — skip in compact mode */}
+      {!compact && <label className={LABEL_CLS}>NotebookLM Account</label>}
 
       {/* Dropdown trigger */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-3 py-2 mt-1.5 text-left hover:border-gray-300 transition-colors"
+        className={`flex items-center gap-1.5 bg-white rounded-lg border border-gray-200 text-left hover:border-gray-300 transition-colors ${
+          compact
+            ? 'px-1.5 py-1.5 text-xs max-w-[160px]'
+            : 'w-full px-3 py-2 mt-1.5'
+        }`}
       >
         {activeSlot ? (
           <img
             src={activeSlot.photoUrl}
             alt=""
-            className="w-5 h-5 rounded-full flex-shrink-0 bg-gray-100"
+            className={`rounded-full flex-shrink-0 bg-gray-100 ${compact ? 'w-4 h-4' : 'w-5 h-5'}`}
             onError={(e) => handleImgError(e, activeSlot)}
           />
         ) : (
-          <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <User className="w-2.5 h-2.5 text-gray-400" />
+          <div className={`rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 ${compact ? 'w-4 h-4' : 'w-5 h-5'}`}>
+            <User className="w-2 h-2 text-gray-400" />
           </div>
         )}
 
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
+        <div className="flex-1 min-w-0 flex items-center gap-1">
           {activeSlot ? (
             <>
               <span className="text-xs text-gray-700 truncate font-medium">
@@ -192,7 +202,7 @@ export function GoogleAccountSelector() {
               )}
             </>
           ) : (
-            <span className="text-xs text-gray-400">No account detected</span>
+            <span className="text-xs text-gray-400">No account</span>
           )}
         </div>
 
@@ -205,7 +215,9 @@ export function GoogleAccountSelector() {
 
       {/* Dropdown menu */}
       {open && (
-        <div className="absolute z-30 mt-1 left-4 right-4 bg-white rounded-md border border-slate-200 shadow-lg overflow-hidden">
+        <div className={`absolute z-30 mt-1 bg-white rounded-md border border-slate-200 shadow-lg overflow-hidden ${
+          compact ? 'left-0 w-100' : 'left-4 right-4'
+        }`}>
           <div className="max-h-48 overflow-y-auto">
             {slots.length === 0 && (
               <div className="px-3 py-4 text-center">

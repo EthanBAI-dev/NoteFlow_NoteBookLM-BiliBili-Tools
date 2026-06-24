@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**NotebookLM Jetpack** — a Chrome extension (Manifest V3) that imports content from multiple sources into Google NotebookLM. Supports doc sites (14+ frameworks), AI conversations (Claude/ChatGPT/Gemini), podcasts, RSS feeds, bookmarks, and plain URLs. Built with WXT framework.
+**NoteFlow** — a Chrome extension (Manifest V3) that imports content from multiple sources into Google NotebookLM. Supports Bilibili, YouTube, podcasts (Xiaoyuzhou), web pages (browser tab list), AI conversations (Claude/ChatGPT/Gemini), and plain URLs. Built with WXT framework.
 
-GitHub: https://github.com/crazynomad/notebooklm-jetpack
+GitHub: https://github.com/crazynomad/noteflow
 
 ## Development Commands
 

@@ -1,10 +1,10 @@
-# Privacy Policy — NotebookLM Jetpack
+# Privacy Policy — NoteFlow
 
 **Last updated:** February 24, 2025
 
 ## Overview
 
-NotebookLM Jetpack is a free, open-source Chrome extension that helps you import content into Google NotebookLM. We are committed to protecting your privacy.
+NoteFlow is a free, open-source Chrome extension that helps you import content into Google NotebookLM. We are committed to protecting your privacy.
 
 ## Data Collection
 
@@ -53,7 +53,7 @@ You can clear all stored data by removing the extension.
 ## Open Source
 
 This extension is fully open source. You can audit the code at any time:
-https://github.com/crazynomad/notebooklm-jetpack
+https://github.com/crazynomad/noteflow
 
 ## Children's Privacy
 
@@ -66,8 +66,8 @@ We may update this policy from time to time. Changes will be posted to this page
 ## Contact
 
 If you have questions about this privacy policy, please open an issue on GitHub:
-https://github.com/crazynomad/notebooklm-jetpack/issues
+https://github.com/crazynomad/noteflow/issues
 
 ---
 
-*Flow2Note is made by 小白*
+*Flow2Note is made by Ethan BAI*

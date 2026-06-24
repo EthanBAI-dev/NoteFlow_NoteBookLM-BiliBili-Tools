@@ -26,9 +26,7 @@ function isZh(): boolean {
 const i18n = {
   question: () => isZh() ? '提问' : 'Question',
   answer: () => isZh() ? '回答' : 'Answer',
-  madeWith: () => isZh()
-    ? 'Made with ❤️ by YouTuber「小白」'
-    : 'Made with ❤️ by Flow2Note',
+  madeWith: () => isZh() ? 'Made with ❤️ by Ethan BAI' : 'Made with ❤️ by Flow2Note',
   platformLabel: (key: string, fallback: string) => {
     const zh: Record<string, string> = {
       claude: 'Claude · AI 对话',
@@ -235,7 +233,7 @@ export function ShareCardApp() {
           {/* Footer */}
           <div className="card-footer">
             <div className="footer-left">
-              <span className="footer-brand">NotebookLM Jetpack</span>
+              <span className="footer-brand">NoteFlow</span>
               <span className="footer-made-with">{i18n.madeWith()}</span>
             </div>
             <div className="footer-qr">

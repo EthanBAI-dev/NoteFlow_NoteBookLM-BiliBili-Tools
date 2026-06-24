@@ -19,7 +19,7 @@ export interface Settings {
   ai: AISettings;
 }
 
-const STORAGE_KEY = 'jetpackSettings';
+const STORAGE_KEY = 'noteflowSettings';
 
 const DEFAULTS: Settings = {
   autoRenamePastedSources: true,

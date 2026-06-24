@@ -1,21 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  Loader2,
-  CheckCircle,
-  AlertCircle,
   Globe,
-  Upload,
-  FileDown,
   ExternalLink,
 } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
-import { t } from '@/lib/i18n';
 import { SourceInfoCard } from './SourceInfoCard';
-
-interface Props {
-  onProgress: (progress: ImportProgress | null) => void;
-  onImportHandlerChange?: (handler: (() => void) | null) => void;
-}
 
 interface TabItem {
   id: number;
@@ -30,21 +19,78 @@ interface WindowGroup {
   tabs: TabItem[];
 }
 
-export function WebImport({ onProgress, onImportHandlerChange }: Props) {
+interface Props {
+  onImportHandlerChange?: (handler: (() => void) | null) => void;
+  onProgress?: (progress: ImportProgress | null) => void;
+}
+
+export function WebImport({ onImportHandlerChange, onProgress }: Props) {
   const [windows, setWindows] = useState<WindowGroup[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [state, setState] = useState<'idle' | 'importing' | 'exporting' | 'success' | 'error'>('idle');
-  const [error, setError] = useState('');
-  const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
   const [currentTabInfo, setCurrentTabInfo] = useState<{ url: string; title: string; favicon?: string } | null>(null);
+  const [currentTabId, setCurrentTabId] = useState<number | null>(null);
 
-  // Use a ref to avoid stale closure in port.onDisconnect
-  const isExportingRef = useRef(false);
+  const lastTabUrlRef = useMemo(() => ({ current: '' }), []);
 
-  // Load all browser tabs and current tab info
   useEffect(() => {
     loadTabs();
     loadCurrentTab();
+
+    // Retry initial load — side panel may not have tab info immediately
+    const retry = setTimeout(() => loadCurrentTab(), 500);
+    return () => clearTimeout(retry);
+  }, []);
+
+  // Auto-select the current active tab when tabs list or currentTabId changes
+  useEffect(() => {
+    if (currentTabId === null) return;
+    const allTabs = windows.flatMap((w) => w.tabs);
+    const match = allTabs.find((t) => t.id === currentTabId);
+    if (match) {
+      setSelectedIds(new Set([match.id]));
+    }
+  }, [windows, currentTabId]);
+
+  // Listen for tab switches/updates
+  useEffect(() => {
+    const handleActivated = (activeInfo: chrome.tabs.TabActiveInfo) => {
+      chrome.tabs.get(activeInfo.tabId, (tab) => {
+        if (!tab?.url || tab.url === lastTabUrlRef.current) return;
+        lastTabUrlRef.current = tab.url;
+        setCurrentTabId(activeInfo.tabId);
+        setCurrentTabInfo({
+          url: tab.url,
+          title: tab.title || tab.url,
+          favicon: tab.favIconUrl,
+        });
+        loadTabs();
+      });
+    };
+
+    const handleUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (changeInfo.url && changeInfo.url !== lastTabUrlRef.current) {
+        lastTabUrlRef.current = changeInfo.url;
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const tab = tabs[0];
+          if (!tab?.url) return;
+          setCurrentTabId(tab.id!);
+          setCurrentTabInfo({
+            url: tab.url,
+            title: tab.title || tab.url,
+            favicon: tab.favIconUrl,
+          });
+          loadTabs();
+        });
+      }
+    };
+
+    chrome.tabs.onActivated.addListener(handleActivated);
+    chrome.tabs.onUpdated.addListener(handleUpdated);
+
+    return () => {
+      chrome.tabs.onActivated.removeListener(handleActivated);
+      chrome.tabs.onUpdated.removeListener(handleUpdated);
+    };
   }, []);
 
   const loadTabs = () => {
@@ -68,7 +114,8 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
   const loadCurrentTab = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
-      if (tab?.url && tab.url.startsWith('http') && !/notebooklm\.google\.com/.test(tab.url)) {
+      if (tab?.url) {
+        setCurrentTabId(tab.id!);
         setCurrentTabInfo({
           url: tab.url,
           title: tab.title || tab.url,
@@ -79,6 +126,10 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
   };
 
   const allTabs = useMemo(() => windows.flatMap((w) => w.tabs), [windows]);
+
+  const canImport = useMemo(() => {
+    return currentTabInfo?.url.startsWith('http') && !/notebooklm\.google\.com/.test(currentTabInfo.url);
+  }, [currentTabInfo]);
 
   const toggleTab = (id: number) => {
     setSelectedIds((prev) => {
@@ -92,118 +143,95 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
   const selectAll = () => setSelectedIds(new Set(allTabs.map((t) => t.id)));
   const deselectAll = () => setSelectedIds(new Set());
 
-  // ── PDF Export for selected tabs ──
-  const handleExportPdf = () => {
+  // ── Import selected URLs to NotebookLM ──
+  const handleImport = async () => {
     const selected = allTabs.filter((t) => selectedIds.has(t.id));
     if (selected.length === 0) return;
-
-    setState('exporting');
-    setPdfProgress({ current: 0, total: selected.length });
-    setError('');
-    isExportingRef.current = true;
-
-    const port = chrome.runtime.connect({ name: 'pdf-export' });
-
-    port.postMessage({
-      type: 'GENERATE_PDF',
-      siteInfo: {
-        title: t('app.tabBookmarks'),
-        baseUrl: '',
-        framework: 'unknown' as const,
-        pages: selected.map((t) => ({ url: t.url, title: t.title, path: t.url })),
-      },
-    });
-
-    port.onMessage.addListener((msg) => {
-      if (msg.phase === 'fetching') {
-        setPdfProgress({ current: msg.current || 0, total: msg.total || selected.length });
-      } else if (msg.phase === 'rendering') {
-        setPdfProgress({ current: msg.current || 0, total: msg.total || 1 });
-      } else if (msg.phase === 'done') {
-        isExportingRef.current = false;
-        setPdfProgress(null);
-        setState('success');
-        setTimeout(() => setState('idle'), 3000);
-        port.disconnect();
-      } else if (msg.phase === 'error') {
-        isExportingRef.current = false;
-        setPdfProgress(null);
-        setState('error');
-        setError(msg.error || t('pdfFailed'));
-        port.disconnect();
-      }
-    });
-
-    // Fix: use ref instead of stale closure state check
-    port.onDisconnect.addListener(() => {
-      if (isExportingRef.current) {
-        isExportingRef.current = false;
-        setPdfProgress(null);
-        setState('idle');
-      }
-    });
-  };
-
-  // ── Import selected tabs to NotebookLM ──
-  const handleImportSelected = () => {
-    const selected = allTabs.filter((t) => selectedIds.has(t.id));
-    if (selected.length === 0) return;
-
-    setState('importing');
-    setError('');
 
     const urls = selected.map((t) => t.url);
-    onProgress({ total: urls.length, completed: 0, items: urls.map((u) => ({ url: u, status: 'pending' as const })) });
+    const total = urls.length;
+    onProgress?.({ total, completed: 0, current: { url: urls[0], status: 'pending' as const }, items: urls.map((u) => ({ url: u, status: 'pending' as const })) });
 
-    chrome.runtime.sendMessage({ type: 'RESCUE_SOURCES', urls }, (resp) => {
-      onProgress(null);
-      if (resp?.success) {
-        setState('success');
-        setTimeout(() => setState('idle'), 3000);
-      } else {
-        setState('error');
-        setError(resp?.error || t('importFailed'));
-      }
-    });
+    // Shared counter across all async closures — tracks true completed count
+    let completedCount = 0;
+
+    const results = await Promise.allSettled(
+      urls.map(async (url) => {
+        try {
+          const resp = await chrome.runtime.sendMessage({ type: 'IMPORT_URL', url });
+          return resp?.success ? 'success' : 'error';
+        } catch {
+          return 'error';
+        } finally {
+          // Use shared counter, not array index — prevents out-of-order regression
+          completedCount++;
+          const nextUrl = completedCount < total ? urls[completedCount] : undefined;
+          onProgress?.({
+            total,
+            completed: completedCount,
+            current: nextUrl ? { url: nextUrl, status: 'pending' as const } : undefined,
+            items: urls.map((u) => ({ url: u, status: 'pending' as const })),
+          });
+        }
+      })
+    );
+
+    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value === 'success').length;
+
+    // Force one final progress update with the correct count
+    // (React may batch the rapid finally-block updates, so this guarantees the last state)
+    onProgress?.({ total, completed: total, items: urls.map((u) => ({ url: u, status: 'pending' as const })) });
+    await new Promise((r) => setTimeout(r, 300));
+    onProgress?.(null);
+
+    return { successCount, total };
   };
 
-  // Register shared import handler
+  // Register import handler for the global button
   useEffect(() => {
-    onImportHandlerChange?.(selectedIds.size > 0 ? handleImportSelected : null);
+    onImportHandlerChange?.(selectedIds.size > 0 ? handleImport : null);
     return () => onImportHandlerChange?.(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onImportHandlerChange, selectedIds.size, allTabs]);
-
-  const isWorking = state === 'importing' || state === 'exporting';
 
   return (
     <div className="space-y-3">
       {/* SourceInfoCard — show current tab info */}
       {currentTabInfo && (
-        <SourceInfoCard
-          platform="web"
-          title={currentTabInfo.title}
-          favicon={currentTabInfo.favicon}
-          subtitle={currentTabInfo.url}
-        />
+        <div className="relative">
+          <SourceInfoCard
+            platform="web"
+            title={currentTabInfo.title}
+            favicon={currentTabInfo.favicon}
+            subtitle={currentTabInfo.url}
+          />
+          {!canImport && (
+            <span className="absolute top-2 right-2 z-10 text-[9px] text-red-500 bg-red-50 border border-red-200/60 px-1.5 py-0.5 rounded-full font-medium leading-none">
+              不支持导入
+            </span>
+          )}
+        </div>
       )}
 
       {/* ── Browser Tabs List ── */}
       {windows.length > 0 ? (
         <div>
-          {/* Top bar: count + select/deselect (Bilibili style) */}
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">
-              已选 {selectedIds.size} / {allTabs.length} 个标签页
-            </span>
-            <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="text-[#00a1d6] hover:underline">全选</button>
-              <button onClick={deselectAll} className="text-gray-400 hover:underline">取消全选</button>
-            </div>
-          </div>
+          {/* Section label */}
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">浏览窗口</label>
 
-          {/* Tab list container: Bilibili style */}
-          <div className="border border-border-strong rounded-lg shadow-soft overflow-hidden">
+          {/* Tab list container */}
+          <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
+            {/* Top bar: count + select/deselect — inside the border */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
+              <span className="text-xs text-gray-600">
+                已选 {selectedIds.size} / {allTabs.length} 个标签页
+              </span>
+              <div className="flex gap-2 text-xs">
+                <button onClick={selectAll} className="text-[#00a1d6] hover:underline">全选</button>
+                <button onClick={deselectAll} className="text-gray-400 hover:underline">取消全选</button>
+              </div>
+            </div>
+
             <div className="max-h-[240px] overflow-y-auto">
               {windows.map((win) => (
                 <div key={win.windowId}>
@@ -247,29 +275,6 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
                 </div>
               ))}
             </div>
-
-            {/* Bottom action bar: PDF export + Import */}
-            <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50/80 border-t border-gray-100">
-              <button
-                onClick={handleExportPdf}
-                disabled={selectedIds.size === 0 || isWorking}
-                className="flex-1 py-1.5 text-xs rounded-md border border-emerald-500/40 text-emerald-600 bg-white hover:bg-emerald-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-emerald-600 transition-all duration-150 btn-press flex items-center justify-center gap-1"
-              >
-                {state === 'exporting' && pdfProgress ? (
-                  <><Loader2 className="w-3 h-3 animate-spin" />导出中 ({pdfProgress.current}/{pdfProgress.total})</>
-                ) : (
-                  <><FileDown className="w-3 h-3" />导出 PDF ({selectedIds.size})</>
-                )}
-              </button>
-              <button
-                onClick={handleImportSelected}
-                disabled={selectedIds.size === 0 || isWorking}
-                className="flex-1 py-1.5 text-xs rounded-md border border-notebooklm-blue/40 text-notebooklm-blue bg-white hover:bg-notebooklm-blue hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-notebooklm-blue transition-all duration-150 btn-press flex items-center justify-center gap-1"
-              >
-                <Upload className="w-3 h-3" />
-                导入 NotebookLM ({selectedIds.size})
-              </button>
-            </div>
           </div>
         </div>
       ) : (
@@ -278,20 +283,6 @@ export function WebImport({ onProgress, onImportHandlerChange }: Props) {
           <Globe className="w-8 h-8 mb-2 opacity-50" />
           <p className="text-xs">没有可导入的网页</p>
           <p className="text-[10px] text-gray-300 mt-1">请打开需要导入的网页后重试</p>
-        </div>
-      )}
-
-      {/* ── Status Messages ── */}
-      {state === 'success' && (
-        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 border border-green-100/60 rounded-lg p-3">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
-          {t('importSuccess')}
-        </div>
-      )}
-      {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 border border-red-100/60 rounded-lg p-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
         </div>
       )}
     </div>

@@ -54,4 +54,4 @@ This extension does NOT use remote code. All JavaScript is bundled at build time
 - All data processing happens locally in the user's browser
 - No analytics, tracking, or telemetry of any kind
 - No user accounts or authentication required
-- Open source: https://github.com/crazynomad/notebooklm-jetpack
+- Open source: https://github.com/crazynomad/noteflow

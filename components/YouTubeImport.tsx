@@ -136,34 +136,46 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     setState('loaded');
   }, [prefetchedResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const toImport = videos.filter((v) => selected.has(v.id));
     if (toImport.length === 0) { setError(t('youtube.selectAtLeastOne')); setState('error'); return; }
 
     setState('importing');
     const urls = toImport.map((v) => v.url);
 
-    const progress: ImportProgress = {
+    let successCount = 0;
+    let failedCount = 0;
+
+    onProgress({
       total: urls.length,
       completed: 0,
+      current: { url: urls[0], status: 'pending' },
       items: urls.map((u) => ({ url: u, status: 'pending' })),
-    };
-    onProgress(progress);
-
-    chrome.runtime.sendMessage({ type: 'IMPORT_BATCH', urls }, (response) => {
-      onProgress(null);
-
-      if (response?.success && response.data) {
-        const result = response.data as ImportProgress;
-        const success = result.items.filter((i) => i.status === 'success').length;
-        const failed = result.items.filter((i) => i.status === 'error').length;
-        setResults({ success, failed });
-        setState('done');
-      } else {
-        setState('error');
-        setError(response?.error || t('importFailed'));
-      }
     });
+
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        const resp: any = await chrome.runtime.sendMessage({ type: 'IMPORT_URL', url: urls[i] });
+        if (resp?.success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      } catch (err) {
+        failedCount++;
+      }
+
+      onProgress({
+        total: urls.length,
+        completed: successCount + failedCount,
+        current: i + 1 < urls.length ? { url: urls[i + 1], status: 'pending' } : undefined,
+        items: urls.map((u) => ({ url: u, status: 'pending' })),
+      });
+    }
+
+    onProgress(null);
+    setResults({ success: successCount, failed: failedCount });
+    setState('done');
   };
 
   // Register import handler for unified button
@@ -239,35 +251,39 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
       {/* Video List (playlist/channel) */}
       {displayedVideos.length > 1 && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">
-              {t('youtube.selectedVideos', { selected: selected.size, total: displayedVideos.length })}
-            </span>
-            <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="text-red-500 hover:underline">{t('selectAll')}</button>
-              <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">视频列表</label>
+          <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
+            {/* Top bar — inside the border */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
+              <span className="text-xs text-gray-600">
+                {t('youtube.selectedVideos', { selected: selected.size, total: displayedVideos.length })}
+              </span>
+              <div className="flex gap-2 text-xs">
+                <button onClick={selectAll} className="text-red-500 hover:underline">{t('selectAll')}</button>
+                <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
+              </div>
             </div>
-          </div>
-          <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
-            {displayedVideos.map((video) => (
-              <label
-                key={video.id}
-                className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(video.id)}
-                  onChange={() => toggleVideo(video.id)}
-                  className="mt-1 rounded border-gray-300 text-red-500 focus:ring-red-500"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 line-clamp-1">{video.title}</p>
-                  {video.publishedAt && (
-                    <p className="text-xs text-gray-400 mt-0.5">{video.publishedAt}</p>
-                  )}
-                </div>
-              </label>
-            ))}
+            <div className="max-h-48 overflow-y-auto">
+              {displayedVideos.map((video) => (
+                <label
+                  key={video.id}
+                  className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(video.id)}
+                    onChange={() => toggleVideo(video.id)}
+                    className="mt-1 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 line-clamp-1">{video.title}</p>
+                    {video.publishedAt && (
+                      <p className="text-xs text-gray-400 mt-0.5">{video.publishedAt}</p>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
       )}

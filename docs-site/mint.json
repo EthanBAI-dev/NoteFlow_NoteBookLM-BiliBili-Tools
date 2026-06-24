@@ -1,35 +1,35 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "NotebookLM Jetpack",
+  "name": "NoteFlow",
   "logo": {
     "dark": "/logo/icon-128.png",
     "light": "/logo/icon-128.png"
   },
   "favicon": "/logo/icon-128.png",
   "colors": {
-    "primary": "#4285F4",
-    "light": "#EBF3FE",
-    "dark": "#1A73E8",
+    "primary": "#2563EB",
+    "light": "#EFF6FF",
+    "dark": "#1D4ED8",
     "anchors": {
-      "from": "#4285F4",
-      "to": "#1A73E8"
+      "from": "#2563EB",
+      "to": "#1D4ED8"
     }
   },
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/crazynomad/notebooklm-jetpack"
+      "url": "https://github.com/crazynomad/noteflow"
     }
   ],
   "topbarCtaButton": {
     "name": "Install",
-    "url": "https://chromewebstore.google.com/detail/notebooklm-jetpack/jgjgpfgcbdblgejodmooigkhlciejjhg"
+    "url": "https://chromewebstore.google.com/detail/noteflow"
   },
   "anchors": [
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://github.com/crazynomad/notebooklm-jetpack"
+      "url": "https://github.com/crazynomad/noteflow"
     },
     {
       "name": "Changelog",
@@ -126,6 +126,6 @@
     ]
   },
   "footerSocials": {
-    "github": "https://github.com/crazynomad/notebooklm-jetpack"
+    "github": "https://github.com/crazynomad/noteflow"
   }
 }

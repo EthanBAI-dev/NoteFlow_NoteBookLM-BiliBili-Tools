@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { History, RefreshCw, Upload, User, LogOut, CircleUserRound } from 'lucide-react';
+import { History, RefreshCw, Upload } from 'lucide-react';
 import type { ImportProgress, YouTubeResult } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -15,12 +15,12 @@ import { WebImport } from '@/components/WebImport';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
 import { OnboardingTour } from '@/components/OnboardingTour';
-import { LoginPanel } from '@/components/LoginPanel';
-import { signOut, restoreSession } from '@/lib/auth';
 
 export default function App() {
   const { t, locale, setLocale } = useI18n();
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
+  const [importFinished, setImportFinished] = useState<{ success: boolean; message: string } | null>(null);
+  const importFinishedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('bilibili');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
@@ -28,23 +28,6 @@ export default function App() {
   const [initialBilibiliUrl, setInitialBilibiliUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
-  const [currentUser, setCurrentUser] = useState<{ id: string; email?: string; avatar_url?: string; name?: string } | null>(null);
-  const [showLogin, setShowLogin] = useState(false);
-
-  // Restore session on mount
-  useEffect(() => {
-    (async () => {
-      const { session } = await restoreSession();
-      if (session?.user) {
-        setCurrentUser({
-          id: session.user.id,
-          email: session.user.email || undefined,
-          avatar_url: session.user.user_metadata?.avatar_url || undefined,
-          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || undefined,
-        });
-      }
-    })();
-  }, []);
 
   // ── Pre-fetched YouTube result from background (via content script → YT_URL_CHANGED) ──
   const [prefetchedYouTubeResult, setPrefetchedYouTubeResult] = useState<YouTubeResult | null>(null);
@@ -56,6 +39,26 @@ export default function App() {
   const registerImportHandler = useCallback((handler: (() => void) | null) => {
     importHandlerRef.current = handler;
     setHasImportHandler(handler !== null);
+  }, []);
+
+  // ── Auto-show green success banner when import completes ──
+  const prevImportProgressRef = useRef<ImportProgress | null>(null);
+  useEffect(() => {
+    const prev = prevImportProgressRef.current;
+    const curr = importProgress;
+    prevImportProgressRef.current = curr;
+
+    // Detect transition: non-null → null
+    if (prev && !curr && prev.completed > 0) {
+      setImportFinished({ success: true, message: `导入成功 (${prev.completed}/${prev.total})` });
+      const timer = setTimeout(() => setImportFinished(null), 20000);
+      return () => clearTimeout(timer);
+    }
+  }, [importProgress]);
+
+  const dismissFinished = useCallback(() => {
+    if (importFinishedTimerRef.current) clearTimeout(importFinishedTimerRef.current);
+    setImportFinished(null);
   }, []);
 
   // ── Tab/URL detection with debounce ──
@@ -195,53 +198,19 @@ export default function App() {
   return (
     <div className="min-h-[480px] bg-surface">
       {/* Header — frosted glass */}
-      <div className="glass px-3.5 py-1.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-1">
-          {/* Language toggle — moved as the only header-left element */}
-          <button
-            onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-            className="px-1.5 py-1 text-[10px] font-medium text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press"
-            title={locale === 'zh' ? 'Switch to English' : '切换到中文'}
-          >
-            {locale === 'zh' ? 'EN' : '中'}
-          </button>
+      <div className="glass px-4 py-1.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* GoogleAccountSelector — compact, in header */}
+          <GoogleAccountSelector compact />
         </div>
         <div className="flex items-center gap-1">
-          {/* User / Login button */}
-          {currentUser ? (
-            <>
-              {currentUser.avatar_url ? (
-                <img
-                  src={currentUser.avatar_url}
-                  alt=""
-                  className="w-5 h-5 rounded-full border border-gray-200 cursor-pointer"
-                  onClick={() => setShowLogin(true)}
-                />
-              ) : (
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="w-5 h-5 rounded-full bg-notebooklm-blue/10 flex items-center justify-center hover:bg-notebooklm-blue/20 transition-colors"
-                >
-                  <User className="w-3 h-3 text-notebooklm-blue" />
-                </button>
-              )}
-              <button
-                onClick={async () => { await signOut(); setCurrentUser(null); }}
-                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150 btn-press"
-                title="退出登录"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setShowLogin(true)}
-              className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
-              title="登录"
-            >
-              <CircleUserRound className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+            className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
+            title={locale === 'zh' ? 'Switch to English' : '切换到中文'}
+          >
+            <span className="text-[11px] font-medium leading-none">{locale === 'zh' ? '中' : 'EN'}</span>
+          </button>
           <button
             onClick={() => setShowHistory(true)}
             className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
@@ -249,10 +218,16 @@ export default function App() {
           >
             <History className="w-4 h-4" />
           </button>
+          <button
+            className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
+            title="设置"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+          </button>
         </div>
       </div>
 
-      {/* Progress indicator */}
+      {/* Progress indicator — blue bar */}
       {importProgress && (
         <div className="px-4 py-2.5 bg-notebooklm-light/60 border-b border-notebooklm-blue/10">
           <div className="flex items-center justify-between mb-1.5">
@@ -275,6 +250,22 @@ export default function App() {
               <div className="absolute inset-0 progress-shimmer rounded-full" />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Success banner — green, shown after import completes */}
+      {importFinished && (
+        <div className="px-4 py-2.5 bg-emerald-50 border-b border-emerald-200/60 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span className="text-xs text-emerald-700 font-medium">{importFinished.message}</span>
+          </div>
+          <button
+            onClick={dismissFinished}
+            className="p-0.5 text-emerald-400 hover:text-emerald-600 rounded transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
       )}
 
@@ -332,9 +323,6 @@ export default function App() {
          Group 2: NotebookLM Settings — account, notebook list, import
          ════════════════════════════════════════════════════════ */}
       <div className="px-4 pt-4 pb-4 space-y-4">
-        {/* NotebookLM Account selector */}
-        <GoogleAccountSelector />
-
         {/* Notebook selector */}
         <NotebookSelector />
 
@@ -351,24 +339,6 @@ export default function App() {
 
       {/* First-time onboarding tour */}
       <OnboardingTour />
-
-      {/* Login Modal */}
-      {showLogin && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowLogin(false); }}
-        >
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-            <button
-              onClick={() => setShowLogin(false)}
-              className="absolute top-3 right-3 p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 z-10"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <LoginPanel onAuthSuccess={() => setShowLogin(false)} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

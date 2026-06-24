@@ -350,52 +350,6 @@ export default defineBackground(() => {
       return;
     }
 
-    // ── PDF Export (Web Import) ──
-    if (port.name === 'pdf-export') {
-      port.onMessage.addListener(async (msg) => {
-        if (msg.type !== 'GENERATE_PDF') return;
-
-        const pages = msg.siteInfo?.pages || [];
-        const sendProgress = (data: Record<string, unknown>) => {
-          try { port.postMessage(data); } catch { /* disconnected */ }
-        };
-
-        try {
-          const markdownParts: string[] = [];
-          for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
-            sendProgress({ phase: 'fetching', current: i + 1, total: pages.length, title: page.title });
-
-            // Fetch page content
-            const resp = await fetch(page.url);
-            if (!resp.ok) throw new Error(`Failed to fetch ${page.url}: ${resp.status}`);
-            const html = await resp.text();
-
-            // Convert to markdown via offscreen
-            sendProgress({ phase: 'rendering', current: i + 1, total: pages.length });
-            const { markdown } = await convertHtmlToMarkdown(html);
-
-            if (markdown?.trim()) {
-              markdownParts.push(`# ${page.title || page.url}\n\n${markdown}`);
-              if (i < pages.length - 1) markdownParts.push('\n\n---\n\n');
-            }
-          }
-
-          // Generate downloadable markdown file
-          const mergedMd = markdownParts.join('');
-          const filename = `web_export_${Date.now()}.md`;
-          const encoded = btoa(unescape(encodeURIComponent(mergedMd || 'No content')));
-          const dataUrl = `data:text/markdown;base64,${encoded}`;
-          await chrome.downloads.download({ url: dataUrl, filename, saveAs: true });
-
-          sendProgress({ phase: 'done' });
-        } catch (err) {
-          sendProgress({ phase: 'error', error: String(err) });
-        }
-      });
-      return;
-    }
-
 
   });
 
@@ -513,7 +467,10 @@ async function rescueSources(urls: string[], targetTabId?: number): Promise<Resc
       });
 
       if (!resp.ok) {
-        results.push({ url, status: 'error', error: `HTTP ${resp.status}` });
+        // If fetch fails (e.g. 403), fall back to tab-based extraction
+        console.log(`[rescue] Fetch returned ${resp.status}, falling back to tab-based extraction: ${url}`);
+        const fallbackResults = await repairDynamicSources([url], false, targetTabId, RESCUE_PREFIX);
+        results.push(...fallbackResults);
         continue;
       }
 
@@ -618,9 +575,10 @@ async function rescueSourcesWithProgress(
         signal: AbortSignal.timeout(15000),
       });
       if (!resp.ok) {
-        const r: RescueResult = { url, status: 'error', error: `HTTP ${resp.status}` };
-        results.push(r);
-        sendProgress?.({ phase: 'item-done', url, result: r });
+        sendProgress?.({ phase: 'item-start', url });
+        console.log(`[rescue] Fetch returned ${resp.status}, falling back to tab-based: ${url}`);
+        const fallbackResults = await _tabBasedExtractWithProgress([url], false, targetTabId, sendProgress, RESCUE_PREFIX);
+        results.push(...fallbackResults);
         continue;
       }
       const html = await resp.text();
@@ -1263,7 +1221,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       return await repairWechatSources(message.urls, senderTabId);
     }
 
-    case 'EXPORT_PDF':
     case 'DOWNLOAD_PODCAST':
       // Handled via port connection (onConnect), not onMessage
       return { success: true };
