@@ -244,7 +244,7 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
           />
           {!canImport && (
             <span className="absolute top-2 right-2 z-10 text-[9px] text-red-500 bg-red-50 border border-red-200/60 px-1.5 py-0.5 rounded-full font-medium leading-none">
-              不支持导入
+              {t('web.unsupportedImport')}
             </span>
           )}
         </div>
@@ -255,21 +255,21 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
         <div>
           {/* Section label */}
           <div className="relative inline-flex items-center gap-1.5" ref={helpRef}>
-            <label className="text-[11px] font-medium text-gray-500 tracking-wide">浏览器窗口</label>
+            <label className="text-[11px] font-medium text-gray-500 tracking-wide">{t('web.browserWindows')}</label>
             <button
               type="button"
               onClick={() => setHelpOpen((v) => !v)}
               className="flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:text-[#00a1d6] hover:bg-sky-50 transition-colors"
-              aria-label="查看列表说明"
-              title="查看列表说明"
+              aria-label={t('web.listHelpLabel')}
+              title={t('web.listHelpLabel')}
             >
               <Info className="w-3 h-3" />
             </button>
 
             {helpOpen && (
               <div className="absolute left-0 top-full mt-1.5 z-20 w-64 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-[11px] text-gray-500 leading-5">
-                <p className="font-medium text-gray-700 mb-1">此列表用于导入普通网页内容到 NotebookLM。</p>
-                <p>已自动排除插件有专用导入入口的网站，例如：哔哩哔哩、YouTube、小宇宙、Apple Podcasts、ChatGPT、Claude、Gemini，以及 NotebookLM 页面。</p>
+                <p className="font-medium text-gray-700 mb-1">{t('web.listHelpTitle')}</p>
+                <p>{t('web.listHelpDesc')}</p>
               </div>
             )}
           </div>
@@ -279,11 +279,11 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
             {/* Top bar: count + select/deselect — inside the border */}
             <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
               <span className="text-xs text-gray-600">
-                已选 {selectedIds.size} / {allTabs.length} 个标签页
+                {t('web.selectedTabs', { selected: selectedIds.size, total: allTabs.length })}
               </span>
               <div className="flex gap-2 text-xs">
-                <button onClick={selectAll} className="text-[#00a1d6] hover:underline">全选</button>
-                <button onClick={deselectAll} className="text-gray-400 hover:underline">取消全选</button>
+                <button onClick={selectAll} className="text-[#00a1d6] hover:underline">{t('selectAll')}</button>
+                <button onClick={deselectAll} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
               </div>
             </div>
 
@@ -293,7 +293,7 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
                   {/* Window header */}
                   <div className="px-3 py-1.5 bg-gray-50/80 border-b border-gray-100 text-[11px] text-gray-400 font-medium flex items-center gap-1.5 sticky top-0">
                     <Globe className="w-3 h-3" />
-                    {win.tabs.length > 1 ? `窗口 (${win.tabs.length} 个标签页)` : '窗口'}
+                    {win.tabs.length > 1 ? t('web.windowWithTabs', { count: win.tabs.length }) : t('web.window')}
                   </div>
 
                   {win.tabs.map((tab) => (
@@ -336,8 +336,8 @@ export function WebImport({ onImportHandlerChange, onProgress }: Props) {
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-8 text-gray-400">
           <Globe className="w-8 h-8 mb-2 opacity-50" />
-          <p className="text-xs">没有可导入的网页</p>
-          <p className="text-[10px] text-gray-300 mt-1">请打开需要导入的网页后重试</p>
+          <p className="text-xs">{t('web.noImportablePages')}</p>
+          <p className="text-[10px] text-gray-300 mt-1">{t('web.noImportablePagesHint')}</p>
         </div>
       )}
 

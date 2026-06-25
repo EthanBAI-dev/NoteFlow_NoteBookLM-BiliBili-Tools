@@ -93,7 +93,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
     const parsed = parseYouTubeUrl(fetchUrl);
     if (parsed.type === 'unknown') {
       // YouTube URL but not a video/playlist/channel page (e.g. homepage, search, trending)
-      setError(`无法识别页面类型: ${fetchUrl}\n目前支持视频、播放列表和频道链接。`);
+      setError(t('youtube.unsupportedPageType', { url: fetchUrl }));
       setState('error');
       setSource(null);
       setVideos([]);
@@ -291,7 +291,7 @@ export function YouTubeImport({ initialUrl, onProgress, fetchTrigger, onImportHa
       {/* Video List (playlist/channel) */}
       {displayedVideos.length > 1 && (
         <div>
-          <label className="text-[11px] font-medium text-gray-500 tracking-wide">视频列表</label>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">{t('youtube.videoList')}</label>
           <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
             {/* Top bar — inside the border */}
             <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">

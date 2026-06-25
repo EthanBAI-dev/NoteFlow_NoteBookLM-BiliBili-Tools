@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { restoreSession, getCachedUser } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n';
 import { LoginPanel } from './LoginPanel';
 
 type AuthState = 'loading' | 'unauthenticated' | 'authenticated';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function AuthGuard({ children, onAuthChange }: Props) {
+  const { t } = useI18n();
   const [authState, setAuthState] = useState<AuthState>('loading');
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export function AuthGuard({ children, onAuthChange }: Props) {
           <div className="w-10 h-10 rounded-xl bg-notebooklm-blue/10 flex items-center justify-center">
             <Loader2 className="w-5 h-5 text-notebooklm-blue animate-spin" />
           </div>
-          <p className="text-xs text-gray-400">正在验证身份...</p>
+          <p className="text-xs text-gray-400">{t('auth.verifying')}</p>
         </div>
       </div>
     );

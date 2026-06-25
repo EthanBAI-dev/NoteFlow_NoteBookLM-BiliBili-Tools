@@ -302,7 +302,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
     clearOpState();
     setDlProgress(null);
     setState('idle');
-    setError('操作已取消');
+    setError(t('bilibili.cancelled'));
   };
 
   const handleDownload = (modeOverride?: ExportMode) => {
@@ -341,11 +341,11 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
         if (msg.downloaded !== undefined) {
           const { downloaded, skipped } = msg as any;
           setDoneMsg(skipped > 0
-            ? `已下载 ${downloaded} 个字幕文件，${skipped} 个无字幕`
-            : `已下载 ${downloaded} 个字幕文件`
+            ? t('bilibili.downloadedSummaryWithSkipped', { downloaded, skipped })
+            : t('bilibili.downloadedSummary', { downloaded })
           );
         } else {
-          setDoneMsg(`已合并下载 ${toProcess.length} 个视频内容`);
+          setDoneMsg(t('bilibili.mergedDownloadDone', { count: toProcess.length }));
         }
         setState('done');
       } else if (msg.phase === 'error') {
@@ -415,7 +415,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       onProgress(null);
     } catch (err) {
       onProgress?.(null);
-      setError(err instanceof Error ? err.message : '导入失败');
+      setError(err instanceof Error ? err.message : t('importFailed'));
     }
   };
 
@@ -452,12 +452,12 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
           title={source.title}
           favicon="https://www.bilibili.com/favicon.ico"
           subtitle={[
-            source.owner ? `UP主：${source.owner}` : '',
-            `${source.videoCount || videos.length} 个视频`,
+            source.owner ? t('bilibili.creator', { name: source.owner }) : '',
+            t('bilibili.videoCount', { count: source.videoCount || videos.length }),
           ].filter(Boolean).join('|')}
           inlineTags
           tags={subtitleStatus !== 'unavailable' ? [
-            source.type === 'series' ? '合集' : source.isSeries && videos.length > 1 ? '视频选集' : '',
+            source.type === 'series' ? t('bilibili.tagCollection') : source.isSeries && videos.length > 1 ? t('bilibili.tagSeason') : '',
           ].filter(Boolean) : undefined}
           subtitleStatus={subtitleStatus}
         />
@@ -467,7 +467,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       {state === 'loaded' && subtitleStatus === 'unavailable' && (
         <div className="flex items-center gap-2 text-amber-600 text-sm bg-amber-50 border border-amber-100/60 rounded-lg p-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          该视频没有可用字幕，无法导入
+          {t('bilibili.noSubtitleCannotImport')}
         </div>
       )}
 
@@ -482,7 +482,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
       {/* Video List — hidden when no subtitles */}
       {subtitleStatus !== 'unavailable' && videos.length > 1 && (
         <div>
-          <label className="text-[11px] font-medium text-gray-500 tracking-wide">视频列表</label>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">{t('bilibili.videoList')}</label>
 
           {/* Unified container: list + action bar + resize handle */}
           <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
@@ -508,9 +508,9 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
                     { type: 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE', video: video, ownerName: source?.owner || '', desc: source?.desc || '' },
                     (resp) => {
                       if (resp?.success) {
-                        setDoneMsg(`"${video.part || video.title}" 字幕下载完成`);
+                        setDoneMsg(t('bilibili.downloadSubtitleDone', { title: video.part || video.title }));
                       } else {
-                        setError(resp?.error || '字幕下载失败');
+                        setError(resp?.error || t('bilibili.downloadSubtitleFailed'));
                         setState('error');
                       }
                     }
@@ -579,19 +579,19 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
                   onClick={() => handleDownload('separate')}
                   disabled={selected.size === 0 || isWorking}
                   className="px-2.5 py-1 text-[11px] rounded-md text-[#00a1d6] border border-[#00a1d6]/30 bg-white hover:bg-[#00a1d6] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-[#00a1d6] transition-all duration-150 btn-press flex items-center gap-1"
-                  title="分开下载"
+                  title={t('bilibili.downloadSeparateTitle')}
                 >
                   <Download className="w-3 h-3" />
-                  分开
+                  {t('bilibili.downloadSeparate')}
                 </button>
                 <button
                   onClick={() => handleDownload('merged')}
                   disabled={selected.size === 0 || isWorking}
                   className="px-2.5 py-1 text-[11px] rounded-md text-[#00a1d6] border border-[#00a1d6]/30 bg-white hover:bg-[#00a1d6] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-[#00a1d6] transition-all duration-150 btn-press flex items-center gap-1"
-                  title="合并下载"
+                  title={t('bilibili.downloadMergedTitle')}
                 >
                   <Download className="w-3 h-3" />
-                  合并
+                  {t('bilibili.downloadMerged')}
                 </button>
               </div>
             </div>
@@ -602,7 +602,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
               onClick={() => setDisplayCount(c => Math.min(c + PAGE_SIZE, videos.length))}
               className="w-full mt-2 py-1.5 text-xs text-[#00a1d6] hover:text-[#0090c0] hover:bg-sky-50 border border-sky-200/60 rounded-lg flex items-center justify-center gap-1 transition-colors duration-150"
             >
-              <ChevronDown className="w-3 h-3" />加载更多（{videos.length - displayCount} 个）
+              <ChevronDown className="w-3 h-3" />{t('bilibili.loadMoreCount', { count: videos.length - displayCount })}
             </button>
           )}
         </div>
@@ -616,7 +616,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             <Download className="w-6 h-6 text-[#00a1d6]" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800">正在导出字幕…</p>
+            <p className="text-sm font-medium text-gray-800">{t('bilibili.exporting')}</p>
               {dlProgress && (
                 <p className="text-xs text-gray-400 mt-1">
                   {dlProgress.title || `${dlProgress.current}/${dlProgress.total}`}
@@ -633,14 +633,14 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             )}
             <div className="flex items-center justify-center gap-1 text-[#00a1d6]">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span className="text-xs text-gray-400">处理中…</span>
+              <span className="text-xs text-gray-400">{t('bilibili.processing')}</span>
             </div>
             <button
               onClick={handleCancel}
               className="w-full py-2 text-xs font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg border border-gray-200 transition-colors duration-150 flex items-center justify-center gap-1"
             >
               <X className="w-3 h-3" />
-              取消操作
+              {t('bilibili.cancelOperation')}
             </button>
           </div>
         </div>

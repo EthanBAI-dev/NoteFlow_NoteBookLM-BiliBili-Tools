@@ -1,5 +1,6 @@
 // Content script for extracting ChatGPT conversations
 import type { ClaudeConversation, ClaudeMessage, QAPair } from '@/lib/types';
+import { runtimeT } from '@/lib/i18n';
 
 export default defineContentScript({
   matches: ['https://chatgpt.com/*', 'https://chat.openai.com/*'],
@@ -12,11 +13,11 @@ export default defineContentScript({
       if (message.type === 'EXTRACT_CONVERSATION') {
         extractConversation()
           .then((data) => sendResponse({ success: true, data }))
-          .catch((error) => {
+          .catch(async (error) => {
             console.error('ChatGPT extraction error:', error);
             sendResponse({
               success: false,
-              error: error instanceof Error ? error.message : '提取失败',
+              error: error instanceof Error ? error.message : await runtimeT('claude.extractFailedShort'),
             });
           });
         return true;
@@ -26,11 +27,11 @@ export default defineContentScript({
 });
 
 async function extractConversation(): Promise<ClaudeConversation> {
-  const title = extractTitle();
+  const title = await extractTitle();
   const messages = extractMessages();
 
   if (messages.length === 0) {
-    throw new Error('未找到对话消息，请确保在 ChatGPT 对话页面');
+    throw new Error(await runtimeT('claude.noConversationMessages', { platform: 'ChatGPT' }));
   }
 
   const pairs = groupIntoPairs(messages);
@@ -65,7 +66,7 @@ function extractConversationId(): string {
   return match ? match[1] : `chatgpt-${Date.now()}`;
 }
 
-function extractTitle(): string {
+async function extractTitle(): Promise<string> {
   // ChatGPT page title format: "Title" or "ChatGPT"
   const pageTitle = document.title;
   if (pageTitle && pageTitle !== 'ChatGPT' && pageTitle !== 'New chat') {
@@ -79,7 +80,7 @@ function extractTitle(): string {
     return text.length > 60 ? text.slice(0, 60) + '...' : text;
   }
 
-  return 'ChatGPT 对话';
+  return runtimeT('claude.defaultConversationTitle', { platform: 'ChatGPT' });
 }
 
 function extractMessages(): ClaudeMessage[] {

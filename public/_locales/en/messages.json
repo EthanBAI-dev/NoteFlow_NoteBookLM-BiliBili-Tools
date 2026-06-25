@@ -4,7 +4,7 @@
     "description": "The name of the extension."
   },
   "extensionDescription": {
-    "message": "Extract subtitles & content from various sources and import to NotebookLM 🚀 Supports Bilibili, YouTube, podcasts, doc sites & AI chats.",
+    "message": "Batch import content from multiple sources into NotebookLM in one click. Supports Bilibili, YouTube, podcasts, AI chats, and any website URL.",
     "description": "The description of the extension shown in Chrome Web Store and chrome://extensions."
   },
   "actionTitle": {

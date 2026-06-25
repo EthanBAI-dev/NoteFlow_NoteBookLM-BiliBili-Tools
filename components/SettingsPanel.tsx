@@ -119,7 +119,7 @@ export function SettingsPanel({ onClose, onReplayTour }: Props) {
             </div>
             <div className="rounded-xl border border-border-strong bg-white p-4 shadow-soft">
               <p className="text-xs leading-5 text-gray-500">
-                已移除 AI 润色功能，当前设置页仅保留扩展通用设置。
+                {t('more.aiPolishRemoved')}
               </p>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import { QRCodeSVG } from 'qrcode.react';
 import { marked } from 'marked';
 import type { QAPair } from '@/lib/types';
+import { t } from '@/lib/i18n';
 
 marked.setOptions({ gfm: true, breaks: false });
 
@@ -16,32 +17,6 @@ interface ShareCardData {
   platformIcon: string;
   url: string;
 }
-
-/** Detect Chinese locale */
-function isZh(): boolean {
-  return navigator.language.startsWith('zh');
-}
-
-/** Bilingual strings */
-const i18n = {
-  question: () => isZh() ? '提问' : 'Question',
-  answer: () => isZh() ? '回答' : 'Answer',
-  madeWith: () => isZh() ? 'Made with ❤️ by Ethan BAI' : 'Made with ❤️ by NoteFlow',
-  platformLabel: (key: string, fallback: string) => {
-    const zh: Record<string, string> = {
-      claude: 'Claude · AI 对话',
-      chatgpt: 'ChatGPT · AI 对话',
-      gemini: 'Gemini · AI 对话',
-    };
-    const en: Record<string, string> = {
-      claude: 'Claude · AI Conversation',
-      chatgpt: 'ChatGPT · AI Conversation',
-      gemini: 'Gemini · AI Conversation',
-    };
-    const dict = isZh() ? zh : en;
-    return dict[key] || `${fallback} · AI`;
-  },
-};
 
 type ExportFormat = 'jpeg' | 'png' | 'pdf' | 'clipboard';
 
@@ -141,13 +116,18 @@ export function ShareCardApp() {
   if (!data) {
     return (
       <div className="loading">
-        <p>Loading...</p>
+        <p>{t('share.loading')}</p>
       </div>
     );
   }
 
   const platformKey = data.platform?.toLowerCase() || '';
-  const platformLabel = i18n.platformLabel(platformKey, data.platform);
+  const platformLabelMap: Record<string, string> = {
+    claude: t('claude.platformConversation', { platform: 'Claude' }),
+    chatgpt: t('claude.platformConversation', { platform: 'ChatGPT' }),
+    gemini: t('claude.platformConversation', { platform: 'Gemini' }),
+  };
+  const platformLabel = platformLabelMap[platformKey] || `${data.platform} · AI`;
 
   return (
     <div className="page">
@@ -159,13 +139,13 @@ export function ShareCardApp() {
             disabled={saving}
             className="save-btn"
           >
-            {saving ? 'Saving\u2026' : 'Save JPEG'}
+            {saving ? t('share.saving') : t('share.saveJpeg')}
           </button>
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             disabled={saving}
             className="save-btn save-dropdown-toggle"
-            aria-label="More formats"
+            aria-label={t('share.moreFormats')}
           >
             ▾
           </button>
@@ -173,7 +153,7 @@ export function ShareCardApp() {
             <div className="save-dropdown">
               <button onClick={() => handleSave('png')}>PNG</button>
               <button onClick={() => handleSave('pdf')}>PDF</button>
-              <button onClick={() => handleSave('clipboard')}>Clipboard</button>
+              <button onClick={() => handleSave('clipboard')}>{t('share.clipboard')}</button>
             </div>
           )}
         </div>
@@ -184,9 +164,9 @@ export function ShareCardApp() {
             onChange={(e) => setShowIsland(e.target.checked)}
             style={{ accentColor: '#c4553a' }}
           />
-          <span className="hint">Dynamic Island</span>
+          <span className="hint">{t('share.dynamicIsland')}</span>
         </label>
-        <span className="hint" style={{ marginLeft: 'auto' }}>3x retina</span>
+        <span className="hint" style={{ marginLeft: 'auto' }}>{t('share.retina')}</span>
       </div>
 
       {/* Card preview */}
@@ -212,13 +192,13 @@ export function ShareCardApp() {
                 <div className="pair">
                   {pair.question && (
                     <div className="question-block">
-                      <div className="role-label">{i18n.question()}</div>
+                      <div className="role-label">{t('share.question')}</div>
                       <div className="question-text">{renderMarkdown(pair.question)}</div>
                     </div>
                   )}
                   {pair.answer && (
                     <div className="answer-block">
-                      <div className="answer-label">{i18n.answer()}</div>
+                      <div className="answer-label">{t('share.answer')}</div>
                       <div className="answer-text">{renderMarkdown(pair.answer)}</div>
                     </div>
                   )}
@@ -234,7 +214,7 @@ export function ShareCardApp() {
           <div className="card-footer">
             <div className="footer-left">
               <span className="footer-brand">NoteFlow</span>
-              <span className="footer-made-with">{i18n.madeWith()}</span>
+              <span className="footer-made-with">{t('share.madeWith')}</span>
             </div>
             <div className="footer-qr">
               <QRCodeSVG

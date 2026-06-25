@@ -206,7 +206,7 @@ export function PodcastImport({ initialUrl, fetchTrigger, onProgress }: Props) {
       {/* Episode List */}
       {episodes.length > 0 && (
         <div>
-          <label className="text-[11px] font-medium text-gray-500 tracking-wide">播客列表</label>
+          <label className="text-[11px] font-medium text-gray-500 tracking-wide">{t('podcast.episodeList')}</label>
           <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
             <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 border-b border-gray-100">
               <span className="text-xs text-gray-600">

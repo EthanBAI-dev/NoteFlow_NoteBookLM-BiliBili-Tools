@@ -77,7 +77,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }
     : currentTabTitle
       ? currentTabTitle
       : state === 'extracting'
-        ? '正在提取对话...'
+        ? t('claude.extracting')
         : undefined;
 
   // ── Detect platform from current tab on mount & on tab switch ──
@@ -377,7 +377,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }
             className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
           >
             <RefreshCw className="w-4 h-4" />
-            刷新 {platformInfo?.name} 页面
+            {t('claude.refreshPage', { platform: platformInfo?.name || '' })}
           </button>
         ) : (
           <button
@@ -418,7 +418,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }
 
       {/* 对话列表 */}
       <div>
-        <label className="text-[11px] font-medium text-gray-500 tracking-wide block">对话列表</label>
+        <label className="text-[11px] font-medium text-gray-500 tracking-wide block">{t('claude.conversationList')}</label>
 
         <div className="mt-1.5 border border-border-strong rounded-lg shadow-soft overflow-hidden">
         {/* Top row: count on left, select/deselect on right */}
@@ -480,7 +480,7 @@ export function AIchatImport({ onProgress, onImportHandlerChange, fetchTrigger }
         onClick={() => handleExtract()}
         className="w-full py-2.5 bg-notebooklm-blue hover:bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
       >
-        <MessageCircle className="w-4 h-4" />刷新对话
+        <MessageCircle className="w-4 h-4" />{t('claude.refreshConversation')}
       </button>
 
       {/* Status */}

@@ -1,6 +1,7 @@
 // Content script for extracting Claude conversations
 // Updated: 2026-02-22 — adapted to current Claude UI
 import type { ClaudeConversation, ClaudeMessage, QAPair } from '@/lib/types';
+import { runtimeT } from '@/lib/i18n';
 
 export default defineContentScript({
   matches: ['https://claude.ai/*'],
@@ -13,11 +14,11 @@ export default defineContentScript({
       if (message.type === 'EXTRACT_CONVERSATION') {
         extractConversation()
           .then((data) => sendResponse({ success: true, data }))
-          .catch((error) => {
+          .catch(async (error) => {
             console.error('Extraction error:', error);
             sendResponse({
               success: false,
-              error: error instanceof Error ? error.message : '提取失败',
+              error: error instanceof Error ? error.message : await runtimeT('claude.extractFailedShort'),
             });
           });
         return true;
@@ -27,11 +28,11 @@ export default defineContentScript({
 });
 
 async function extractConversation(): Promise<ClaudeConversation> {
-  const title = extractTitle();
+  const title = await extractTitle();
   const messages = extractMessages();
 
   if (messages.length === 0) {
-    throw new Error('未找到对话消息，请确保在 Claude 对话页面');
+    throw new Error(await runtimeT('claude.noConversationMessages', { platform: 'Claude' }));
   }
 
   // Group messages into Q&A pairs
@@ -77,7 +78,7 @@ function extractConversationId(): string {
   return match ? match[1] : `claude-${Date.now()}`;
 }
 
-function extractTitle(): string {
+async function extractTitle(): Promise<string> {
   // Claude page title format: "Title - Claude"
   const pageTitle = document.title;
   if (pageTitle && pageTitle.includes(' - Claude')) {
@@ -86,7 +87,7 @@ function extractTitle(): string {
   if (pageTitle && !pageTitle.includes('Claude')) {
     return pageTitle;
   }
-  return 'Claude 对话';
+  return runtimeT('claude.defaultConversationTitle', { platform: 'Claude' });
 }
 
 function extractMessages(): ClaudeMessage[] {

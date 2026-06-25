@@ -32,6 +32,7 @@ import {
   formatConversationForImport,
 } from '@/services/claude-conversation';
 import type { MessageType, MessageResponse, ClaudeConversation } from '@/lib/types';
+import { runtimeT, type TranslationKey } from '@/lib/i18n';
 
 // Dev reload: allow external messages to trigger extension reload
 try {
@@ -48,6 +49,34 @@ try {
 // Context menu IDs
 const MENU_ID_PAGE = 'import-page';
 const MENU_ID_LINK = 'import-link';
+
+async function localizeRuntimeError(error?: string): Promise<string> {
+  if (!error) return runtimeT('runtime.cannotExtractContent');
+  if (error in { 'runtime.xContentNotFound': true, 'runtime.huaweiExtractFailed': true, 'runtime.wechatVerificationRequired': true }) {
+    return runtimeT(error as TranslationKey);
+  }
+  return error;
+}
+
+async function refreshContextMenus(): Promise<void> {
+  try {
+    await chrome.contextMenus.removeAll();
+  } catch {
+    // Ignore missing menu errors.
+  }
+
+  chrome.contextMenus.create({
+    id: MENU_ID_PAGE,
+    title: await runtimeT('menu.importPage'),
+    contexts: ['page'],
+  });
+
+  chrome.contextMenus.create({
+    id: MENU_ID_LINK,
+    title: await runtimeT('menu.importLink'),
+    contexts: ['link'],
+  });
+}
 
 // ── YouTube URL tracking: per-tab seq + debounce ──
 const ytUrlStates = new Map<number, {
@@ -66,6 +95,14 @@ async function broadcastToSidepanel(msg: Record<string, unknown>): Promise<void>
 
 export default defineBackground(() => {
   console.log('NoteFlow background service started');
+
+  void refreshContextMenus();
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return;
+    if (!changes.noteflow_locale && !changes.flow2note_locale) return;
+    void refreshContextMenus();
+  });
 
   // ── Google Account List Auto-Detection ──
   // Uses the shared fetchAndCacheAccounts from services/account-slots.ts
@@ -115,20 +152,7 @@ export default defineBackground(() => {
     if (details.reason === 'install') {
       chrome.tabs.create({ url: chrome.runtime.getURL('/welcome.html') });
     }
-
-    // Menu item for importing current page
-    chrome.contextMenus.create({
-      id: MENU_ID_PAGE,
-      title: '导入此页面到 NotebookLM',
-      contexts: ['page'],
-    });
-
-    // Menu item for importing a link
-    chrome.contextMenus.create({
-      id: MENU_ID_LINK,
-      title: '导入此链接到 NotebookLM',
-      contexts: ['link'],
-    });
+    void refreshContextMenus();
   });
 
   // Handle context menu clicks
@@ -281,7 +305,8 @@ export default defineBackground(() => {
             }
             let mergedMd = mergeBilibiliSubtitles(results, source);
             const fmt = convertSubtitleOutput(outputFormat || 'md', mergedMd);
-            const mergedFilename = `${sanitizeBilibiliFilename(source.title)}_合并内容${fmt.ext}`;
+            const mergedLabel = await runtimeT('runtime.bilibiliMergedContent');
+            const mergedFilename = `${sanitizeBilibiliFilename(source.title)}_${sanitizeBilibiliFilename(mergedLabel)}${fmt.ext}`;
             const encoded = btoa(unescape(encodeURIComponent(fmt.content)));
             const dataUrl = `data:${fmt.mime};base64,${encoded}`;
             await chrome.downloads.download({ url: dataUrl, filename: mergedFilename, saveAs: false });
@@ -313,7 +338,8 @@ export default defineBackground(() => {
               reader.onerror = reject;
               reader.readAsDataURL(zipBlob);
             });
-            const zipName = `${sanitizeBilibiliFilename(source?.title || '字幕')}.zip`;
+            const zipRoot = source?.title || await runtimeT('runtime.subtitleArchive');
+            const zipName = `${sanitizeBilibiliFilename(zipRoot)}.zip`;
             await chrome.downloads.download({ url: dataUrl, filename: zipName, saveAs: true });
             sendProgress({ phase: 'done', downloaded: videos.length - skipped, skipped });
             clearOpState();
@@ -367,10 +393,10 @@ interface RescueResult {
  * Detect if fetched content is a blocked/anti-scraping page rather than real article content.
  * Returns error message if blocked, null if content looks legit.
  */
-function detectBlockedContent(markdown: string, html: string, url: string): string | null {
+async function detectBlockedContent(markdown: string, html: string, url: string): Promise<string | null> {
   // Too short — no real content
   if (markdown.length < 50) {
-    return '内容太少，可能是付费/登录墙';
+    return runtimeT('runtime.contentTooShort');
   }
 
   // WeChat-specific: blocked page has no rich_media_content and empty title
@@ -378,7 +404,7 @@ function detectBlockedContent(markdown: string, html: string, url: string): stri
     const hasContent = /rich_media_content|js_content/.test(html);
     const hasTitle = /<title>[^<]{2,}<\/title>/.test(html);
     if (!hasContent && !hasTitle) {
-      return '微信公众号反爬拦截，需在微信内打开';
+      return runtimeT('runtime.wechatBlocked');
     }
   }
 
@@ -399,7 +425,7 @@ function detectBlockedContent(markdown: string, html: string, url: string): stri
 
   for (const pattern of blockedPatterns) {
     if (pattern.test(markdown)) {
-      return '页面被反爬机制拦截';
+      return runtimeT('runtime.antiScrapingBlocked');
     }
   }
 
@@ -407,7 +433,7 @@ function detectBlockedContent(markdown: string, html: string, url: string): stri
   const wordCount = markdown.split(/\s+/).filter((w) => w.length > 1).length;
   const htmlSize = html.length;
   if (htmlSize > 10000 && wordCount < 30) {
-    return '页面内容为空壳，可能需要登录';
+    return runtimeT('runtime.emptyShell');
   }
 
   return null;
@@ -472,7 +498,7 @@ async function rescueSources(urls: string[], targetTabId?: number): Promise<Resc
       }
 
       // Content quality check — detect anti-scraping / blocked pages
-      const contentIssue = detectBlockedContent(markdown, html, url);
+      const contentIssue = await detectBlockedContent(markdown, html, url);
       if (contentIssue) {
         results.push({ url, status: 'error', error: contentIssue });
         continue;
@@ -487,7 +513,7 @@ async function rescueSources(urls: string[], targetTabId?: number): Promise<Resc
         url,
         status: success ? 'success' : 'error',
         title,
-        error: success ? undefined : '导入 NotebookLM 失败',
+        error: success ? undefined : await runtimeT('runtime.importNotebooklmFailed'),
       });
 
       // Delay between imports (wait for dialog to fully close)
@@ -568,7 +594,7 @@ async function rescueSourcesWithProgress(
         title = titleMatch?.[1]?.trim()?.replace(/\s+/g, ' ') || new URL(url).hostname;
         markdown = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       }
-      const contentIssue = detectBlockedContent(markdown, html, url);
+      const contentIssue = await detectBlockedContent(markdown, html, url);
       if (contentIssue) {
         const r: RescueResult = { url, status: 'error', error: contentIssue };
         results.push(r);
@@ -577,7 +603,7 @@ async function rescueSourcesWithProgress(
       }
       const content = `# ${title}\n\nSource: ${url}\n\n${markdown}`;
       const success = await importText(content, title, targetTabId, RESCUE_PREFIX);
-      const r: RescueResult = { url, status: success ? 'success' : 'error', title, error: success ? undefined : '导入 NotebookLM 失败' };
+      const r: RescueResult = { url, status: success ? 'success' : 'error', title, error: success ? undefined : await runtimeT('runtime.importNotebooklmFailed') };
       results.push(r);
       sendProgress?.({ phase: 'item-done', url, result: r });
       if (urls.indexOf(url) < urls.length - 1) await new Promise(res => setTimeout(res, 3000));
@@ -640,13 +666,13 @@ async function _tabBasedExtractWithProgress(
 
       const extracted = extractResult?.[0]?.result as { success: boolean; title?: string; content?: string; error?: string } | undefined;
       if (!extracted?.success || !extracted.content) {
-        const r: RescueResult = { url, status: 'error', error: extracted?.error || '无法提取内容' };
+        const r: RescueResult = { url, status: 'error', error: await localizeRuntimeError(extracted?.error) };
         results.push(r);
         sendProgress?.({ phase: 'item-done', url, result: r });
         continue;
       }
       if (extracted.content.length < 100) {
-        const r: RescueResult = { url, status: 'error', error: '提取到的内容太少，可能被拦截' };
+        const r: RescueResult = { url, status: 'error', error: await runtimeT('runtime.contentTooShortBlocked') };
         results.push(r);
         sendProgress?.({ phase: 'item-done', url, result: r });
         continue;
@@ -662,7 +688,7 @@ async function _tabBasedExtractWithProgress(
         sendProgress?.({ phase: 'item-done', url, result: r });
       } else {
         const success = await importText(content, title, targetTabId, renamePrefix);
-        const r: RescueResult = { url, status: success ? 'success' : 'error', title, content: rawContent, error: success ? undefined : '导入 NotebookLM 失败' };
+        const r: RescueResult = { url, status: success ? 'success' : 'error', title, content: rawContent, error: success ? undefined : await runtimeT('runtime.importNotebooklmFailed') };
         results.push(r);
         sendProgress?.({ phase: 'item-done', url, result: r });
       }
@@ -702,7 +728,7 @@ function _tabExtractorFunction(): { success: boolean; title?: string; content?: 
       const content = parts.join('\n\n');
       if (content.length >= 50) return { success: true, title, content };
     }
-    return { success: false, error: 'X.com: 未找到文章或推文内容' };
+    return { success: false, error: 'runtime.xContentNotFound' };
   }
 
   // ── Huawei Developer Docs extractor ──
@@ -716,7 +742,7 @@ function _tabExtractorFunction(): { success: boolean; title?: string; content?: 
     if (docContent && (docContent as HTMLElement).innerText?.trim().length > 50) {
       return { success: true, title: docTitle, content: (docContent as HTMLElement).innerText.trim() };
     }
-    return { success: false, error: '华为文档内容提取失败' };
+    return { success: false, error: 'runtime.huaweiExtractFailed' };
   }
 
   // ── WeChat / Generic extractor ──
@@ -727,7 +753,7 @@ function _tabExtractorFunction(): { success: boolean; title?: string; content?: 
   const titleEl = document.querySelector('.rich_media_title, #activity-name, h1');
   const title = titleEl?.textContent?.trim() || document.title || '';
   if (!contentEl || contentEl.textContent?.trim().length === 0) {
-    return { success: false, error: '页面内容为空，可能需要在微信中验证' };
+    return { success: false, error: 'runtime.wechatVerificationRequired' };
   }
   const content = (contentEl as HTMLElement).innerText || contentEl.textContent || '';
   return { success: true, title, content: content.trim() };
@@ -800,7 +826,7 @@ async function _tabBasedExtract(
         results.push({
           url,
           status: 'error',
-          error: extracted?.error || '无法提取内容',
+          error: await localizeRuntimeError(extracted?.error),
         });
         continue;
       }
@@ -810,7 +836,7 @@ async function _tabBasedExtract(
         results.push({
           url,
           status: 'error',
-          error: '提取到的内容太少，可能被拦截',
+          error: await runtimeT('runtime.contentTooShortBlocked'),
         });
         continue;
       }
@@ -830,7 +856,7 @@ async function _tabBasedExtract(
           status: success ? 'success' : 'error',
           title,
           content: rawContent,
-          error: success ? undefined : '导入 NotebookLM 失败',
+          error: success ? undefined : await runtimeT('runtime.importNotebooklmFailed'),
         });
       }
 
@@ -929,7 +955,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   if (type === 'FETCH_BILIBILI') {
     const { url } = message as { url: string };
     const parsed = parseBilibiliUrl(url);
-    if (!parsed) throw new Error('无法解析的哔哩哔哩链接');
+    if (!parsed) throw new Error(await runtimeT('runtime.bilibiliUrlParseFailed'));
     return await fetchBilibiliVideo(parsed.bvid);
   }
   if (type === 'FETCH_BILIBILI_SPACE') {
@@ -967,7 +993,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     const { video, ownerName, desc: videoDesc } = message as any;
     const result = await fetchVideoSubtitle(video, ownerName || '', videoDesc || '');
     if (!result.markdown) {
-      return { success: false, error: '该视频没有字幕' };
+      return { success: false, error: await runtimeT('runtime.bilibiliNoSubtitle') };
     }
     const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
     const filename = `${sanitizeBilibiliFilename(displayTitle)}.txt`;
@@ -1004,7 +1030,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   if (type === 'IMPORT_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
     let imported = 0; let skipped = 0;
-    setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: '准备导入…', timestamp: Date.now() });
+    setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: await runtimeT('runtime.bilibiliPreparingImport'), timestamp: Date.now() });
     for (const video of videos) {
       setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: video.part || video.title, timestamp: Date.now() });
       const result = await fetchVideoSubtitle(video, ownerName, desc);
@@ -1017,7 +1043,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     }
     clearOpState();
     if (imported === 0 && skipped > 0) {
-      throw new Error('导入失败：无法导入到 NotebookLM。请确保已在扩展中选择了一个笔记本，且已在 Chrome 中登录 notebooklm.google.com');
+      throw new Error(await runtimeT('runtime.bilibiliImportFailedDetail'));
     }
     return { imported, skipped };
   }
@@ -1025,7 +1051,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   if (type === 'IMPORT_BILIBILI_MERGED') {
     const { videos, ownerName, desc, source } = message as any;
     const results = [];
-    setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: '获取字幕…', timestamp: Date.now() });
+    setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: await runtimeT('runtime.bilibiliFetchingSubtitle'), timestamp: Date.now() });
     console.log(`[background] Starting merged import for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Processing ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
@@ -1039,10 +1065,10 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     const validResults = results.filter(r => r.markdown !== null);
     if (validResults.length === 0) {
       clearOpState();
-      throw new Error('所选视频都没有字幕');
+      throw new Error(await runtimeT('runtime.bilibiliAllNoSubtitle'));
     }
     let mergedMd = mergeBilibiliSubtitles(results, source);
-    const success = await importText(mergedMd, `合并内容：${source.title}`, senderTabId);
+    const success = await importText(mergedMd, await runtimeT('runtime.bilibiliMergedContentTitle', { title: source.title }), senderTabId);
     clearOpState();
     return { success };
   }
@@ -1060,7 +1086,8 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       }
     }
     const mergedMd = mergeBilibiliSubtitles(results, source);
-    const filename = `${sanitizeBilibiliFilename(source.title)}_合并内容.md`;
+    const mergedLabel = await runtimeT('runtime.bilibiliMergedContent');
+    const filename = `${sanitizeBilibiliFilename(source.title)}_${sanitizeBilibiliFilename(mergedLabel)}.md`;
     const encoded = btoa(unescape(encodeURIComponent(mergedMd)));
     const dataUrl = `data:text/markdown;base64,${encoded}`;
     await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
@@ -1122,7 +1149,9 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
         // New pairs-based import
         const platform = conv.url.includes('chatgpt.com') || conv.url.includes('chat.openai.com')
           ? 'ChatGPT' : conv.url.includes('gemini.google.com') ? 'Gemini' : 'Claude';
-        const lines: string[] = [`# ${conv.title}`, '', `**来源**: ${platform} 对话`, `**URL**: ${conv.url}`, '', '---', ''];
+        const sourceLabel = await runtimeT('claude.sourceLabel');
+        const platformConversation = await runtimeT('claude.platformConversation', { platform });
+        const lines: string[] = [`# ${conv.title}`, '', `**${sourceLabel}**: ${platformConversation}`, `**URL**: ${conv.url}`, '', '---', ''];
         for (const pair of pairs) {
           if (pair.question) { lines.push('## 👤 Human', '', pair.question, ''); }
           if (pair.answer) { lines.push(`## 🤖 ${platform}`, '', pair.answer, ''); }

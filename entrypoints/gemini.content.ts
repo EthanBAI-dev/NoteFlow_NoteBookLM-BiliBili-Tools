@@ -1,5 +1,6 @@
 // Content script for extracting Gemini conversations
 import type { ClaudeConversation, ClaudeMessage, QAPair } from '@/lib/types';
+import { runtimeT } from '@/lib/i18n';
 
 export default defineContentScript({
   matches: ['https://gemini.google.com/*'],
@@ -12,11 +13,11 @@ export default defineContentScript({
       if (message.type === 'EXTRACT_CONVERSATION') {
         extractConversation()
           .then((data) => sendResponse({ success: true, data }))
-          .catch((error) => {
+          .catch(async (error) => {
             console.error('Gemini extraction error:', error);
             sendResponse({
               success: false,
-              error: error instanceof Error ? error.message : '提取失败',
+              error: error instanceof Error ? error.message : await runtimeT('claude.extractFailedShort'),
             });
           });
         return true;
@@ -26,12 +27,12 @@ export default defineContentScript({
 });
 
 async function extractConversation(): Promise<ClaudeConversation> {
-  const title = extractTitle();
+  const title = await extractTitle();
   const pairs = extractQAPairs();
   const messages = extractMessages();
 
   if (pairs.length === 0 && messages.length === 0) {
-    throw new Error('未找到对话消息，请确保在 Gemini 对话页面');
+    throw new Error(await runtimeT('claude.noConversationMessages', { platform: 'Gemini' }));
   }
 
   return {
@@ -49,7 +50,7 @@ function extractConversationId(): string {
   return match ? match[1] : `gemini-${Date.now()}`;
 }
 
-function extractTitle(): string {
+async function extractTitle(): Promise<string> {
   // Gemini shows conversation title in header
   const titleEl = document.querySelector('.conversation-title-container, [class*="conversation-title"]');
   if (titleEl?.textContent?.trim()) {
@@ -68,7 +69,7 @@ function extractTitle(): string {
     return text.length > 60 ? text.slice(0, 60) + '...' : text;
   }
 
-  return 'Gemini 对话';
+  return runtimeT('claude.defaultConversationTitle', { platform: 'Gemini' });
 }
 
 function extractQAPairs(): QAPair[] {

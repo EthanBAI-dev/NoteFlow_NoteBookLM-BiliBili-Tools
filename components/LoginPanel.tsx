@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LogIn, Mail, Lock, Loader2, AlertCircle, Chrome } from 'lucide-react';
 import { signIn, signUp, signInWithGoogle } from '@/lib/auth';
-import type { AuthError } from '@supabase/supabase-js';
+import { useI18n } from '@/lib/i18n';
 
 type AuthMode = 'login' | 'signup';
 type LoginState = 'idle' | 'loading' | 'error' | 'success';
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export function LoginPanel({ onAuthSuccess }: Props) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,9 +70,9 @@ export function LoginPanel({ onAuthSuccess }: Props) {
       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-notebooklm-blue to-blue-500 flex items-center justify-center shadow-lg mb-4">
         <LogIn className="w-7 h-7 text-white" />
       </div>
-      <h1 className="text-lg font-semibold text-gray-900 mb-1">登录 NoteFlow</h1>
+      <h1 className="text-lg font-semibold text-gray-900 mb-1">{t('auth.loginTitle')}</h1>
       <p className="text-xs text-gray-500 mb-8 text-center max-w-[220px]">
-        登录后即可使用全部功能，包括导入到 NotebookLM
+        {t('auth.loginDesc')}
       </p>
 
       {/* Google Sign-in */}
@@ -81,13 +82,13 @@ export function LoginPanel({ onAuthSuccess }: Props) {
         className="w-full max-w-[280px] py-2.5 px-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-3 shadow-sm hover:shadow transition-all duration-150 btn-press"
       >
         <Chrome className="w-5 h-5 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">使用 Google 账号登录</span>
+        <span className="text-sm font-medium text-gray-700">{t('auth.loginWithGoogle')}</span>
       </button>
 
       {/* Divider */}
       <div className="flex items-center gap-3 my-5 w-full max-w-[280px]">
         <div className="flex-1 h-px bg-gray-200" />
-        <span className="text-[11px] text-gray-400 font-medium">或使用邮箱</span>
+        <span className="text-[11px] text-gray-400 font-medium">{t('auth.orUseEmail')}</span>
         <div className="flex-1 h-px bg-gray-200" />
       </div>
 
@@ -99,7 +100,7 @@ export function LoginPanel({ onAuthSuccess }: Props) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="邮箱地址"
+            placeholder={t('auth.emailPlaceholder')}
             required
             className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/30 focus:border-notebooklm-blue placeholder:text-gray-400 transition-all"
           />
@@ -110,7 +111,7 @@ export function LoginPanel({ onAuthSuccess }: Props) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="密码"
+            placeholder={t('auth.passwordPlaceholder')}
             required
             minLength={6}
             className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/30 focus:border-notebooklm-blue placeholder:text-gray-400 transition-all"
@@ -123,9 +124,9 @@ export function LoginPanel({ onAuthSuccess }: Props) {
           className="w-full py-2.5 bg-notebooklm-blue hover:bg-blue-600 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
         >
           {state === 'loading' ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />处理中...</>
+            <><Loader2 className="w-4 h-4 animate-spin" />{t('auth.processing')}</>
           ) : (
-            <>{mode === 'login' ? '登录' : '注册'}</>
+            <>{mode === 'login' ? t('auth.login') : t('auth.signup')}</>
           )}
         </button>
 
@@ -139,13 +140,13 @@ export function LoginPanel({ onAuthSuccess }: Props) {
 
         {/* Toggle mode */}
         <p className="text-xs text-gray-500 text-center mt-4">
-          {mode === 'login' ? '还没有账号？' : '已有账号？'}
+          {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}
           <button
             type="button"
             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); }}
             className="ml-1 text-notebooklm-blue hover:underline font-medium"
           >
-            {mode === 'login' ? '注册' : '登录'}
+            {mode === 'login' ? t('auth.signup') : t('auth.login')}
           </button>
         </p>
       </form>

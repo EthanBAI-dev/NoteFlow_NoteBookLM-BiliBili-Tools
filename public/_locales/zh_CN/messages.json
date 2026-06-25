@@ -4,7 +4,7 @@
     "description": "扩展名称"
   },
   "extensionDescription": {
-    "message": "从各种来源提取字幕与内容，一键导入 NotebookLM 🚀 支持哔哩哔哩、YouTube、播客、文档站、AI 对话。",
+    "message": "多源内容一键导入 NotebookLM，支持哔哩哔哩、YouTube、播客、AI 对话，以及任意网页链接。支持列表批量后台导入。",
     "description": "Chrome Web Store 和 chrome://extensions 中显示的扩展描述。"
   },
   "actionTitle": {

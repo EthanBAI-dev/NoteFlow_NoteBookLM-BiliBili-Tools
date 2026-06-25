@@ -1,4 +1,5 @@
 import { Globe, MessageCircle, Tv2, Youtube, Headphones, type LucideIcon } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 /** Platform identifier for color/icon theming */
 export type SourcePlatform = 'bilibili' | 'youtube' | 'podcast' | 'ai' | 'web';
@@ -132,6 +133,7 @@ export function SourceInfoCard({
   inlineTags,
   connectionLost,
 }: SourceInfoCardProps) {
+  const { t } = useI18n();
   const styles = PLATFORM_STYLES[platform];
   const Icon = styles.icon;
   const highResFavicon = upgradeFavicon(favicon, platform);
@@ -160,7 +162,7 @@ export function SourceInfoCard({
       return (
         <p className="text-xs text-red-500 font-semibold mt-0.5 flex items-center gap-1">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-          没有检测到音视频内容
+          {t('source.noMediaContent')}
         </p>
       );
     }
@@ -168,7 +170,7 @@ export function SourceInfoCard({
       return (
         <p className="text-xs text-red-500 font-medium mt-0.5 flex items-center gap-1">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-          当前视频没有字幕
+          {t('source.noSubtitle')}
         </p>
       );
     }
@@ -176,7 +178,7 @@ export function SourceInfoCard({
       return (
         <p className="text-xs text-amber-500 mt-0.5 flex items-center gap-1">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
-          检测字幕中...
+          {t('source.checkingSubtitle')}
         </p>
       );
     }
@@ -233,9 +235,9 @@ export function SourceInfoCard({
       <div className="flex-1 min-w-0">
         {connectionLost ? (
           <div className="space-y-1">
-            <p className="text-sm font-medium text-amber-800">页面连接已断开</p>
+            <p className="text-sm font-medium text-amber-800">{t('source.connectionLost')}</p>
             <p className="text-xs text-amber-600/80">
-              标签页太久没有刷新，导致扩展无法与页面通信。请刷新页面后重试。
+              {t('source.connectionLostHint')}
             </p>
           </div>
         ) : (

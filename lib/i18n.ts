@@ -40,10 +40,14 @@ const zh = {
   // ── App ──
   'app.importHistory': '导入历史',
   'app.importingProgress': '正在导入 {completed}/{total}',
+  'app.importFinishedSummary': '导入完成（成功 {success} 个，失败 {failed} 个）',
   'app.tabBookmarks': '网页导入',
   'app.tabPodcast': '播客',
   'app.tabAI': 'AI 对话',
   'app.tabMore': '更多',
+  'app.currentSite': '当前网站',
+  'app.switchToEnglish': '切换到英文',
+  'app.switchToChinese': '切换到中文',
 
   // ── Notebook Selector ──
   'notebook.openInTab': '在标签页中打开',
@@ -53,6 +57,28 @@ const zh = {
   'notebook.searchPlaceholder': '搜索笔记本...',
   'notebook.noSearchResults': '没有匹配的笔记本',
   'notebook.importToNlm': '一键导入 NotebookLM',
+
+  // ── Auth ──
+  'auth.verifying': '正在验证身份...',
+  'auth.loginTitle': '登录 NoteFlow',
+  'auth.loginDesc': '登录后即可使用全部功能，包括导入到 NotebookLM',
+  'auth.loginWithGoogle': '使用 Google 账号登录',
+  'auth.orUseEmail': '或使用邮箱',
+  'auth.emailPlaceholder': '邮箱地址',
+  'auth.passwordPlaceholder': '密码',
+  'auth.processing': '处理中...',
+  'auth.login': '登录',
+  'auth.signup': '注册',
+  'auth.noAccount': '还没有账号？',
+  'auth.haveAccount': '已有账号？',
+
+  // ── Account Selector ──
+  'account.notebooklmAccount': 'NotebookLM 账号',
+  'account.current': '当前',
+  'account.none': '暂无账号',
+  'account.noneCached': '暂无已缓存账号',
+  'account.removeThis': '移除此账号',
+  'account.addNew': '添加新账号',
 
   // ── PodcastImport ──
   'podcast.link': '播客链接',
@@ -76,6 +102,7 @@ const zh = {
   'podcast.formatApple': 'Apple Podcasts：podcasts.apple.com/.../id123456',
   'podcast.formatXyz1': '小宇宙单集：xiaoyuzhoufm.com/episode/...',
   'podcast.formatXyz2': '小宇宙节目：xiaoyuzhoufm.com/podcast/...',
+  'podcast.episodeList': '播客列表',
 
   // ── BilibiliImport ──
   'app.tabBilibili': '哔哩哔哩',
@@ -132,6 +159,26 @@ const zh = {
   'bilibili.importOneClick': '一键导入 NotebookLM',
   'bilibili.tabExport': '导出字幕',
   'bilibili.tabImport': '导入notebookLM',
+  'bilibili.videoList': '视频列表',
+  'bilibili.noSubtitleCannotImport': '该视频没有可用字幕，无法导入',
+  'bilibili.downloadSubtitleDone': '"{title}" 字幕下载完成',
+  'bilibili.downloadSubtitleFailed': '字幕下载失败',
+  'bilibili.downloadSeparate': '分开',
+  'bilibili.downloadMerged': '合并',
+  'bilibili.downloadSeparateTitle': '分开下载',
+  'bilibili.downloadMergedTitle': '合并下载',
+  'bilibili.loadMoreCount': '加载更多（{count} 个）',
+  'bilibili.exporting': '正在导出字幕…',
+  'bilibili.processing': '处理中…',
+  'bilibili.cancelOperation': '取消操作',
+  'bilibili.cancelled': '操作已取消',
+  'bilibili.creator': 'UP主：{name}',
+  'bilibili.videoCount': '{count} 个视频',
+  'bilibili.tagCollection': '合集',
+  'bilibili.tagSeason': '视频选集',
+  'bilibili.downloadedSummary': '已下载 {downloaded} 个字幕文件',
+  'bilibili.downloadedSummaryWithSkipped': '已下载 {downloaded} 个字幕文件，{skipped} 个无字幕',
+  'bilibili.mergedDownloadDone': '已合并下载 {count} 个视频内容',
 
   // ── App Controls ──
   'app.readCurrentPage': '读取当前网页',
@@ -162,6 +209,8 @@ const zh = {
   'youtube.formatChannel': '频道: youtube.com/@username',
   'youtube.formatShort': '短链接: youtu.be/xxx',
   'onboarding.stepYouTube': '粘贴 YouTube 视频、播放列表或频道链接，批量导入到 NotebookLM。',
+  'youtube.videoList': '视频列表',
+  'youtube.unsupportedPageType': '无法识别页面类型：{url}\n目前支持视频、播放列表和频道链接。',
 
   // ── HistoryPanel ──
   'history.title': '导入历史',
@@ -185,10 +234,13 @@ const zh = {
 
   // ── ClaudeImport ──
   'claude.extractFailed': '提取对话失败',
+  'claude.extractFailedShort': '提取失败',
   'claude.openNotebook': '请先打开 NotebookLM 笔记本页面，然后再导入',
   'claude.cannotGetNlmTab': '无法获取 NotebookLM 标签页',
   'claude.openNotebookNotHome': '请先打开一个 NotebookLM 笔记本（而非首页），然后再导入',
   'claude.openAiPage': '请先打开 AI 对话页面',
+  'claude.noConversationMessages': '未找到对话消息，请确保在 {platform} 对话页面',
+  'claude.defaultConversationTitle': '{platform} 对话',
   'claude.supported': '支持：Claude · ChatGPT · Gemini',
   'claude.extracting': '正在提取对话...',
   'claude.extractCurrent': '提取当前对话',
@@ -214,6 +266,11 @@ const zh = {
   'claude.guideStep4': '一键导入到 NotebookLM，AI 对话秒变知识来源',
   'claude.shareCard': '生成分享卡片',
   'claude.guideTip': '💡 导入前请确保已打开一个 NotebookLM 笔记本（非首页）',
+  'claude.refreshPage': '刷新 {platform} 页面',
+  'claude.conversationList': '对话列表',
+  'claude.refreshConversation': '刷新对话',
+  'claude.sourceLabel': '来源',
+  'claude.platformConversation': '{platform} 对话',
 
   // ── WebImport ──
   'bookmark.collection': '网址集合',
@@ -235,6 +292,16 @@ const zh = {
   'bookmark.step2': '选择多个页面，点击「聚合导出 PDF」合并为一份文档',
   'bookmark.step3': '将 PDF 上传到 NotebookLM，一个来源 = 多篇内容',
   'bookmark.pdfSaved': 'PDF 已保存，可上传到 NotebookLM 作为来源',
+  'web.unsupportedImport': '不支持导入',
+  'web.browserWindows': '浏览器窗口',
+  'web.listHelpLabel': '查看列表说明',
+  'web.listHelpTitle': '此列表用于导入普通网页内容到 NotebookLM。',
+  'web.listHelpDesc': '已自动排除插件有专用导入入口的网站，例如：哔哩哔哩、YouTube、小宇宙、Apple Podcasts、ChatGPT、Claude、Gemini，以及 NotebookLM 页面。',
+  'web.selectedTabs': '已选 {selected} / {total} 个标签页',
+  'web.windowWithTabs': '窗口 ({count} 个标签页)',
+  'web.window': '窗口',
+  'web.noImportablePages': '没有可导入的网页',
+  'web.noImportablePagesHint': '请打开需要导入的网页后重试',
 
   // ── RescueBanner ──
   'rescue.scanning': '扫描失败来源...',
@@ -289,6 +356,7 @@ const zh = {
   'more.autoRenameDesc': '文本导入后，若 NotebookLM 给出 "Pasted Text" 等默认名，自动改成真实标题',
   'more.saving': '保存中...',
   'more.saved': '已保存',
+  'more.aiPolishRemoved': '已移除 AI 润色功能，当前设置页仅保留扩展通用设置。',
 
   // ── RssImport ──
   'rss.feedUrl': 'RSS 订阅地址',
@@ -307,6 +375,48 @@ const zh = {
   'panel.cannotImportNlm': '不能导入 NotebookLM 自身的页面',
   'panel.rssAtomLink': 'RSS / Atom 链接',
   'panel.supportedFormats': '支持导入：网页文章、Substack、微信公众号、PDF 链接（自动修复导入失败的来源）',
+  
+  // ── Source Card ──
+  'source.noMediaContent': '没有检测到音视频内容',
+  'source.noSubtitle': '当前视频没有字幕',
+  'source.checkingSubtitle': '检测字幕中...',
+  'source.connectionLost': '页面连接已断开',
+  'source.connectionLostHint': '标签页太久没有刷新，导致扩展无法与页面通信。请刷新页面后重试。',
+
+  // ── Share Card ──
+  'share.question': '提问',
+  'share.answer': '回答',
+  'share.madeWith': '由 NoteFlow 制作',
+  'share.loading': '加载中...',
+  'share.saving': '保存中…',
+  'share.saveJpeg': '保存 JPEG',
+  'share.moreFormats': '更多格式',
+  'share.clipboard': '剪贴板',
+  'share.dynamicIsland': '灵动岛',
+  'share.retina': '3x 高清',
+
+  // ── Runtime / Background ──
+  'menu.importPage': '导入此页面到 NotebookLM',
+  'menu.importLink': '导入此链接到 NotebookLM',
+  'runtime.contentTooShort': '内容太少，可能是付费内容或登录墙',
+  'runtime.wechatBlocked': '微信公众号内容受限，请在微信内打开后重试',
+  'runtime.antiScrapingBlocked': '页面被反爬机制拦截',
+  'runtime.emptyShell': '页面内容为空壳，可能需要先登录',
+  'runtime.importNotebooklmFailed': '导入 NotebookLM 失败',
+  'runtime.cannotExtractContent': '无法提取内容',
+  'runtime.contentTooShortBlocked': '提取到的内容太少，可能被拦截',
+  'runtime.xContentNotFound': 'X.com：未找到文章或推文内容',
+  'runtime.huaweiExtractFailed': '华为开发者文档内容提取失败',
+  'runtime.wechatVerificationRequired': '页面内容为空，可能需要先在微信内完成验证',
+  'runtime.bilibiliUrlParseFailed': '无法解析哔哩哔哩链接',
+  'runtime.bilibiliNoSubtitle': '该视频没有字幕',
+  'runtime.bilibiliPreparingImport': '准备导入…',
+  'runtime.bilibiliFetchingSubtitle': '获取字幕…',
+  'runtime.bilibiliImportFailedDetail': '导入失败：无法导入到 NotebookLM。请确保已在扩展中选择一个笔记本，并已在 Chrome 中登录 notebooklm.google.com',
+  'runtime.bilibiliAllNoSubtitle': '所选视频都没有字幕',
+  'runtime.bilibiliMergedContent': '合并内容',
+  'runtime.bilibiliMergedContentTitle': '合并内容：{title}',
+  'runtime.subtitleArchive': '字幕',
 } as const;
 
 const en: Record<keyof typeof zh, string> = {
@@ -347,10 +457,14 @@ const en: Record<keyof typeof zh, string> = {
   // ── App ──
   'app.importHistory': 'Import History',
   'app.importingProgress': 'Importing {completed}/{total}',
+  'app.importFinishedSummary': 'Import complete ({success} succeeded, {failed} failed)',
   'app.tabBookmarks': 'Web Import',
   'app.tabPodcast': 'Podcast',
   'app.tabAI': 'AI Chat',
   'app.tabMore': 'More',
+  'app.currentSite': 'Current Site',
+  'app.switchToEnglish': 'Switch to English',
+  'app.switchToChinese': 'Switch to Chinese',
 
   // ── Notebook Selector ──
   'notebook.openInTab': 'Open in tab',
@@ -360,6 +474,28 @@ const en: Record<keyof typeof zh, string> = {
   'notebook.searchPlaceholder': 'Search notebooks...',
   'notebook.noSearchResults': 'No matching notebooks',
   'notebook.importToNlm': 'Import to NotebookLM',
+
+  // ── Auth ──
+  'auth.verifying': 'Verifying authentication...',
+  'auth.loginTitle': 'Sign in to NoteFlow',
+  'auth.loginDesc': 'Sign in to access all features, including importing to NotebookLM',
+  'auth.loginWithGoogle': 'Sign in with Google',
+  'auth.orUseEmail': 'Or use email',
+  'auth.emailPlaceholder': 'Email address',
+  'auth.passwordPlaceholder': 'Password',
+  'auth.processing': 'Processing...',
+  'auth.login': 'Sign In',
+  'auth.signup': 'Sign Up',
+  'auth.noAccount': "Don't have an account?",
+  'auth.haveAccount': 'Already have an account?',
+
+  // ── Account Selector ──
+  'account.notebooklmAccount': 'NotebookLM Account',
+  'account.current': 'Current',
+  'account.none': 'No account',
+  'account.noneCached': 'No cached accounts yet',
+  'account.removeThis': 'Remove this account',
+  'account.addNew': 'Add new account',
 
   // ── PodcastImport ──
   'podcast.link': 'Podcast Link',
@@ -383,6 +519,7 @@ const en: Record<keyof typeof zh, string> = {
   'podcast.formatApple': 'Apple Podcasts: podcasts.apple.com/.../id123456',
   'podcast.formatXyz1': 'Xiaoyuzhou episode: xiaoyuzhoufm.com/episode/...',
   'podcast.formatXyz2': 'Xiaoyuzhou podcast: xiaoyuzhoufm.com/podcast/...',
+  'podcast.episodeList': 'Podcast List',
 
   // ── BilibiliImport ──
   'app.tabBilibili': 'Bilibili',
@@ -439,6 +576,26 @@ const en: Record<keyof typeof zh, string> = {
   'bilibili.importOneClick': 'Import to NotebookLM',
   'bilibili.tabExport': 'Export Subtitles',
   'bilibili.tabImport': 'Import to NLM',
+  'bilibili.videoList': 'Video List',
+  'bilibili.noSubtitleCannotImport': 'This video has no available subtitles and cannot be imported',
+  'bilibili.downloadSubtitleDone': '"{title}" subtitle downloaded',
+  'bilibili.downloadSubtitleFailed': 'Subtitle download failed',
+  'bilibili.downloadSeparate': 'Split',
+  'bilibili.downloadMerged': 'Merge',
+  'bilibili.downloadSeparateTitle': 'Download separately',
+  'bilibili.downloadMergedTitle': 'Download merged',
+  'bilibili.loadMoreCount': 'Load more ({count})',
+  'bilibili.exporting': 'Exporting subtitles…',
+  'bilibili.processing': 'Processing…',
+  'bilibili.cancelOperation': 'Cancel operation',
+  'bilibili.cancelled': 'Operation canceled',
+  'bilibili.creator': 'Creator: {name}',
+  'bilibili.videoCount': '{count} videos',
+  'bilibili.tagCollection': 'Collection',
+  'bilibili.tagSeason': 'Series',
+  'bilibili.downloadedSummary': 'Downloaded {downloaded} subtitle files',
+  'bilibili.downloadedSummaryWithSkipped': 'Downloaded {downloaded} subtitle files, {skipped} without subtitles',
+  'bilibili.mergedDownloadDone': 'Merged download complete for {count} videos',
 
   // ── App Controls ──
   'app.readCurrentPage': 'Read Current Page',
@@ -469,6 +626,8 @@ const en: Record<keyof typeof zh, string> = {
   'youtube.formatChannel': 'Channel: youtube.com/@username',
   'youtube.formatShort': 'Short link: youtu.be/xxx',
   'onboarding.stepYouTube': 'Paste YouTube video, playlist, or channel links to batch import into NotebookLM.',
+  'youtube.videoList': 'Video List',
+  'youtube.unsupportedPageType': 'Unsupported page type: {url}\nCurrently supports video, playlist, and channel URLs.',
 
   // ── HistoryPanel ──
   'history.title': 'Import History',
@@ -492,10 +651,13 @@ const en: Record<keyof typeof zh, string> = {
 
   // ── ClaudeImport ──
   'claude.extractFailed': 'Failed to extract conversation',
+  'claude.extractFailedShort': 'Extraction failed',
   'claude.openNotebook': 'Please open a NotebookLM notebook first, then import',
   'claude.cannotGetNlmTab': 'Cannot access NotebookLM tab',
   'claude.openNotebookNotHome': 'Please open a NotebookLM notebook (not the home page), then import',
   'claude.openAiPage': 'Please open an AI conversation page first',
+  'claude.noConversationMessages': 'No conversation messages found. Make sure you are on a {platform} conversation page.',
+  'claude.defaultConversationTitle': '{platform} Conversation',
   'claude.supported': 'Supports: Claude · ChatGPT · Gemini',
   'claude.extracting': 'Extracting conversation...',
   'claude.extractCurrent': 'Extract Current Conversation',
@@ -521,6 +683,11 @@ const en: Record<keyof typeof zh, string> = {
   'claude.guideStep4': 'Import to NotebookLM — turn AI chats into knowledge sources',
   'claude.shareCard': 'Share Card',
   'claude.guideTip': '💡 Make sure a NotebookLM notebook (not homepage) is open before importing',
+  'claude.refreshPage': 'Refresh {platform} page',
+  'claude.conversationList': 'Conversation List',
+  'claude.refreshConversation': 'Refresh Conversation',
+  'claude.sourceLabel': 'Source',
+  'claude.platformConversation': '{platform} Conversation',
 
   // ── WebImport ──
   'bookmark.collection': 'URL Collection',
@@ -542,6 +709,16 @@ const en: Record<keyof typeof zh, string> = {
   'bookmark.step2': 'Select multiple pages, click "Export PDF" to merge',
   'bookmark.step3': 'Upload PDF to NotebookLM: one source = multiple pages',
   'bookmark.pdfSaved': 'PDF saved. Upload to NotebookLM as a source.',
+  'web.unsupportedImport': 'Unsupported',
+  'web.browserWindows': 'Browser Windows',
+  'web.listHelpLabel': 'View list help',
+  'web.listHelpTitle': 'This list is used to import regular web content into NotebookLM.',
+  'web.listHelpDesc': 'Sites with dedicated import flows are excluded automatically, including Bilibili, YouTube, Xiaoyuzhou, Apple Podcasts, ChatGPT, Claude, Gemini, and NotebookLM pages.',
+  'web.selectedTabs': '{selected} / {total} tabs selected',
+  'web.windowWithTabs': 'Window ({count} tabs)',
+  'web.window': 'Window',
+  'web.noImportablePages': 'No importable pages',
+  'web.noImportablePagesHint': 'Open the pages you want to import and try again',
 
   // ── RescueBanner ──
   'rescue.scanning': 'Scanning failed sources...',
@@ -596,6 +773,7 @@ const en: Record<keyof typeof zh, string> = {
   'more.autoRenameDesc': 'When NotebookLM leaves a pasted source as "Pasted Text", automatically rename it to the real title',
   'more.saving': 'Saving...',
   'more.saved': 'Saved',
+  'more.aiPolishRemoved': 'AI polishing has been removed. The settings page now only keeps general extension settings.',
 
   // ── RssImport ──
   'rss.feedUrl': 'RSS Feed URL',
@@ -614,6 +792,48 @@ const en: Record<keyof typeof zh, string> = {
   'panel.cannotImportNlm': 'Cannot import NotebookLM pages',
   'panel.rssAtomLink': 'RSS / Atom Link',
   'panel.supportedFormats': 'Supports: web articles, Substack, WeChat, PDF links (auto-rescue failed imports)',
+  
+  // ── Source Card ──
+  'source.noMediaContent': 'No audio or video content detected',
+  'source.noSubtitle': 'This video has no subtitles',
+  'source.checkingSubtitle': 'Checking subtitles...',
+  'source.connectionLost': 'Page connection lost',
+  'source.connectionLostHint': 'The tab has not been refreshed for too long, so the extension can no longer communicate with the page. Refresh the page and try again.',
+
+  // ── Share Card ──
+  'share.question': 'Question',
+  'share.answer': 'Answer',
+  'share.madeWith': 'Made with NoteFlow',
+  'share.loading': 'Loading...',
+  'share.saving': 'Saving…',
+  'share.saveJpeg': 'Save JPEG',
+  'share.moreFormats': 'More formats',
+  'share.clipboard': 'Clipboard',
+  'share.dynamicIsland': 'Dynamic Island',
+  'share.retina': '3x retina',
+
+  // ── Runtime / Background ──
+  'menu.importPage': 'Import this page to NotebookLM',
+  'menu.importLink': 'Import this link to NotebookLM',
+  'runtime.contentTooShort': 'Content is too short and may be behind a paywall or login wall',
+  'runtime.wechatBlocked': 'This WeChat article is restricted. Open it inside WeChat and try again.',
+  'runtime.antiScrapingBlocked': 'The page was blocked by anti-scraping protection',
+  'runtime.emptyShell': 'The page content looks empty and may require login',
+  'runtime.importNotebooklmFailed': 'Failed to import to NotebookLM',
+  'runtime.cannotExtractContent': 'Unable to extract content',
+  'runtime.contentTooShortBlocked': 'Extracted content is too short and may have been blocked',
+  'runtime.xContentNotFound': 'X.com: No article or post content found',
+  'runtime.huaweiExtractFailed': 'Failed to extract Huawei Developer documentation content',
+  'runtime.wechatVerificationRequired': 'The page is empty and may require verification inside WeChat first',
+  'runtime.bilibiliUrlParseFailed': 'Unable to parse the Bilibili URL',
+  'runtime.bilibiliNoSubtitle': 'This video has no subtitles',
+  'runtime.bilibiliPreparingImport': 'Preparing import…',
+  'runtime.bilibiliFetchingSubtitle': 'Fetching subtitles…',
+  'runtime.bilibiliImportFailedDetail': 'Import failed: unable to import into NotebookLM. Make sure you selected a notebook in the extension and are signed in to notebooklm.google.com in Chrome.',
+  'runtime.bilibiliAllNoSubtitle': 'None of the selected videos have subtitles',
+  'runtime.bilibiliMergedContent': 'Merged Content',
+  'runtime.bilibiliMergedContentTitle': 'Merged Content: {title}',
+  'runtime.subtitleArchive': 'Subtitles',
 };
 
 export type TranslationKey = keyof typeof zh;
@@ -626,6 +846,21 @@ function detectLocale(): Locale {
   } catch {
     return 'zh';
   }
+}
+
+export function translateWithLocale(
+  locale: Locale,
+  key: TranslationKey,
+  params?: Record<string, string | number>,
+): string {
+  const dict = locale === 'en' ? en : zh;
+  let text = dict[key] || zh[key];
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    }
+  }
+  return text;
 }
 
 const STORAGE_KEY = 'noteflow_locale';
@@ -658,6 +893,14 @@ function getLocale(): Locale {
 export function setLocale(locale: Locale): void {
   currentLocale = locale;
   try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      void chrome.storage.local.set({
+        [STORAGE_KEY]: locale,
+        [LEGACY_STORAGE_KEY]: locale,
+      });
+    }
+  } catch { /* ignore */ }
   listeners.forEach((fn) => fn());
 }
 
@@ -671,15 +914,36 @@ function getSnapshot(): Locale {
 }
 
 export function t(key: TranslationKey, params?: Record<string, string | number>): string {
-  const locale = getLocale();
-  const dict = locale === 'en' ? en : zh;
-  let text = dict[key] || zh[key];
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+  return translateWithLocale(getLocale(), key, params);
+}
+
+export async function getStoredLocaleAsync(): Promise<Locale> {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      const result = await chrome.storage.local.get([STORAGE_KEY, LEGACY_STORAGE_KEY]);
+      const stored = result?.[STORAGE_KEY];
+      if (stored === 'zh' || stored === 'en') return stored;
+      const legacyStored = result?.[LEGACY_STORAGE_KEY];
+      if (legacyStored === 'zh' || legacyStored === 'en') return legacyStored;
     }
-  }
-  return text;
+  } catch { /* ignore */ }
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'zh' || stored === 'en') return stored;
+    const legacyStored = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyStored === 'zh' || legacyStored === 'en') return legacyStored;
+  } catch { /* ignore */ }
+
+  return detectLocale();
+}
+
+export async function runtimeT(
+  key: TranslationKey,
+  params?: Record<string, string | number>,
+): Promise<string> {
+  const locale = await getStoredLocaleAsync();
+  return translateWithLocale(locale, key, params);
 }
 
 export function useI18n() {

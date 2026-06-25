@@ -10,6 +10,7 @@ import {
   openAddAccount,
   getInitialsAvatar,
 } from '@/services/account-slots';
+import { useI18n } from '@/lib/i18n';
 
 /** Consistent label style used across the panel */
 const LABEL_CLS = 'text-[11px] font-medium text-gray-500 tracking-wide';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function GoogleAccountSelector({ compact }: Props) {
+  const { t } = useI18n();
   const [slots, setSlots] = useState<GoogleAccountSlot[]>([]);
   const [activeSlot, setActiveSlot] = useState<GoogleAccountSlot | null>(null);
   const [open, setOpen] = useState(false);
@@ -164,7 +166,7 @@ export function GoogleAccountSelector({ compact }: Props) {
   return (
     <div ref={dropdownRef} className={compact ? 'relative' : ''}>
       {/* "NotebookLM Account" label — skip in compact mode */}
-      {!compact && <label className={LABEL_CLS}>NotebookLM Account</label>}
+      {!compact && <label className={LABEL_CLS}>{t('account.notebooklmAccount')}</label>}
 
       {/* Dropdown trigger */}
       <button
@@ -197,12 +199,12 @@ export function GoogleAccountSelector({ compact }: Props) {
               </span>
               {activeSlot.detected && (
                 <span className="text-[8px] text-blue-600 bg-blue-50 px-1 py-0.5 rounded-full font-medium flex-shrink-0 leading-none">
-                  当前
+                  {t('account.current')}
                 </span>
               )}
             </>
           ) : (
-            <span className="text-xs text-gray-400">No account</span>
+            <span className="text-xs text-gray-400">{t('account.none')}</span>
           )}
         </div>
 
@@ -221,7 +223,7 @@ export function GoogleAccountSelector({ compact }: Props) {
           <div className="max-h-48 overflow-y-auto">
             {slots.length === 0 && (
               <div className="px-3 py-4 text-center">
-                <p className="text-[12px] text-slate-400">No accounts cached yet</p>
+                <p className="text-[12px] text-slate-400">{t('account.noneCached')}</p>
               </div>
             )}
 
@@ -252,7 +254,7 @@ export function GoogleAccountSelector({ compact }: Props) {
                       </span>
                       {slot.detected && (
                         <span className="text-[8px] text-blue-600 bg-blue-50 px-1 py-0.5 rounded-full font-medium flex-shrink-0 leading-none">
-                          当前
+                          {t('account.current')}
                         </span>
                       )}
                     </div>
@@ -267,7 +269,7 @@ export function GoogleAccountSelector({ compact }: Props) {
                     <button
                       onClick={(e) => handleRemove(slot.email, e)}
                       className="text-[10px] text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 px-1"
-                      title="Remove this account"
+                      title={t('account.removeThis')}
                     >
                       ✕
                     </button>
@@ -286,7 +288,7 @@ export function GoogleAccountSelector({ compact }: Props) {
             <div className="w-7 h-7 rounded-full border border-dashed border-slate-300 flex items-center justify-center flex-shrink-0">
               <Plus className="w-3.5 h-3.5 text-slate-400" />
             </div>
-            <span className="text-[12px] text-slate-500 font-medium">Add new account</span>
+            <span className="text-[12px] text-slate-500 font-medium">{t('account.addNew')}</span>
           </button>
         </div>
       )}
