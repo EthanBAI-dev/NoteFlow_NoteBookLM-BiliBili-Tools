@@ -18,7 +18,7 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/crazynomad/noteflow"
+      "url": "https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools"
     }
   ],
   "topbarCtaButton": {
@@ -29,7 +29,7 @@
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://github.com/crazynomad/noteflow"
+      "url": "https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools"
     },
     {
       "name": "Changelog",
@@ -127,6 +127,6 @@
     ]
   },
   "footerSocials": {
-    "github": "https://github.com/crazynomad/noteflow"
+    "github": "https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools"
   }
 }
