@@ -9,9 +9,9 @@ Importing a Substack link directly through NotebookLM typically leads to:
 - Anti-scraping mechanisms blocking the import entirely
 - A "successful" import that includes tons of noise: Subscribe buttons, comment sections, recommended articles, footers
 
-## How Jetpack Handles It
+## How NoteFlow Handles It
 
-Jetpack has purpose-built optimizations for Substack articles:
+NoteFlow has purpose-built optimizations for Substack articles:
 
 ### 14 Noise Filters
 
@@ -29,7 +29,7 @@ The following elements are automatically filtered out:
 
 <AccordionGroup>
   <Accordion title="Method 1: Single article import">
-    Paste a Substack article link into Jetpack and click import. The extension automatically extracts the body text.
+    Paste a Substack article link into NoteFlow and click import. The extension automatically extracts the body text.
   </Accordion>
   <Accordion title="Method 2: RSS batch import">
     Substack natively supports RSS. Paste `yourname.substack.com/feed` into RSS Import, select articles, and batch import.
@@ -40,5 +40,5 @@ The following elements are automatically filtered out:
 </AccordionGroup>
 
 <Tip>
-  **Paywalled articles**: Jetpack can only extract the publicly visible portion. If you're a paid subscriber, log in to the browser first before importing to get the full content.
+  **Paywalled articles**: NoteFlow can only extract the publicly visible portion. If you're a paid subscriber, log in to the browser first before importing to get the full content.
 </Tip>

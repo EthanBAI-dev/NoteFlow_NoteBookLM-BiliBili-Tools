@@ -95,6 +95,7 @@
           {
             "group": "Features",
             "pages": [
+              "en/features/bilibili",
               "en/features/bookmarks",
               "en/features/web-import",
               "en/features/docs-import",

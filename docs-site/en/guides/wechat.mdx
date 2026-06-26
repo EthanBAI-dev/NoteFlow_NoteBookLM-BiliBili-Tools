@@ -9,11 +9,11 @@ WeChat official account articles are notoriously difficult for NotebookLM to imp
 - You paste the link, and NotebookLM shows "imported successfully"
 - But when you open it, the content is an empty WeChat verification page -- a **fake success**
 
-## How Jetpack Handles It
+## How NoteFlow Handles It
 
 ### How It Works
 
-WeChat articles require full browser rendering to load their content. Jetpack's approach:
+WeChat articles require full browser rendering to load their content. NoteFlow's approach:
 
 1. Open the article in the browser and wait for JavaScript rendering to complete
 2. Extract the body content from the rendered DOM
@@ -25,8 +25,8 @@ WeChat articles require full browser rendering to load their content. Jetpack's 
   <Step title="Open the article in your browser">
     Copy the article link from WeChat and open it in Chrome. Make sure the page content displays properly.
   </Step>
-  <Step title="Import with Jetpack">
-    Click the Jetpack icon and import the current page. The extension extracts the fully rendered body content.
+  <Step title="Import with NoteFlow">
+    Click the NoteFlow icon and import the current page. The extension extracts the fully rendered body content.
   </Step>
 </Steps>
 
@@ -35,7 +35,7 @@ WeChat articles require full browser rendering to load their content. Jetpack's 
 If you previously imported WeChat articles using NotebookLM's built-in import (resulting in fake successes):
 
 1. Open the NotebookLM notebook page
-2. Jetpack automatically detects fake-success sources
+2. NoteFlow automatically detects fake-success sources
 3. A **blue banner** appears at the top of the page
 4. Click "Repair" to batch fix all of them at once
 
@@ -44,5 +44,5 @@ If you previously imported WeChat articles using NotebookLM's built-in import (r
 </Warning>
 
 <Tip>
-  **Batch workflow**: Bookmark multiple WeChat articles in Jetpack first, then aggregate and export as PDF to upload to NotebookLM -- much more efficient.
+  **Batch workflow**: Bookmark multiple WeChat articles in NoteFlow first, then aggregate and export as PDF to upload to NotebookLM -- much more efficient.
 </Tip>

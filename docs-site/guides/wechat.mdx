@@ -9,11 +9,11 @@ description: '如何导入微信公众号文章到 NotebookLM'
 - 直接粘贴链接，NotebookLM 显示"导入成功"
 - 打开一看，内容是空的微信验证页面 — **假性成功**
 
-## Jetpack 的处理方式
+## NoteFlow 的处理方式
 
 ### 原理
 
-微信公众号文章在浏览器中需要完整渲染才能获取内容。Jetpack 的策略：
+微信公众号文章在浏览器中需要完整渲染才能获取内容。NoteFlow 的策略：
 
 1. 在浏览器中打开文章页面，等待 JavaScript 渲染完成
 2. 从渲染后的 DOM 中提取正文内容
@@ -25,8 +25,8 @@ description: '如何导入微信公众号文章到 NotebookLM'
   <Step title="在浏览器中打开公众号文章">
     在微信中复制文章链接，粘贴到 Chrome 浏览器打开。确保页面内容正常显示。
   </Step>
-  <Step title="使用 Jetpack 导入">
-    点击 Jetpack 图标 → 导入当前页面。扩展会提取渲染后的正文内容。
+  <Step title="使用 NoteFlow 导入">
+    点击 NoteFlow 图标 → 导入当前页面。扩展会提取渲染后的正文内容。
   </Step>
 </Steps>
 
@@ -35,7 +35,7 @@ description: '如何导入微信公众号文章到 NotebookLM'
 如果你之前已经用 NotebookLM 原生功能导入了微信文章（导致假性成功）：
 
 1. 打开 NotebookLM 笔记本页面
-2. Jetpack 自动检测到假性成功的来源
+2. NoteFlow 自动检测到假性成功的来源
 3. 页面顶部出现**蓝色横幅**提示
 4. 点击「修复」一键批量修复
 
@@ -44,5 +44,5 @@ description: '如何导入微信公众号文章到 NotebookLM'
 </Warning>
 
 <Tip>
-  **批量操作**：先把多篇公众号文章收藏到 Jetpack，再聚合导出 PDF 上传到 NotebookLM，效率更高。
+  **批量操作**：先把多篇公众号文章收藏到 NoteFlow，再聚合导出 PDF 上传到 NotebookLM，效率更高。
 </Tip>

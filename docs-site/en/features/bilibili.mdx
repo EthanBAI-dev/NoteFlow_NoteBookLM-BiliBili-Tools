@@ -1,0 +1,66 @@
+---
+title: 'Bilibili Import'
+description: 'Extract Bilibili video subtitles and import into NotebookLM'
+---
+
+## The Problem
+
+Bilibili has tons of high-quality video tutorials and educational content, but NotebookLM doesn't support importing Bilibili videos.
+
+## The Solution
+
+<Steps>
+  <Step title="Open a Bilibili page">
+    Open a Bilibili video page, creator space, or favorites page in your browser.
+  </Step>
+  <Step title="Auto-detect">
+    The NoteFlow side panel automatically detects the Bilibili page and shows video info with a subtitle extraction interface.
+  </Step>
+  <Step title="Choose subtitle mode">
+    Three output modes available:
+    - **Per Video** — each video becomes its own document, imported individually
+    - **Merged** — multiple videos' subtitles merged into one document, takes only 1 source slot
+    - **ZIP Download** — download subtitles as a ZIP archive
+  </Step>
+  <Step title="Import to NotebookLM">
+    Select a mode and click import. The subtitles will appear in NotebookLM's source list automatically.
+  </Step>
+</Steps>
+
+## Supported Features
+
+| Feature | Description |
+|---|---|
+| Video subtitle extraction | Auto-fetch CC subtitles / AI-generated captions |
+| Creator uploads | View all videos from a creator, batch select |
+| Favorites | Analyze all videos in a user's favorites |
+| Danmaku/comments (optional) | Extract representative danmaku and comments |
+| Per-video import | Each video as an independent NotebookLM source |
+| Merged import | Multiple videos merged into one document, saves quota |
+| ZIP download | Package subtitles for local download |
+
+## Import Format
+
+Content imported into NotebookLM is formatted as:
+
+```markdown
+# Video Title
+
+**Source**: Bilibili
+**Creator**: Creator name
+**URL**: https://www.bilibili.com/video/BVxxxxxx
+
+---
+
+00:00:12 Subtitle text content
+00:00:15 Next subtitle line
+...
+```
+
+<Tip>
+  **Merged mode** is ideal for tutorial series — merge all subtitles from a collection into one document that takes just 1 source slot.
+</Tip>
+
+<Note>
+  Subtitle extraction requires the video to have CC subtitles (AI-generated or uploaded by the creator). Videos without subtitles may not be extractable.
+</Note>

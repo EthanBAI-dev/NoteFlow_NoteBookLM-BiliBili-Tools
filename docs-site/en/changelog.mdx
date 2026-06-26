@@ -3,6 +3,17 @@ title: 'Changelog'
 description: 'NoteFlow version history'
 ---
 
+## v1.8.0 — Recent
+
+- 🎬 **Bilibili subtitle import**: Extract Bilibili video subtitles with 3 output modes (per-video, merged, ZIP download)
+- 🧩 **Side panel redesign**: Popup upgraded to Side Panel — opens in place, auto-detects current site and matches import tool
+- 🔄 **Auto site detection**: Auto-match Bilibili/YouTube/Podcast/AI Chat/Web — no manual tab switching needed
+- 👤 **Google account switching**: Switch NotebookLM Google accounts from the side panel header
+- 🎓 **Onboarding tour**: 5-step guided tour after installation, covers all core features
+- 📋 **Settings panel**: New settings page with auto-rename toggle, replay tour, and more
+- 🔐 **Supabase auth**: Email registration and Google OAuth sign-in support
+- 📊 **Import history**: View all import records with easy retry
+
 ## v1.7.5 — 2026-04-23
 
 - 🎨 **Share card preserves AI conversation structure**: The previous extractor flattened paragraphs, lists, blockquotes, and bold formatting into a single run-on paragraph — multi-line answers (translations, side-by-side comparisons, definition lists) became unreadable in the share image. Claude/ChatGPT/Gemini extractors now emit cleaned HTML fragments which the offscreen Turndown batch-converts to Markdown, preserving paragraphs / headings / ordered & unordered lists / blockquotes / bold & italic / inline code / fenced code

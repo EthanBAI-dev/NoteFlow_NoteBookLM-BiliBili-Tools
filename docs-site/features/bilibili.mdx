@@ -1,0 +1,66 @@
+---
+title: 'Bilibili 导入'
+description: '提取 Bilibili 视频字幕和弹幕，导入 NotebookLM'
+---
+
+## 问题
+
+Bilibili 上有大量优质视频教程和知识内容，但 NotebookLM 不支持导入 Bilibili 视频。
+
+## 解决方案
+
+<Steps>
+  <Step title="打开 Bilibili 页面">
+    在浏览器中打开 Bilibili 视频页面、UP 主空间或收藏夹页面。
+  </Step>
+  <Step title="自动识别">
+    NoteFlow 侧面板会自动识别 Bilibili 页面，显示视频信息和字幕提取界面。
+  </Step>
+  <Step title="选择字幕模式">
+    支持三种输出模式：
+    - **逐视频** — 每个视频生成独立文档，各自导入
+    - **合并** — 多个视频字幕合并为一个文档，只占 1 个来源配额
+    - **ZIP 下载** — 下载字幕 ZIP 压缩包
+  </Step>
+  <Step title="导入到 NotebookLM">
+    选择模式后点击导入，字幕内容会自动出现在 NotebookLM 的来源列表中。
+  </Step>
+</Steps>
+
+## 支持的功能
+
+| 功能 | 说明 |
+|---|---|
+| 视频字幕提取 | 自动获取视频 CC 字幕/AI 生成字幕 |
+| UP 主投稿 | 查看 UP 主所有视频列表，批量选择 |
+| 收藏夹 | 分析用户收藏夹中的所有视频 |
+| 弹幕/评论（可选） | 提取代表性弹幕和评论内容 |
+| 逐视频导入 | 每个视频作为独立 NotebookLM 来源 |
+| 合并导入 | 多视频合并为一个文档，节省配额 |
+| ZIP 下载 | 打包下载字幕文件到本地 |
+
+## 输出格式
+
+导入到 NotebookLM 的内容格式：
+
+```markdown
+# 视频标题
+
+**来源**: Bilibili
+**UP 主**: UP 主名称
+**URL**: https://www.bilibili.com/video/BVxxxxxx
+
+---
+
+00:00:12 字幕文本内容
+00:00:15 下一句字幕内容
+...
+```
+
+<Tip>
+  **合并模式**最适合系列教程 — 把一个合集的所有字幕合并为一个文档，只占 1 个来源。
+</Tip>
+
+<Note>
+  字幕提取需要视频拥有 CC 字幕（B 站 AI 自动生成或 UP 主上传）。部分无字幕视频可能无法提取。
+</Note>

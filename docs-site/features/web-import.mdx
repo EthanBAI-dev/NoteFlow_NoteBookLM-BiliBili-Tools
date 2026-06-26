@@ -1,25 +1,23 @@
 ---
 title: '网页导入'
-description: '单个导入、批量导入、导入所有标签页'
+description: '导入任意网页、Substack、微信公众号、X.com 长文到 NotebookLM'
 ---
 
-## 三种导入模式
+## 使用方式
 
-扩展提供三种网页导入方式，适用于不同场景。
+NoteFlow 会自动检测当前标签页类型，切换到对应的导入工具。如果当前是普通网页，会显示网页导入界面。
 
 ### 单个导入
 
-最简单的方式 — 粘贴一个 URL 即可。
-
 <Steps>
-  <Step title="打开 Jetpack 面板">
-    确保已打开一个 NotebookLM 笔记本，然后点击 Jetpack 图标。
+  <Step title="打开 NoteFlow 侧面板">
+    确保已打开一个 NotebookLM 笔记本，然后打开 NoteFlow 侧面板。
   </Step>
   <Step title="输入 URL">
-    在输入框中粘贴网页链接，或点击「当前标签页」快捷按钮直接导入当前页面。
+    在输入框中粘贴网页链接，或点击「刷新」按钮直接导入当前页面。
   </Step>
-  <Step title="点击导入">
-    扩展会自动提取正文内容并导入到 NotebookLM。
+  <Step title="选择 Notebook 并导入">
+    在侧面板顶部选择目标 Notebook，点击「导入到 NotebookLM」。
   </Step>
 </Steps>
 
@@ -31,9 +29,9 @@ description: '单个导入、批量导入、导入所有标签页'
 
 一次导入多个 URL。
 
-1. 切换到「批量」模式
-2. 每行粘贴一个 URL（或用逗号分隔）
-3. 点击「批量导入」
+1. 在网页导入界面中输入多个 URL，每行一个
+2. 点击「批量导入」
+3. 扩展逐个导入，进度条实时显示
 
 <Note>
   也可以点击「导入所有打开的标签页」，自动获取当前所有标签页的 URL 并填入列表。
@@ -47,17 +45,15 @@ description: '单个导入、批量导入、导入所有标签页'
 
 ## 特殊平台支持
 
-部分平台需要通过浏览器标签页渲染才能提取内容，Jetpack 会自动处理：
+部分平台需要通过浏览器标签页渲染才能提取内容，NoteFlow 会自动处理：
 
 - **X.com (Twitter) 长文** — 自动识别 Article 格式，通过标签页渲染提取完整内容
 - **微信公众号** — 绕过反爬机制，浏览器内渲染后提取（详见 [微信公众号导入](/guides/wechat)）
-- **Substack** — 14 项噪音过滤，精准提取正文（详见 [Substack 导入技巧](/guides/substack)）
+- **Substack** — 专门噪音过滤，精准提取正文（详见 [Substack 导入技巧](/guides/substack)）
 
 ## 导入失败？
 
-如果某些 URL 导入失败，Jetpack 会显示失败列表，支持：
-- **重试失败** — 一键重试所有失败项
-- **逐个重试** — 点击单个失败项旁的重试按钮
+如果某些 URL 导入失败，NoteFlow 会显示失败列表，支持一键重试。
 
 <Warning>
   导入前请确保已打开一个 NotebookLM **笔记本页面**（不是首页）。

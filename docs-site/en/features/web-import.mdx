@@ -1,25 +1,23 @@
 ---
 title: 'Web Import'
-description: 'Single import, batch import, and import all tabs'
+description: 'Import any URL, Substack, WeChat, and X.com articles into NotebookLM'
 ---
 
-## Three Import Modes
+## How It Works
 
-The extension offers three ways to import web pages, each suited to different scenarios.
+NoteFlow automatically detects the current tab type and switches to the matching import tool. For regular web pages, it shows the web import interface.
 
 ### Single Import
 
-The simplest approach — just paste a URL.
-
 <Steps>
-  <Step title="Open the Jetpack panel">
-    Make sure you have a NotebookLM notebook open, then click the Jetpack icon.
+  <Step title="Open the NoteFlow side panel">
+    Make sure you have a NotebookLM notebook open, then open the NoteFlow side panel.
   </Step>
   <Step title="Enter a URL">
-    Paste a web page link in the input field, or click the "Current Tab" shortcut button to import the current page directly.
+    Paste a web page link in the input field, or click the "Refresh" button to import the current page.
   </Step>
-  <Step title="Click Import">
-    The extension will automatically extract the main content and import it into NotebookLM.
+  <Step title="Select Notebook and import">
+    Choose your target notebook in the side panel and click "Import to NotebookLM".
   </Step>
 </Steps>
 
@@ -31,9 +29,9 @@ The simplest approach — just paste a URL.
 
 Import multiple URLs at once.
 
-1. Switch to "Batch" mode
-2. Paste one URL per line (or separate with commas)
-3. Click "Batch Import"
+1. Enter multiple URLs in the web import input, one per line
+2. Click "Batch Import"
+3. The extension imports them one by one with a live progress bar
 
 <Note>
   You can also click "Import all open tabs" to automatically grab URLs from all your open tabs and add them to the list.
@@ -47,17 +45,15 @@ While browsing any web page:
 
 ## Special Platform Support
 
-Some platforms require tab-based rendering for content extraction. Jetpack handles these automatically:
+Some platforms require tab-based rendering for content extraction. NoteFlow handles these automatically:
 
 - **X.com (Twitter) long-form articles** — Automatically detects Article format and extracts full content via tab rendering
 - **WeChat articles** — Bypasses anti-scraping mechanisms by rendering in-browser before extraction (see [WeChat Import](/en/guides/wechat))
-- **Substack** — 14 noise filters for precise article extraction (see [Substack Import Tips](/en/guides/substack))
+- **Substack** — Dedicated noise filtering for precise article extraction (see [Substack Import Tips](/en/guides/substack))
 
 ## Import Failed?
 
-If some URLs fail to import, Jetpack shows a failure list with options to:
-- **Retry all failed** — one-click retry for all failed items
-- **Retry individually** — click the retry button next to each failed item
+If some URLs fail to import, NoteFlow shows a failure list with one-click retry.
 
 <Warning>
   Before importing, make sure you have a NotebookLM **notebook page** open (not the homepage).
