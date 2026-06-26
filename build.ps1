@@ -3,7 +3,7 @@ if (Test-Path dist) { Remove-Item -Recurse -Force dist }
 if (Test-Path dist-dev) { Remove-Item -Recurse -Force dist-dev }
 
 Write-Host "=== Building ===" -ForegroundColor Cyan
-npm run build
+pnpm build
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "=== Build succeeded! ===" -ForegroundColor Green

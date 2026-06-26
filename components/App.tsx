@@ -222,11 +222,11 @@ export default function App() {
     <div className="min-h-[480px] bg-surface">
       {/* Header — frosted glass */}
       <div className="glass px-4 py-1.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2 min-w-0">
+        <div data-tour="account-selector" className="flex items-center gap-2 min-w-0">
           {/* GoogleAccountSelector — compact, in header */}
           <GoogleAccountSelector compact />
         </div>
-        <div className="flex items-center gap-1">
+        <div data-tour="header-actions" className="flex items-center gap-1">
           <button
             onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
             className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
@@ -299,7 +299,7 @@ export default function App() {
       {/* ════════════════════════════════════════════════════════
          Content panel — auto-switched by browser URL detection
          ════════════════════════════════════════════════════════ */}
-      <div className="px-4 pt-3 space-y-2">
+      <div data-tour="feature-panel" className="px-4 pt-3 space-y-2">
         <div className="flex items-center">
           <label className="text-[11px] font-medium text-gray-500 tracking-wide">{t('app.currentSite')}</label>
           <button
@@ -348,10 +348,13 @@ export default function App() {
          ════════════════════════════════════════════════════════ */}
       <div className="px-4 pt-4 pb-4 space-y-4">
         {/* Notebook selector */}
-        <NotebookSelector />
+        <div data-tour="notebook-selector">
+          <NotebookSelector />
+        </div>
 
         {/* Unified Import button */}
         <button
+          data-tour="import-button"
           onClick={handleSharedImport}
           disabled={!hasImportHandler}
           className="w-full py-2.5 bg-notebooklm-blue hover:bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"

@@ -528,12 +528,21 @@ export function buildSubtitleJson(
 }
 
 /**
- * Build subtitle text in standard SRT format, preserving timestamps.
+ * Build plain subtitle text with timestamp markers preserved.
+ * Format: [MM:SS,mmm] content
  */
 export function buildSubtitleWithTimestamps(
   subtitleBody: BilibiliSubtitleBody[],
 ): string {
-  return buildSubtitleSrt(subtitleBody);
+  return subtitleBody
+    .map(b => {
+      const ts = formatTimestamp(b.from);
+      const text = b.content.replace(/<[^>]+>/g, '').trim();
+      if (!text) return '';
+      return `[${ts}] ${text}`;
+    })
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function buildSubtitlePlainText(
