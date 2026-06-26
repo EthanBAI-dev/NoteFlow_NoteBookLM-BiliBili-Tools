@@ -111,5 +111,5 @@ MIT License
 ---
 
 <p align="center">
-  Made with ❤️ for NotebookLM users
+  Made with ❤️ by Ethan
 </p>

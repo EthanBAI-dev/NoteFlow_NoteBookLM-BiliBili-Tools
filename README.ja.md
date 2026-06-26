@@ -109,5 +109,5 @@ MIT License
 ---
 
 <p align="center">
-  NotebookLM ユーザーのために ❤️ を込めて
+  ❤️ を込めて Ethan より
 </p>
