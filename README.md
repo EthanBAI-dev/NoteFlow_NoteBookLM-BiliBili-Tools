@@ -5,61 +5,65 @@
 <h1 align="center">NoteFlow</h1>
 
 <p align="center">
-  <strong>NoteFlow — B站、YouTube、播客、网页、AI 对话，一键批量导入 NotebookLM</strong>
+  <a href="README.md">English</a> •
+  <a href="README.zh.md">简体中文</a> •
+  <a href="README.ja.md">日本語</a>
+</p>
+
+<p align="center">
+  <strong>Batch import Bilibili, YouTube, podcasts, web pages & AI chats into NotebookLM — one click</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools">GitHub</a> •
-  <a href="https://noteflow.mintlify.app">文档</a> •
+  <a href="https://noteflow.mintlify.app">Docs</a> •
   <a href="https://chromewebstore.google.com/detail/noteflow">Chrome Web Store</a> •
-  开源 · 免费 · 纯客户端
+  Open Source · Free · Client-Side Only
 </p>
 
 ---
 
-NotebookLM 是最强的 AI 知识工具，但「把内容喂进去」这一步太痛苦了。**NoteFlow 解决这个问题。**
+NotebookLM is the best AI knowledge tool, but getting content into it is painful. **NoteFlow fixes that.**
 
-这是一款 Chrome 扩展（Manifest V3），基于 WXT 框架构建，支持从多源一键批量导入内容到 Google NotebookLM。
+A Chrome extension (Manifest V3) built with the WXT framework that batch-imports content from multiple sources into Google NotebookLM.
 
-## ✨ 核心功能
+## ✨ Features
 
-| 功能 | 说明 |
-|------|------|
-| 🎬 **Bilibili 字幕导入** | 提取视频 CC 字幕 / AI 字幕，支持逐视频、合并（省配额）、ZIP 下载三种模式 |
-| ▶️ **YouTube 导入** | 单个视频、播放列表、频道批量导入，支持 "Load more" 分页加载 |
-| 🎙️ **播客导入** | Apple Podcasts 和小宇宙 FM — 自动检测页面，下载音频导入 NotebookLM |
-| 📋 **网页导入** | 任意 URL、Substack、微信公众号、X.com 长文 — 正文提取，一键导入 |
-| 📚 **文档站导入** | 识别 14+ 文档框架（Docusaurus、VitePress、GitBook 等），全站批量导入或导出 PDF |
-| 🤖 **AI 对话导入** | Claude、ChatGPT、Gemini — 自动提取问答对，选择性导入，还支持生成分享卡片 |
-| 📡 **RSS 导入** | 任意 RSS/Atom 源，批量导入文章 |
-| 🛟 **来源抢救** | 自动检测导入失败和"假性成功"的来源，一键批量修复 |
+| Feature | Description |
+|---------|-------------|
+| 🎬 **Bilibili Subtitles** | Extract CC/AI subtitles — per-video, merged (saves quota), or ZIP download |
+| ▶️ **YouTube Import** | Videos, playlists, channels — batch import with "Load more" pagination |
+| 🎙️ **Podcast Import** | Apple Podcasts & Xiaoyuzhou FM — auto-detect page, download audio |
+| 📋 **Web Import** | Any URL, Substack, WeChat, X.com articles — extract & import in one click |
+| 📚 **Doc Sites** | 14+ frameworks (Docusaurus, VitePress, GitBook, etc.) — batch import or PDF export |
+| 🤖 **AI Chat Import** | Claude, ChatGPT, Gemini — auto-extract Q&A pairs, selective import, share cards |
+| 📡 **RSS Import** | Any RSS/Atom feed — batch import articles |
+| 🛟 **Rescue** | Auto-detect failed & "fake success" sources, batch-fix in one click |
 
-## 🔥 亮点特性
+## 🔥 Highlights
 
-- **侧面板 UI** — 打开扩展即自动检测当前站点，匹配对应导入工具
-- **Google 多账号切换** — 侧面板顶部可切换 NotebookLM 的 Google 账号
-- **智能目标 Notebook** — 选择目标 Notebook，内容直接导入无需切换标签页
-- **聚合 PDF 导出** — 多篇文章合并为一个 PDF，只占 1 个来源配额，突破 50 来源限制
-- **AI 分享卡片** — 将 AI 对话生成为精美分享图片（JPEG / PNG / PDF）
-- **导入历史** — 查看所有导入记录，轻松重试
-- **隐私优先** — 纯客户端运行，不上传任何数据
+- **Side Panel UI** — Auto-detects the current site and matches the right import tool
+- **Multi-Account** — Switch NotebookLM Google accounts from the side panel header
+- **Target Notebook** — Select a notebook, import directly without switching tabs
+- **PDF Aggregation** — Merge articles into one PDF, takes only 1 source slot
+- **AI Share Cards** — Export AI conversations as beautiful images (JPEG / PNG / PDF)
+- **Import History** — Review all records, easily retry
+- **Privacy First** — 100% client-side, no data uploaded
 
-## 🖥️ 演示
+## 🖥️ Demos
 
-| 平台 | 链接 |
-|------|------|
-| 🎬 Bilibili 中文演示 | [BV1QAPqzSEjJ](https://www.bilibili.com/video/BV1QAPqzSEjJ/) |
+| Platform | Link |
+|----------|------|
 | 🌐 YouTube Demo | [9gPTuJZRHJk](https://youtu.be/9gPTuJZRHJk) |
+| 🎬 Bilibili Demo | [BV1QAPqzSEjJ](https://www.bilibili.com/video/BV1QAPqzSEjJ/) |
 
-## 📦 安装
+## 📦 Installation
 
-### Chrome Web Store（推荐）
-
-一键安装，自动更新。
+### Chrome Web Store (Recommended)
 
 [Chrome Web Store →](https://chromewebstore.google.com/detail/noteflow)
 
-### 从源码构建
+### Build from Source
 
 ```bash
 git clone https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools.git
@@ -68,39 +72,39 @@ pnpm install
 pnpm build
 ```
 
-Chrome → `chrome://extensions/` → 开启开发者模式 → 加载已解压的扩展 → 选择 `dist/chrome-mv3`
+Chrome → `chrome://extensions/` → Developer mode → Load unpacked → Select `dist/chrome-mv3`
 
-## 🛠️ 开发
+## 🛠️ Development
 
 ```bash
-pnpm dev         # 开发模式，热重载（port 3003）
-pnpm build       # 生产构建
-pnpm test        # 运行测试
-pnpm lint        # ESLint 检查
-pnpm compile     # TypeScript 类型检查
-pnpm zip         # 打包扩展
-pnpm release     # 发布脚本（版本号递增 + git push）
+pnpm dev         # Dev mode with HMR (port 3003)
+pnpm build       # Production build
+pnpm test        # Run tests
+pnpm lint        # ESLint
+pnpm compile     # TypeScript check
+pnpm zip         # Package extension
+pnpm release     # Release script (bump version + git push)
 ```
 
-## 🏗️ 技术栈
+## 🏗️ Tech Stack
 
-| 类别 | 技术 |
-|------|------|
-| 框架 | [WXT](https://wxt.dev) + React 18 + TypeScript |
-| 构建 | Vite + PostCSS + Tailwind CSS |
-| 测试 | Vitest + jsdom + @testing-library/react |
-| 设计 | Manifest V3, Chrome Extensions APIs |
-| 后端 | Supabase (认证), Google Drive API |
-| 文档 | Mintlify |
+| Category | Technology |
+|----------|-----------|
+| Framework | [WXT](https://wxt.dev) + React 18 + TypeScript |
+| Build | Vite + PostCSS + Tailwind CSS |
+| Testing | Vitest + jsdom + @testing-library/react |
+| Architecture | Manifest V3, Chrome Extensions APIs |
+| Backend | Supabase (Auth), Google Drive API |
+| Docs | Mintlify |
 
-## 🔒 隐私
+## 🔒 Privacy
 
-- ✅ 完全免费，无需注册登录
-- ✅ 纯客户端运行，不上传任何数据
-- ✅ [开源代码](https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools)，可审计
-- ✅ 中英双语界面，自动适配
+- ✅ Completely free, no sign-up required
+- ✅ 100% client-side — no data uploaded
+- ✅ [Open source](https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools), fully auditable
+- ✅ Bilingual UI (English & Chinese)
 
-## 📄 许可证
+## 📄 License
 
 MIT License
 
