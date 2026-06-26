@@ -431,9 +431,12 @@ export function buildSubtitleMarkdown(
   owner: string,
   desc: string,
   subtitleBody: BilibiliSubtitleBody[],
+  stripTimestamps: boolean = true,
 ): string {
   const displayTitle = part ? `${title} - ${part}` : title;
-  const mergedText = smartMergeSubtitles(subtitleBody);
+  const mergedText = stripTimestamps
+    ? smartMergeSubtitles(subtitleBody)
+    : buildSubtitleWithTimestamps(subtitleBody);
   const estimatedWords = Math.round(mergedText.length * 0.7);
   const cleanDesc = desc?.trim() || '暂无简介';
 
@@ -463,12 +466,13 @@ export function convertSubtitleOutput(
   format: SubtitleFormat,
   markdown: string,
   rawBody?: BilibiliSubtitleBody[],
+  stripTimestamps: boolean = true,
 ): { content: string; ext: string; mime: string } {
   switch (format) {
     case 'txt':
       return {
         content: rawBody
-          ? buildSubtitlePlainText(rawBody)
+          ? buildSubtitlePlainText(rawBody, stripTimestamps)
           : markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim(),
         ext: '.txt',
         mime: 'text/plain',
@@ -523,10 +527,23 @@ export function buildSubtitleJson(
   })), null, 2);
 }
 
-export function buildSubtitlePlainText(
+/**
+ * Build subtitle text in standard SRT format, preserving timestamps.
+ */
+export function buildSubtitleWithTimestamps(
   subtitleBody: BilibiliSubtitleBody[],
 ): string {
-  return subtitleBody.map(b => b.content.replace(/<[^>]+>/g, '').trim()).join('\n');
+  return buildSubtitleSrt(subtitleBody);
+}
+
+export function buildSubtitlePlainText(
+  subtitleBody: BilibiliSubtitleBody[],
+  stripTimestamps: boolean = true,
+): string {
+  if (stripTimestamps) {
+    return subtitleBody.map(b => b.content.replace(/<[^>]+>/g, '').trim()).join('\n');
+  }
+  return buildSubtitleWithTimestamps(subtitleBody);
 }
 
 export function mergeBilibiliSubtitles(
@@ -598,6 +615,7 @@ export async function fetchVideoSubtitle(
   video: BilibiliVideoItem,
   ownerName: string,
   desc: string,
+  stripTimestamps: boolean = true,
 ): Promise<SubtitleFetchResult> {
   let { bvid, cid, aid } = video;
 
@@ -668,6 +686,7 @@ export async function fetchVideoSubtitle(
       ownerName,
       desc,
       bodies,
+      stripTimestamps,
     );
 
     return {

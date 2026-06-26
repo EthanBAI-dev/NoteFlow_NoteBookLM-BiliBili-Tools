@@ -1,4 +1,3 @@
-import { parseRssFeed } from '@/services/rss-parser';
 import { fetchNotebooksCached as fetchNotebooksApi } from '@/services/notebook-api';
 import {
   importUrl,
@@ -20,7 +19,6 @@ import {
   fetchBilibiliUserVideos,
   fetchBilibiliFavoriteList,
   convertSubtitleOutput,
-  stripBilibiliTimestamps,
 } from '@/services/bilibili';
 import { setOpState, clearOpState, type OpState } from '@/services/op-state';
 import { uploadToDrive } from '@/services/google-drive';
@@ -34,6 +32,7 @@ import {
 } from '@/services/claude-conversation';
 import type { MessageType, MessageResponse, ClaudeConversation } from '@/lib/types';
 import { runtimeT, type TranslationKey } from '@/lib/i18n';
+import { getSettings } from '@/lib/settings';
 
 // Dev reload: allow external messages to trigger extension reload
 try {
@@ -277,6 +276,8 @@ export default defineBackground(() => {
 
         const { videos, ownerName, desc, source, outputFormat } = msg as any;
         const isMerged = msg.type === 'BILIBILI_DOWNLOAD_MERGED';
+        const settings = await getSettings();
+        const stripTimestamps = settings.stripBilibiliTimestamps;
 
         await setOpState({
           active: true,
@@ -298,14 +299,14 @@ export default defineBackground(() => {
             for (let i = 0; i < videos.length; i++) {
               const video = videos[i];
               sendProgress({ phase: 'downloading', current: i + 1, total: videos.length, title: video.part || video.title, bvid: video.bvid });
-              const result = await fetchVideoSubtitle(video, ownerName, desc);
+              const result = await fetchVideoSubtitle(video, ownerName, desc, stripTimestamps);
               results.push(result);
               if (i < videos.length - 1) {
                 await new Promise(r => setTimeout(r, 1500));
               }
             }
             let mergedMd = mergeBilibiliSubtitles(results, source);
-            const fmt = convertSubtitleOutput(outputFormat || 'md', mergedMd);
+            const fmt = convertSubtitleOutput(outputFormat || 'md', mergedMd, undefined, stripTimestamps);
             const mergedLabel = await runtimeT('runtime.bilibiliMergedContent');
             const mergedFilename = `${sanitizeBilibiliFilename(source.title)}_${sanitizeBilibiliFilename(mergedLabel)}${fmt.ext}`;
             const encoded = btoa(unescape(encodeURIComponent(fmt.content)));
@@ -319,12 +320,12 @@ export default defineBackground(() => {
             for (let i = 0; i < videos.length; i++) {
               const video = videos[i];
               sendProgress({ phase: 'downloading', current: i + 1, total: videos.length, title: video.part || video.title, bvid: video.bvid });
-              const result = await fetchVideoSubtitle(video, ownerName, desc);
+              const result = await fetchVideoSubtitle(video, ownerName, desc, stripTimestamps);
               if (!result.markdown) { skipped++; }
               else {
                 let markdown = result.markdown;
                 const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
-                const fmt = convertSubtitleOutput(outputFormat || 'md', markdown, result.rawBody);
+                const fmt = convertSubtitleOutput(outputFormat || 'md', markdown, result.rawBody, stripTimestamps);
                 const filename = `${sanitizeBilibiliFilename(displayTitle)}${fmt.ext}`;
                 zip.file(filename, fmt.content);
               }
@@ -969,20 +970,17 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   }
   if (type === 'DOWNLOAD_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
-    const store = await chrome.storage.local.get('noteflowSettings');
-    const removeTs = store.noteflowSettings?.bilibiliRemoveTimestamps !== false;
+    const settings = await getSettings();
     let downloaded = 0; let skipped = 0;
     console.log(`[background] Starting download for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Fetching ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
-      const result = await fetchVideoSubtitle(video, ownerName, desc);
+      const result = await fetchVideoSubtitle(video, ownerName, desc, settings.stripBilibiliTimestamps);
       if (!result.markdown) { skipped++; }
       else {
         const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
-        let content = result.markdown;
-        if (removeTs) content = stripBilibiliTimestamps(content);
         const filename = `${sanitizeBilibiliFilename(displayTitle)}.md`;
-        const encoded = btoa(unescape(encodeURIComponent(content)));
+        const encoded = btoa(unescape(encodeURIComponent(result.markdown)));
         const dataUrl = `data:text/markdown;base64,${encoded}`;
         await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
         downloaded++;
@@ -993,19 +991,17 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     }
     return { downloaded, skipped };
   }
-  // Single video subtitle download (TXT button on each list item / SourceInfoCard)
+  // Single video subtitle download (TXT button on each list item)
   if (type === 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE') {
     const { video, ownerName, desc: videoDesc } = message as any;
-    const store = await chrome.storage.local.get('noteflowSettings');
-    const removeTs = store.noteflowSettings?.bilibiliRemoveTimestamps !== false;
-    const result = await fetchVideoSubtitle(video, ownerName || '', videoDesc || '');
+    const settings = await getSettings();
+    const result = await fetchVideoSubtitle(video, ownerName || '', videoDesc || '', settings.stripBilibiliTimestamps);
     if (!result.markdown) {
       return { success: false, error: await runtimeT('runtime.bilibiliNoSubtitle') };
     }
     const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
     const filename = `${sanitizeBilibiliFilename(displayTitle)}.txt`;
-    let plainText = result.markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim();
-    if (removeTs) plainText = stripBilibiliTimestamps(plainText);
+    const plainText = result.markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim();
     const encoded = btoa(unescape(encodeURIComponent(plainText)));
     const dataUrl = `data:text/plain;base64,${encoded}`;
     await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
@@ -1013,12 +1009,13 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   }
   if (type === 'DOWNLOAD_BILIBILI_ZIP') {
     const { videos, ownerName, desc } = message as any;
+    const settings = await getSettings();
     const zip = new JSZip();
     let added = 0;
     console.log(`[background] Starting ZIP download for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Fetching ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
-      const result = await fetchVideoSubtitle(video, ownerName, desc);
+      const result = await fetchVideoSubtitle(video, ownerName, desc, settings.stripBilibiliTimestamps);
       if (result.markdown) {
         const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
         zip.file(`${sanitizeBilibiliFilename(displayTitle)}.md`, result.markdown);
@@ -1037,16 +1034,14 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   }
   if (type === 'IMPORT_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
-    const store = await chrome.storage.local.get('noteflowSettings');
-    const removeTs = store.noteflowSettings?.bilibiliRemoveTimestamps !== false;
+    const settings = await getSettings();
     let imported = 0; let skipped = 0;
     setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: await runtimeT('runtime.bilibiliPreparingImport'), timestamp: Date.now() });
     for (const video of videos) {
       setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: video.part || video.title, timestamp: Date.now() });
-      const result = await fetchVideoSubtitle(video, ownerName, desc);
+      const result = await fetchVideoSubtitle(video, ownerName, desc, settings.stripBilibiliTimestamps);
       if (!result.markdown) { skipped++; continue; }
       let markdown = result.markdown;
-      if (removeTs) markdown = stripBilibiliTimestamps(markdown);
       const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
       const success = await importText(markdown, displayTitle, senderTabId);
       if (success) { imported++; } else { skipped++; }
@@ -1061,13 +1056,14 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
   if (type === 'IMPORT_BILIBILI_MERGED') {
     const { videos, ownerName, desc, source } = message as any;
+    const settings = await getSettings();
     const results = [];
     setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: await runtimeT('runtime.bilibiliFetchingSubtitle'), timestamp: Date.now() });
     console.log(`[background] Starting merged import for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Processing ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
       setOpState({ active: true, phase: 'importing', kind: 'import', current: videos.indexOf(video), total: videos.length, title: video.part || video.title, timestamp: Date.now() });
-      const result = await fetchVideoSubtitle(video, ownerName, desc);
+      const result = await fetchVideoSubtitle(video, ownerName, desc, settings.stripBilibiliTimestamps);
       results.push(result);
       if (videos.indexOf(video) < videos.length - 1) {
         await new Promise(r => setTimeout(r, 1500));
@@ -1086,11 +1082,12 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
   if (type === 'DOWNLOAD_BILIBILI_MERGED') {
     const { videos, ownerName, desc, source } = message as any;
+    const settings = await getSettings();
     const results = [];
     console.log(`[background] Starting merged download for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Fetching ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
-      const result = await fetchVideoSubtitle(video, ownerName, desc);
+      const result = await fetchVideoSubtitle(video, ownerName, desc, settings.stripBilibiliTimestamps);
       results.push(result);
       if (videos.indexOf(video) < videos.length - 1) {
         await new Promise(r => setTimeout(r, 1500));
@@ -1107,11 +1104,12 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
   if (type === 'UPLOAD_BILIBILI_TO_DRIVE') {
     const { videos, ownerName, desc, source } = message as any;
+    const settings = await getSettings();
     const results = [];
     console.log(`[background] Starting Drive upload for ${videos.length} videos...`);
     for (const video of videos) {
       console.log(`[background] Fetching ${video.bvid} (${videos.indexOf(video) + 1}/${videos.length})`);
-      const result = await fetchVideoSubtitle(video, ownerName, desc);
+      const result = await fetchVideoSubtitle(video, ownerName, desc, settings.stripBilibiliTimestamps);
       results.push(result);
       if (videos.indexOf(video) < videos.length - 1) {
         await new Promise(r => setTimeout(r, 1500));
@@ -1134,9 +1132,6 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
 
     case 'IMPORT_BATCH':
       return await importBatch(message.urls, undefined, senderTabId);
-
-    case 'PARSE_RSS':
-      return await parseRssFeed(message.rssUrl);
 
     case 'GET_CURRENT_TAB':
       return await getCurrentTabUrl();
