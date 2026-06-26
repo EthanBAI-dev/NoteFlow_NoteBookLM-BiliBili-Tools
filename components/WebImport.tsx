@@ -5,6 +5,7 @@ import {
   Info,
 } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 import { SourceInfoCard } from './SourceInfoCard';
 
 interface TabItem {
@@ -40,6 +41,7 @@ function isDedicatedImportUrl(url: string): boolean {
 }
 
 export function WebImport({ onImportHandlerChange, onProgress }: Props) {
+  const { t } = useI18n();
   const [windows, setWindows] = useState<WindowGroup[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [currentTabInfo, setCurrentTabInfo] = useState<{ url: string; title: string; favicon?: string } | null>(null);
