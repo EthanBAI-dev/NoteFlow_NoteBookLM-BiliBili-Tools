@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NoteFlow — Welcome</title>
+    <style>
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+      :root {
+        --bg: #f7f6f3;
+        --surface: #ffffff;
+        --border: rgba(0,0,0,0.07);
+        --text: #1d1d1f;
+        --text-secondary: rgba(29,29,31,0.55);
+        --accent: #2563eb;
+        --accent-light: rgba(37,99,235,0.08);
+        --accent-border: rgba(37,99,235,0.15);
+        --radius: 14px;
+        --radius-sm: 8px;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .container {
+        max-width: 740px;
+        margin: 0 auto;
+        padding: 60px 28px 80px;
+      }
+
+      .pin-toast {
+        position: fixed;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        max-width: 460px;
+        width: calc(100% - 40px);
+        animation: toastIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      .pin-toast.hidden { display: none; }
+
+      .pin-toast-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: var(--accent-light);
+        padding: 8px;
+      }
+
+      .pin-toast-body { flex: 1; min-width: 0; }
+
+      .pin-toast-body .title {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .pin-toast-body .desc {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+
+      .pin-toast-close {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: var(--bg);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      .pin-toast-close:hover {
+        background: rgba(0,0,0,0.08);
+        color: var(--text);
+      }
+
+      @keyframes toastIn {
+        from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.96); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      }
+
+      .hero { text-align: center; padding: 32px 0 48px; }
+
+      .hero-logo {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 20px;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      }
+
+      .hero h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 38px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+
+      .hero h1 em {
+        font-style: italic;
+        color: var(--accent);
+      }
+
+      .hero .sub {
+        font-size: 16px;
+        font-weight: 400;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        max-width: 500px;
+        margin: 12px auto 0;
+      }
+
+      .section-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 44px;
+      }
+
+      .feature-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+        transition: border-color 0.25s, box-shadow 0.25s;
+        cursor: default;
+      }
+
+      .feature-card:hover {
+        border-color: var(--accent-border);
+        box-shadow: 0 4px 20px rgba(37,99,235,0.06);
+      }
+
+      .feature-card .icon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-sm);
+        background: var(--accent-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        margin-bottom: 12px;
+      }
+
+      .feature-card h3 {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+        margin-bottom: 4px;
+      }
+
+      .feature-card p {
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--text-secondary);
+        line-height: 1.55;
+      }
+
+      .feature-card .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 10px;
+      }
+
+      .feature-card .tags span {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--accent);
+        background: var(--accent-light);
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+
+      .workflow { margin-bottom: 44px; }
+
+      .workflow-steps {
+        display: flex;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .workflow-step {
+        flex: 1;
+        padding: 18px 14px;
+        text-align: center;
+      }
+
+      .workflow-step + .workflow-step { border-left: 1px solid var(--border); }
+
+      .workflow-step .step-num {
+        font-family: Georgia, serif;
+        font-size: 20px;
+        color: var(--accent);
+        opacity: 0.35;
+        line-height: 1;
+        margin-bottom: 5px;
+      }
+
+      .workflow-step .step-label {
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .workflow-step .step-desc {
+        font-size: 11px;
+        color: var(--text-secondary);
+        line-height: 1.4;
+        margin-top: 3px;
+      }
+
+      .footer {
+        text-align: center;
+        padding-top: 36px;
+        border-top: 1px solid var(--border);
+      }
+
+      .footer p {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.8;
+      }
+
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .footer a:hover { text-decoration: underline; }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(16px);
+        transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (max-width: 640px) {
+        .container { padding: 36px 20px 60px; }
+        .hero h1 { font-size: 30px; }
+        .hero .sub { font-size: 14px; }
+        .feature-grid { grid-template-columns: 1fr; }
+        .workflow-steps { flex-direction: column; }
+        .workflow-step + .workflow-step { border-left: none; border-top: 1px solid var(--border); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pin-toast" id="pinToast">
+      <img src="./icons/icon-48.png" alt="" class="pin-toast-icon" />
+      <div class="pin-toast-body">
+        <div class="title" id="pinToastTitle">NoteFlow 已安装</div>
+        <div class="desc" id="pinToastDesc1">点击浏览器工具栏右侧的拼图图标，将 NoteFlow 固定到工具栏以便快速使用</div>
+        <div class="desc" id="pinToastDesc2">固定后即可更快打开扩展并开始导入。</div>
+      </div>
+      <button class="pin-toast-close" id="pinToastClose">&times;</button>
+    </div>
+
+    <div class="container">
+      <header class="hero reveal">
+        <img src="./icons/icon-128.png" alt="NoteFlow" class="hero-logo" />
+        <h1><em>Note</em>Flow</h1>
+        <p class="sub" id="heroSub">将哔哩哔哩、YouTube、播客、网页、AI 对话等内容一键导入 NotebookLM，高效构建你的知识库。</p>
+      </header>
+
+      <div class="section-label reveal" id="featuresLabel">核心能力</div>
+      <div class="feature-grid">
+        <div class="feature-card reveal">
+          <div class="icon">🎬</div>
+          <h3 id="feature1Title">哔哩哔哩字幕</h3>
+          <p id="feature1Desc">导入 Bilibili 视频字幕与弹幕，亦可一键导出为 TXT 格式，便于本地存档与二次加工。</p>
+          <div class="tags"><span id="feature1Tag1">字幕导入</span><span id="feature1Tag2">TXT 导出</span></div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="icon">🎧</div>
+          <h3 id="feature2Title">YouTube 与播客导入</h3>
+          <p id="feature2Desc">粘贴 YouTube 视频链接或小宇宙播客链接，自动提取内容列表，勾选批量导入 NotebookLM。</p>
+          <div class="tags"><span id="feature2Tag1">YouTube</span><span id="feature2Tag2">小宇宙</span></div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="icon">📋</div>
+          <h3 id="feature3Title">网页内容导入</h3>
+          <p id="feature3Desc">自动列出当前浏览器所有窗口的标签页，按窗口分组展示，勾选后一键导入 NotebookLM。</p>
+          <div class="tags"><span id="feature3Tag1">浏览器标签页</span><span id="feature3Tag2">URL</span></div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="icon">💬</div>
+          <h3 id="feature4Title">AI 对话导入</h3>
+          <p id="feature4Desc">提取 Claude、ChatGPT、Gemini 的对话记录，以问答对为单位勾选，导入至 NotebookLM 深度分析。</p>
+          <div class="tags"><span>Claude</span><span>ChatGPT</span><span>Gemini</span></div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="icon">🔑</div>
+          <h3 id="feature5Title">账号体系</h3>
+          <p id="feature5Desc">支持 Google 多账号快速切换，自动检测当前 NotebookLM 激活账号，自由选择目标笔记本。</p>
+          <div class="tags"><span id="feature5Tag1">Google 账号</span><span id="feature5Tag2">自动检测</span><span id="feature5Tag3">多笔记本</span></div>
+        </div>
+        <div class="feature-card reveal">
+          <div class="icon">⚡</div>
+          <h3 id="feature6Title">后台批量导入</h3>
+          <p id="feature6Desc">无需打开新标签页，在列表中选中多条内容，后台批量写入 NotebookLM，进度实时显示。</p>
+          <div class="tags"><span id="feature6Tag1">批量</span><span id="feature6Tag2">后台</span></div>
+        </div>
+      </div>
+
+      <div class="section-label reveal" id="workflowLabel">使用流程</div>
+      <div class="workflow reveal">
+        <div class="workflow-steps">
+          <div class="workflow-step">
+            <div class="step-num">01</div>
+            <div class="step-label" id="step1Label">选择来源</div>
+            <div class="step-desc" id="step1Desc">切换到对应功能面板</div>
+          </div>
+          <div class="workflow-step">
+            <div class="step-num">02</div>
+            <div class="step-label" id="step2Label">选取内容</div>
+            <div class="step-desc" id="step2Desc">勾选需要导入的视频、网页或对话</div>
+          </div>
+          <div class="workflow-step">
+            <div class="step-num">03</div>
+            <div class="step-label" id="step3Label">一键导入</div>
+            <div class="step-desc" id="step3Desc">点击底部按钮，后台自动完成</div>
+          </div>
+          <div class="workflow-step">
+            <div class="step-num">04</div>
+            <div class="step-label">NotebookLM</div>
+            <div class="step-desc" id="step4Desc">在 NotebookLM 中阅读与整理</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer reveal">
+        <p>
+          <a href="https://github.com/crazynomad/noteflow" target="_blank">GitHub</a>
+          &nbsp;·&nbsp;
+          <span id="footerTagline">开源 · 免费 · 为知识工作者而生</span>
+        </p>
+      </footer>
+    </div>
+
+    <script defer src="./welcome.js"></script>
+  </body>
+</html>

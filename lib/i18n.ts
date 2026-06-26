@@ -357,6 +357,8 @@ const zh = {
   'more.saving': '保存中...',
   'more.saved': '已保存',
   'more.aiPolishRemoved': '已移除 AI 润色功能，当前设置页仅保留扩展通用设置。',
+  'settings.stripTimestamps': '清除 B站字幕时间戳',
+  'settings.stripTimestampsDesc': '开启后，Bilibili 字幕将自动移除时间戳并整理为连贯段落；关闭后将保留原始时间戳标记。',
 
   // ── RssImport ──
   'rss.feedUrl': 'RSS 订阅地址',
@@ -774,6 +776,8 @@ const en: Record<keyof typeof zh, string> = {
   'more.saving': 'Saving...',
   'more.saved': 'Saved',
   'more.aiPolishRemoved': 'AI polishing has been removed. The settings page now only keeps general extension settings.',
+  'settings.stripTimestamps': 'Strip Bilibili subtitle timestamps',
+  'settings.stripTimestampsDesc': 'When enabled, Bilibili subtitles will have timestamps removed and be merged into clean paragraphs. When disabled, original timestamps are preserved.',
 
   // ── RssImport ──
   'rss.feedUrl': 'RSS Feed URL',

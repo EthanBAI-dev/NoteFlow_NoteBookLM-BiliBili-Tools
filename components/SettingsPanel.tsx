@@ -49,6 +49,12 @@ export function SettingsPanel({ onClose, onReplayTour }: Props) {
     await persistSettings({ autoRenamePastedSources: checked });
   };
 
+  const updateStripTimestamps = async (checked: boolean) => {
+    if (!settings) return;
+    setSettings({ ...settings, stripBilibiliTimestamps: checked });
+    await persistSettings({ stripBilibiliTimestamps: checked });
+  };
+
   const renderSaveState = () => {
     if (saveState === 'saving') {
       return <span className="text-[11px] text-gray-400">{t('more.saving')}</span>;
@@ -98,6 +104,25 @@ export function SettingsPanel({ onClose, onReplayTour }: Props) {
                 >
                   <span
                     className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${settings.autoRenamePastedSources ? 'translate-x-5' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border-strong bg-white p-4 shadow-soft">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900">{t('settings.stripTimestamps')}</div>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">{t('settings.stripTimestampsDesc')}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.stripBilibiliTimestamps}
+                  onClick={() => updateStripTimestamps(!settings.stripBilibiliTimestamps)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${settings.stripBilibiliTimestamps ? 'bg-notebooklm-blue' : 'bg-gray-300'}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${settings.stripBilibiliTimestamps ? 'translate-x-5' : 'translate-x-1'}`}
                   />
                 </button>
               </div>

@@ -17,13 +17,6 @@ export interface ImportProgress {
   items: ImportItem[];
 }
 
-// RSS Feed Item
-export interface RssFeedItem {
-  url: string;
-  title: string;
-  pubDate?: string;
-}
-
 // YouTube types
 export interface YouTubeVideoItem {
   id: string;
@@ -61,7 +54,6 @@ export interface BilibiliVideoItem {
 export type MessageType =
   | { type: 'IMPORT_URL'; url: string }
   | { type: 'IMPORT_BATCH'; urls: string[] }
-  | { type: 'PARSE_RSS'; rssUrl: string }
   | { type: 'GET_CURRENT_TAB' }
   | { type: 'GET_ALL_TABS' }
   | { type: 'GET_HISTORY'; limit?: number }

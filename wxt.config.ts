@@ -74,6 +74,10 @@ export default defineConfig({
       __BUILD_TIME__: JSON.stringify(buildTime),
       __VERSION__: JSON.stringify(version),
     },
+    build: {
+      modulePreload: false,
+      sourcemap: false,
+    },
     plugins: [
       {
         // Strip remote CDN URLs from jspdf to comply with MV3 no-remote-code policy
