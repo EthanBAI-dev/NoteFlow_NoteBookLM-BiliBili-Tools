@@ -25,6 +25,10 @@ interface SourceInfoCardProps {
   inlineTags?: boolean;
   /** When true, shows a "页面连接已断开" warning inside the card with a refresh button */
   connectionLost?: boolean;
+  /** Optional download button — shown at the right side of the card */
+  onDownload?: () => void;
+  /** Label for the download button (default: "TXT") */
+  downloadLabel?: string;
 }
 
 /** Color/icon map matching BilibiliImport/YouTubeImport design conventions */
@@ -132,6 +136,8 @@ export function SourceInfoCard({
   subtitleStatus,
   inlineTags,
   connectionLost,
+  onDownload,
+  downloadLabel,
 }: SourceInfoCardProps) {
   const { t } = useI18n();
   const styles = PLATFORM_STYLES[platform];
@@ -255,6 +261,15 @@ export function SourceInfoCard({
         )}
       </div>
 
+      {/* Download button — right side */}
+      {onDownload && !connectionLost && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDownload(); }}
+          className="flex-shrink-0 self-center px-2.5 py-1 text-[11px] rounded-md border border-[#00a1d6]/30 bg-white text-[#00a1d6] hover:bg-[#00a1d6] hover:text-white transition-all duration-150 btn-press"
+        >
+          {downloadLabel || 'TXT'}
+        </button>
+      )}
     </div>
   );
 }

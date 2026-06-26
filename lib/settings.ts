@@ -6,12 +6,15 @@
 export interface Settings {
   /** Auto-rename sources NotebookLM names with a default placeholder like "Pasted Text". */
   autoRenamePastedSources: boolean;
+  /** Remove timestamps from Bilibili subtitle output. */
+  bilibiliRemoveTimestamps: boolean;
 }
 
 const STORAGE_KEY = 'noteflowSettings';
 
 const DEFAULTS: Settings = {
   autoRenamePastedSources: true,
+  bilibiliRemoveTimestamps: true,
 };
 
 export async function getSettings(): Promise<Settings> {

@@ -440,6 +440,23 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
 
   const isWorking = state === 'loading' || state === 'downloading' || state === 'uploading' || state === 'importing' || state === 'fetching';
 
+  // ── Single video download (for SourceInfoCard button) ──
+  const handleSingleVideoDownload = useCallback(() => {
+    const first = videos[0];
+    if (!first) return;
+    chrome.runtime.sendMessage(
+      { type: 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE', video: first, ownerName: source?.owner || '', desc: source?.desc || '' },
+      (resp) => {
+        if (resp?.success) {
+          setDoneMsg(t('bilibili.downloadSubtitleDone', { title: first.part || first.title }));
+        } else {
+          setError(resp?.error || t('bilibili.downloadSubtitleFailed'));
+          setState('error');
+        }
+      }
+    );
+  }, [videos, source, t]);
+
   return (
     <div className="space-y-3">
       {/* Skeleton loader — shown while fetching data */}
@@ -460,6 +477,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             source.type === 'series' ? t('bilibili.tagCollection') : source.isSeries && videos.length > 1 ? t('bilibili.tagSeason') : '',
           ].filter(Boolean) : undefined}
           subtitleStatus={subtitleStatus}
+          onDownload={videos.length <= 1 && subtitleStatus === 'available' ? handleSingleVideoDownload : undefined}
         />
       )}
 

@@ -102,6 +102,30 @@ export function SettingsPanel({ onClose, onReplayTour }: Props) {
                 </button>
               </div>
             </div>
+            {/* Bilibili timestamp removal toggle */}
+            <div className="rounded-xl border border-border-strong bg-white p-4 shadow-soft">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900">{t('more.bilibiliTimestampTitle')}</div>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">{t('more.bilibiliTimestampDesc')}</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.bilibiliRemoveTimestamps}
+                  onClick={() => {
+                    if (!settings) return;
+                    setSettings({ ...settings, bilibiliRemoveTimestamps: !settings.bilibiliRemoveTimestamps });
+                    persistSettings({ bilibiliRemoveTimestamps: !settings.bilibiliRemoveTimestamps });
+                  }}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${settings.bilibiliRemoveTimestamps ? 'bg-notebooklm-blue' : 'bg-gray-300'}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${settings.bilibiliRemoveTimestamps ? 'translate-x-5' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
+            </div>
             <div className="rounded-xl border border-border-strong bg-white p-4 shadow-soft space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

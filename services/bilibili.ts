@@ -687,6 +687,29 @@ export async function fetchVideoSubtitle(
   }
 }
 
+/**
+ * Strip SRT-style timestamp markers and numbering from subtitle text.
+ * Handles formats like:
+ *   `1\n00:00:01,000 --> 00:00:04,500\ncontent text`
+ *   `[00:01:23] content text`
+ *   `(00:01:23) content text`
+ * Relies on buildSubtitlePlainText when raw body is available for best results.
+ */
+export function stripBilibiliTimestamps(text: string): string {
+  return text
+    // Remove SRT numbering lines (standalone numbers)
+    .replace(/^\d+\n/gm, '')
+    // Remove SRT/ASS timestamp range lines
+    .replace(/^\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*$/gm, '')
+    // Remove bracket timestamps like [00:01:23] or (00:01:23)
+    .replace(/[[(]\d{1,2}:\d{2}(?::\d{2})?[)\]]\s*/g, '')
+    // Remove standalone timestamp prefixes
+    .replace(/^\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*/gm, '')
+    // Clean up multiple blank lines left after removal
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function sanitizeBilibiliFilename(name: string): string {
   return name
     .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')

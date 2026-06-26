@@ -20,6 +20,7 @@ import {
   fetchBilibiliUserVideos,
   fetchBilibiliFavoriteList,
   convertSubtitleOutput,
+  stripBilibiliTimestamps,
 } from '@/services/bilibili';
 import { setOpState, clearOpState, type OpState } from '@/services/op-state';
 import { uploadToDrive } from '@/services/google-drive';
@@ -968,6 +969,8 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   }
   if (type === 'DOWNLOAD_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
+    const store = await chrome.storage.local.get('noteflowSettings');
+    const removeTs = store.noteflowSettings?.bilibiliRemoveTimestamps !== false;
     let downloaded = 0; let skipped = 0;
     console.log(`[background] Starting download for ${videos.length} videos...`);
     for (const video of videos) {
@@ -976,8 +979,10 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       if (!result.markdown) { skipped++; }
       else {
         const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
+        let content = result.markdown;
+        if (removeTs) content = stripBilibiliTimestamps(content);
         const filename = `${sanitizeBilibiliFilename(displayTitle)}.md`;
-        const encoded = btoa(unescape(encodeURIComponent(result.markdown)));
+        const encoded = btoa(unescape(encodeURIComponent(content)));
         const dataUrl = `data:text/markdown;base64,${encoded}`;
         await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
         downloaded++;
@@ -988,16 +993,19 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     }
     return { downloaded, skipped };
   }
-  // Single video subtitle download (TXT button on each list item)
+  // Single video subtitle download (TXT button on each list item / SourceInfoCard)
   if (type === 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE') {
     const { video, ownerName, desc: videoDesc } = message as any;
+    const store = await chrome.storage.local.get('noteflowSettings');
+    const removeTs = store.noteflowSettings?.bilibiliRemoveTimestamps !== false;
     const result = await fetchVideoSubtitle(video, ownerName || '', videoDesc || '');
     if (!result.markdown) {
       return { success: false, error: await runtimeT('runtime.bilibiliNoSubtitle') };
     }
     const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
     const filename = `${sanitizeBilibiliFilename(displayTitle)}.txt`;
-    const plainText = result.markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    let plainText = result.markdown.replace(/^# .+\n\n?/gm, '').replace(/\*\*/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    if (removeTs) plainText = stripBilibiliTimestamps(plainText);
     const encoded = btoa(unescape(encodeURIComponent(plainText)));
     const dataUrl = `data:text/plain;base64,${encoded}`;
     await chrome.downloads.download({ url: dataUrl, filename, saveAs: false });
@@ -1029,6 +1037,8 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
   }
   if (type === 'IMPORT_BILIBILI_SUBTITLES') {
     const { videos, ownerName, desc } = message as any;
+    const store = await chrome.storage.local.get('noteflowSettings');
+    const removeTs = store.noteflowSettings?.bilibiliRemoveTimestamps !== false;
     let imported = 0; let skipped = 0;
     setOpState({ active: true, phase: 'importing', kind: 'import', current: 0, total: videos.length, title: await runtimeT('runtime.bilibiliPreparingImport'), timestamp: Date.now() });
     for (const video of videos) {
@@ -1036,6 +1046,7 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       const result = await fetchVideoSubtitle(video, ownerName, desc);
       if (!result.markdown) { skipped++; continue; }
       let markdown = result.markdown;
+      if (removeTs) markdown = stripBilibiliTimestamps(markdown);
       const displayTitle = video.part ? `${video.title} - ${video.part}` : video.title;
       const success = await importText(markdown, displayTitle, senderTabId);
       if (success) { imported++; } else { skipped++; }
