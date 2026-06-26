@@ -5,7 +5,7 @@
 <h1 align="center">NoteFlow</h1>
 
 <p align="center">
-  <strong>给 NotebookLM 装上喷射背包 🚀 — 一键批量导入 B站、YouTube、播客、AI 对话、网页</strong>
+  <strong>NoteFlow — B站、YouTube、播客、网页、AI 对话，一键批量导入 NotebookLM</strong>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ---
 
-NotebookLM 是最强的 AI 知识工具，但把内容喂进去太痛苦了。**NoteFlow 解决这个问题。**
+NotebookLM 是最强的 AI 知识工具，但「把内容喂进去」这一步太痛苦了。**NoteFlow 解决这个问题。**
 
 这是一款 Chrome 扩展（Manifest V3），基于 WXT 框架构建，支持从多源一键批量导入内容到 Google NotebookLM。
 
