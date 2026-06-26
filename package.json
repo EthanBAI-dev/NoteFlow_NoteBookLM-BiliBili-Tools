@@ -1,6 +1,6 @@
 {
   "name": "noteflow",
-  "version": "0.7.1",
+  "version": "0.7.5",
   "description": "NoteFlow - Extract subtitles & content from various sources and import to NotebookLM",
   "private": true,
   "type": "module",

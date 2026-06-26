@@ -84,6 +84,7 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
   const [dlProgress, setDlProgress] = useState<{ current: number; total: number; title?: string } | null>(null);
   const abortRef = useRef<{ port?: chrome.runtime.Port; cancel: () => void }>({ cancel: () => {} });
   const [subtitleStatus, setSubtitleStatus] = useState<'available' | 'unavailable' | 'checking' | undefined>(undefined);
+  const [subtitleDownloading, setSubtitleDownloading] = useState(false);
 
   // ── Resizable list height ──
   const [listHeight, setListHeight] = useState<number>(144); // default ~9 rows (36*4)
@@ -438,6 +439,25 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
   const selectAll = () => setSelected(new Set(displayedVideos.map(videoKey)));
   const selectNone = () => setSelected(new Set());
 
+  // Download handler for SourceInfoCard TXT button (single video)
+  const handleSourceCardDownload = () => {
+    if (videos.length === 0) return;
+    setSubtitleDownloading(true);
+    const video = videos[0];
+    chrome.runtime.sendMessage(
+      { type: 'DOWNLOAD_BILIBILI_SINGLE_SUBTITLE', video, ownerName: source?.owner || '', desc: source?.desc || '' },
+      (resp) => {
+        setSubtitleDownloading(false);
+        if (resp?.success) {
+          setDoneMsg(t('bilibili.downloadSubtitleDone', { title: video.part || video.title }));
+        } else {
+          setError(resp?.error || t('bilibili.downloadSubtitleFailed'));
+          setState('error');
+        }
+      },
+    );
+  };
+
   const isWorking = state === 'loading' || state === 'downloading' || state === 'uploading' || state === 'importing' || state === 'fetching';
 
   return (
@@ -460,6 +480,8 @@ export function BilibiliImport({ initialUrl, onProgress, fetchTrigger, onImportH
             source.type === 'series' ? t('bilibili.tagCollection') : source.isSeries && videos.length > 1 ? t('bilibili.tagSeason') : '',
           ].filter(Boolean) : undefined}
           subtitleStatus={subtitleStatus}
+          onDownloadSubtitle={videos.length <= 1 && subtitleStatus !== 'unavailable' && subtitleStatus !== 'checking' ? handleSourceCardDownload : undefined}
+          subtitleDownloading={subtitleDownloading}
         />
       )}
 

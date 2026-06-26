@@ -1,4 +1,33 @@
 ---
+### 🏁 目标达成归档: 新手引导修正 + SourceInfoCard TXT 下载按钮
+- **归档时间:** 2026-06-26 16:09
+- **项目模块:** 新手引导 / SourceInfoCard / 设置面板
+- **标签:** #BugFixed #FeatureAdded
+- **归档类型:** 首次归档
+- **关联版本:** v0.7.5
+
+#### 🎯 目标原貌与背景
+新手引导（OnboardingTour）已实现但存在两个严重缺陷：一是 `data-tour` 属性完全未在 DOM 上标注，导致引导高亮框定位失败，用户看到的是空框；二是引导步骤引用了已删除的 "bookmark" tab 和旧功能描述，不符合当前 UI 结构。同时，Bilibili 单视频场景缺少直接从 SourceInfoCard 下载 TXT 字幕的快捷入口。
+
+#### 🛠️ 关键转折点
+- **核心突破口:**
+  - 在 `App.tsx` 的 5 个关键区域添加 `data-tour` 属性（account-selector / header-actions / feature-panel / notebook-selector / import-button）
+  - 重写 5 步引导步骤，替换旧的 6 步，描述全部对齐当前实际功能
+  - SourceInfoCard 新增 `onDownloadSubtitle` / `subtitleDownloading` props，右下角渲染 TXT 下载按钮
+  - 中英文 i18n 全部更新，删除旧 key（stepBilibili / stepBookmark / stepPodcast / stepAI / stepYouTube）
+- **被舍弃的方案 (如有):**
+  - 无。方案直接命中根因，无失败尝试。
+
+#### 💡 经验沉淀
+- **技术复盘:**
+  - `data-tour` 属性的缺失是引导失效的直接原因——组件实现了定位逻辑但调用方从未注入选择器。
+  - SourceInfoCard 的 TXT 按钮与旧列表中的按钮复用同一 `DOWNLOAD_BILIBILI_SINGLE_SUBTITLE` handler，代码复用性好。
+- **防复发/可复用指南:**
+  - 新增功能模块时，如涉及新手引导，务必同步添加 `data-tour` 属性到对应 DOM 元素。
+  - 引导步骤不要引用具体的 tab/功能名，优先使用"区域说明"式描述，减少 UI 变更时的维护成本。
+
+---
+
 ### 🏁 目标达成归档: 编译修复 + Bilibili 时间戳开关
 - **归档时间:** 2026-06-26 15:18
 - **项目模块:** 构建系统 / Bilibili 导入流程 / 设置面板

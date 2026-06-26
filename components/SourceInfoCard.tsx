@@ -25,6 +25,10 @@ interface SourceInfoCardProps {
   inlineTags?: boolean;
   /** When true, shows a "页面连接已断开" warning inside the card with a refresh button */
   connectionLost?: boolean;
+  /** When provided and subtitle is available, shows a TXT download button at bottom-right */
+  onDownloadSubtitle?: () => void;
+  /** Whether a subtitle download is currently in progress */
+  subtitleDownloading?: boolean;
 }
 
 /** Color/icon map matching BilibiliImport/YouTubeImport design conventions */
@@ -132,6 +136,8 @@ export function SourceInfoCard({
   subtitleStatus,
   inlineTags,
   connectionLost,
+  onDownloadSubtitle,
+  subtitleDownloading,
 }: SourceInfoCardProps) {
   const { t } = useI18n();
   const styles = PLATFORM_STYLES[platform];
@@ -255,6 +261,28 @@ export function SourceInfoCard({
         )}
       </div>
 
+      {/* TXT Download Button — bottom-right, only for single Bilibili videos with subtitles */}
+      {onDownloadSubtitle && subtitleStatus !== 'unavailable' && subtitleStatus !== 'checking' && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDownloadSubtitle(); }}
+          disabled={subtitleDownloading}
+          className="absolute bottom-1.5 right-1.5 px-2 py-1 text-[11px] rounded-md border border-gray-300 bg-white/80 text-gray-500 hover:bg-white hover:text-gray-700 hover:border-gray-400 transition-all duration-150 btn-press disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+        >
+          {subtitleDownloading ? (
+            <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          )}
+          {t('downloadTxt')}
+        </button>
+      )}
     </div>
   );
 }
