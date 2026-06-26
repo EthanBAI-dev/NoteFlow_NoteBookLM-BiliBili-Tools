@@ -35,3 +35,7 @@ docs/screenshots/raw/
 docs/screenshots/*.png
 releases/*.zip
 .obsidian/
+
+# Reference projects (local only)
+.add-to-nlm-ref/
+.notebooklm-py-reference/
