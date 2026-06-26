@@ -1,86 +1,37 @@
 ---
 title: 'AI 对话导入'
-description: '从 Claude、ChatGPT、Gemini 提取对话，导入 NotebookLM'
+description: '将 Claude、ChatGPT、Gemini 对话导入 NotebookLM'
 ---
 
-## 问题
+## 功能
 
-你和 ChatGPT 讨论了技术方案，和 Claude 深入分析了论文，和 Gemini 做了头脑风暴。这些对话就是知识，但 NotebookLM 不能直接导入 AI 对话。
-
-## 解决方案
+在浏览器中打开 Claude、ChatGPT 或 Gemini 的对话页面后，NoteFlow 侧面板自动提取问答内容。
 
 <Steps>
   <Step title="打开 AI 对话页面">
-    在浏览器中打开 Claude、ChatGPT 或 Gemini 的一个对话。
+    在浏览器中打开 Claude、ChatGPT 或 Gemini 的对话页面。
   </Step>
-  <Step title="提取对话">
-    打开 NoteFlow 侧面板，扩展会自动识别当前 AI 对话平台（Claude/ChatGPT/Gemini）。
-
-    对话内容会自动提取，无需手动点击。展开后可勾选所需问答对。
+  <Step title="自动提取">
+    NoteFlow 侧面板自动识别当前 AI 平台，自动提取对话中的问答对。
   </Step>
-  <Step title="选择问答对">
-    以问答对为单位勾选，只导入有价值的部分。每个问答对显示问题摘要和回答预览。
+  <Step title="选择问答（可选）">
+    展开对话列表，勾选需要导入的问答对。可选择性导入。
   </Step>
-  <Step title="导入">
-    点击「导入选中的 N 个问答对」。扩展将对话格式化为结构化 Markdown，以「复制文本」方式导入 NotebookLM。
+  <Step title="导入到 NotebookLM">
+    选择目标 Notebook，点击「导入到 NotebookLM」。
   </Step>
 </Steps>
 
 ## 支持的平台
 
-| 平台 | 域名 | 状态 |
-|---|---|---|
-| Claude | `claude.ai` | ✅ 完整支持 |
-| ChatGPT | `chatgpt.com` | ✅ 完整支持 |
-| Gemini | `gemini.google.com` | ✅ 完整支持 |
+| 平台 | 说明 |
+|---|---|
+| Claude | `claude.ai/*` — 自动提取对话内容 |
+| ChatGPT | `chatgpt.com/*` 或 `chat.openai.com/*` — 自动提取 |
+| Gemini | `gemini.google.com/*` — 自动提取 |
 
-## 导入格式
+## 说明
 
-导入到 NotebookLM 的内容格式：
-
-```markdown
-# 对话标题
-
-**来源**: Claude 对话
-**URL**: https://claude.ai/chat/xxx
-
----
-
-## 👤 Human
-你的问题内容...
-
-## 🤖 Claude
-AI 的回答内容...
-
----
-```
-
-## 分享卡片
-
-除了导入 NotebookLM，你还可以将精彩对话生成为**分享卡片**——适合发到社交媒体。
-
-<Steps>
-  <Step title="选择问答对">
-    在 AI 对话 tab 中提取对话后，勾选要分享的问答对。
-  </Step>
-  <Step title="生成分享卡片">
-    点击「生成分享卡片」按钮，在新页面中预览卡片。
-  </Step>
-  <Step title="导出">
-    默认点击「Save JPEG」导出高清图片。下拉菜单还支持 PNG、PDF 和复制到剪贴板。
-  </Step>
-</Steps>
-
-**卡片特点：**
-- 🎨 温暖书籍风格排版（Noto Serif SC 衬线字体、奶油色背景、锈红色强调色）
-- 📱 iPhone 灵动岛安全区适配（可关闭），适合手机截图分享
-- 🔍 3x Retina 高清渲染
-- 🌐 中英文自动适配
-
-<Tip>
-  **选择性导入**：一段长对话中往往只有部分有价值。利用勾选功能过滤掉闲聊，只保留精华。
-</Tip>
-
-<Note>
-  导入前请确保已打开一个 NotebookLM 笔记本页面。
-</Note>
+- 扩展通过内容脚本直接从页面 DOM 提取对话内容
+- 提取的内容以 Markdown 格式导入 NotebookLM
+- 只提取可见的对话内容，不含隐藏部分

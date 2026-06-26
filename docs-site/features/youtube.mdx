@@ -1,50 +1,37 @@
 ---
 title: 'YouTube 导入'
-description: '导入 YouTube 视频、播放列表和频道到 NotebookLM'
+description: '导入 YouTube 视频、播放列表、频道到 NotebookLM'
 ---
 
-## 问题
+## 功能
 
-YouTube 上有大量优质教程和讲座，想把多个视频的内容整理到 NotebookLM 做知识管理。但逐个复制链接太繁琐，播放列表和频道更是无从下手。
-
-## 解决方案
+在浏览器中打开 YouTube 页面后，NoteFlow 侧面板自动检测并显示导入界面。
 
 <Steps>
   <Step title="打开 YouTube 页面">
-    在浏览器中打开视频、播放列表或频道页面。NoteFlow 侧面板会自动检测 YouTube 链接。
+    打开一个 YouTube 视频、播放列表或频道页面。
   </Step>
   <Step title="自动查询">
-    打开 NoteFlow 侧面板，扩展自动识别当前 YouTube 页面并显示查询结果。
-    也可手动粘贴链接后点击「查询」。
+    侧面板自动识别当前 YouTube 页面并获取视频列表。也可手动粘贴链接后查询。
   </Step>
   <Step title="选择视频">
-    播放列表/频道会显示视频列表，勾选要导入的视频。支持「Load more」分页加载更多视频，可限制最近 N 个。
+    勾选要导入的视频。播放列表/频道支持"Load more"分页加载更多视频。
   </Step>
   <Step title="导入到 NotebookLM">
-    点击导入，扩展将视频 URL 批量发送给 NotebookLM，由其原生解析 YouTube transcript。
+    点击导入，扩展将视频 URL 批量发送给 NotebookLM，由 NotebookLM 原生解析视频内容。
   </Step>
 </Steps>
 
-## 支持的链接格式
+## 支持的页面类型
 
-| 类型 | 格式示例 | 说明 |
-|---|---|---|
-| 单个视频 | `youtube.com/watch?v=xxx`, `youtu.be/xxx` | 一键导入 |
-| 播放列表 | `youtube.com/playlist?list=xxx` | 批量选择导入 |
-| 频道 | `youtube.com/@username`, `youtube.com/channel/UCxxx` | 获取频道视频列表 |
-| Shorts | `youtube.com/shorts/xxx` | 同单个视频 |
-| 直播 | `youtube.com/live/xxx` | 同单个视频 |
+| 类型 | 说明 |
+|---|---|
+| 单个视频 | `youtube.com/watch?v=xxx` 或 `youtu.be/xxx` |
+| 播放列表 | `youtube.com/playlist?list=xxx` |
+| 频道 | `youtube.com/@xxx` 或 `youtube.com/channel/xxx` |
 
-## 导入数量限制
+## 说明
 
-- 播放列表/频道模式下可设置「最近 N 个」
-- 留空则获取全部视频
-- 频道模式通过 RSS 获取最近 15 个，超过 15 个自动切换 InnerTube API
-
-<Tip>
-  NotebookLM 原生支持 YouTube 视频作为来源，NoteFlow 的价值在于批量导入 — 一次性把整个播放列表或频道的视频添加为来源。
-</Tip>
-
-<Note>
-  导入的是 YouTube 视频链接，NotebookLM 会自动获取视频的 transcript（字幕）。如果视频没有字幕，NotebookLM 可能无法解析内容。
-</Note>
+- NotebookLM 原生支持 YouTube 视频解析，扩展只需发送视频 URL 即可
+- 播放列表/频道批量导入进度实时显示
+- 支持 SPA 页面导航检测（YouTube 单页应用路由变化自动触发刷新）

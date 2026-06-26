@@ -1,60 +1,42 @@
 ---
 title: 'Web Import'
-description: 'Import any URL, Substack, WeChat, and X.com articles into NotebookLM'
+description: 'Import the current page or all open tabs into NotebookLM'
 ---
 
-## How It Works
+## Feature
 
-NoteFlow automatically detects the current tab type and switches to the matching import tool. For regular web pages, it shows the web import interface.
-
-### Single Import
+NoteFlow automatically detects the current tab type. For regular web pages, it shows the web import interface.
 
 <Steps>
   <Step title="Open the NoteFlow side panel">
-    Make sure you have a NotebookLM notebook open, then open the NoteFlow side panel.
+    Open the side panel. The extension automatically identifies the current tab.
   </Step>
-  <Step title="Enter a URL">
-    Paste a web page link in the input field, or click the "Refresh" button to import the current page.
+  <Step title="View page info">
+    The side panel shows the current page's title and URL for confirmation.
+  </Step>
+  <Step title="Select tabs">
+    - **Current tab**: selected by default, import directly
+    - **All tabs**: expand the browser window list, check the tabs you want to import
+    - Multi-window and multi-tab selection supported
   </Step>
   <Step title="Select Notebook and import">
     Choose your target notebook in the side panel and click "Import to NotebookLM".
   </Step>
 </Steps>
 
-<Tip>
-  **Even faster**: Right-click on any web page → "Import to NotebookLM" — done in one step.
-</Tip>
+## Shortcut
 
-### Batch Import
+Right-click on any web page → "Import to NotebookLM" — no need to open the side panel.
 
-Import multiple URLs at once.
+## Exclusion Rules
 
-1. Enter multiple URLs in the web import input, one per line
-2. Click "Batch Import"
-3. The extension imports them one by one with a live progress bar
+The extension automatically excludes platforms that have dedicated import tools:
 
-<Note>
-  You can also click "Import all open tabs" to automatically grab URLs from all your open tabs and add them to the list.
-</Note>
+- Bilibili, YouTube, Apple Podcasts, Xiaoyuzhou FM
+- ChatGPT, Claude, Gemini
+- NotebookLM itself
 
-### Context Menu
+## Notes
 
-While browsing any web page:
-- **Right-click on empty space** → "Import to NotebookLM" → imports the current page
-- **Right-click a link** → "Import to NotebookLM" → imports the linked page
-
-## Special Platform Support
-
-Some platforms require tab-based rendering for content extraction. NoteFlow handles these automatically:
-
-- **X.com (Twitter) long-form articles** — Automatically detects Article format and extracts full content via tab rendering
-- **WeChat articles** — Bypasses anti-scraping mechanisms by rendering in-browser before extraction (see [WeChat Import](/en/guides/wechat))
-- **Substack** — Dedicated noise filtering for precise article extraction (see [Substack Import Tips](/en/guides/substack))
-
-## Import Failed?
-
-If some URLs fail to import, NoteFlow shows a failure list with one-click retry.
-
-<Warning>
-  Before importing, make sure you have a NotebookLM **notebook page** open (not the homepage).
-</Warning>
+- Make sure you have a NotebookLM **notebook page** open before importing (not the homepage)
+- The tab list only shows pages with `http(s)://` URLs

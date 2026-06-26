@@ -50,22 +50,12 @@
           {
             "group": "核心功能",
             "pages": [
-              "features/bookmarks",
-              "features/web-import",
-              "features/docs-import",
-              "features/podcast",
+              "features/bilibili",
               "features/youtube",
+              "features/podcast",
+              "features/web-import",
               "features/ai-chat",
-              "features/rss",
               "features/rescue"
-            ]
-          },
-          {
-            "group": "使用指南",
-            "pages": [
-              "guides/substack",
-              "guides/wechat",
-              "guides/source-limit"
             ]
           },
           {
@@ -93,22 +83,11 @@
             "group": "Features",
             "pages": [
               "en/features/bilibili",
-              "en/features/bookmarks",
-              "en/features/web-import",
-              "en/features/docs-import",
-              "en/features/podcast",
               "en/features/youtube",
+              "en/features/podcast",
+              "en/features/web-import",
               "en/features/ai-chat",
-              "en/features/rss",
               "en/features/rescue"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "en/guides/substack",
-              "en/guides/wechat",
-              "en/guides/source-limit"
             ]
           },
           {

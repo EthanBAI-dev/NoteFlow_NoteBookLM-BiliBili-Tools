@@ -1,64 +1,64 @@
 ---
-title: 'Install Extension'
+title: 'Install'
 description: 'Install the NoteFlow Chrome extension'
 ---
 
 ## Chrome Web Store (Recommended)
 
-One-click install with automatic updates.
+One-click install with auto-updates.
 
 <Steps>
   <Step title="Open the store page">
-    Go to the [Chrome Web Store](https://chromewebstore.google.com/detail/noteflow/jgjgpfgcbdblgejodmooigkhlciejjhg) and click "Add to Chrome"
+    Go to [Chrome Web Store](https://chromewebstore.google.com/detail/noteflow), click "Add to Chrome"
   </Step>
   <Step title="Pin to toolbar">
-    Click the puzzle icon 🧩 in the top-right corner of Chrome → find NoteFlow → click the 📌 pin icon
+    Click the puzzle icon 🧩 in the top-right corner of Chrome → find NoteFlow → click 📌 to pin
   </Step>
 </Steps>
 
 ## Install from GitHub
 
-If you can't access the Chrome Web Store, you can install manually from GitHub Releases.
+If you can't access the Chrome Web Store, you can install manually from a GitHub Release.
 
 <Steps>
   <Step title="Download the extension">
-    Go to [GitHub Releases](https://github.com/crazynomad/noteflow/releases/latest) and download the `.zip` file
+    Go to [GitHub Releases](https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools/releases/latest) and download the `.zip` file
   </Step>
-  <Step title="Unzip the file">
-    Extract the `.zip` to a permanent folder (don't delete it — Chrome needs continuous access to this directory)
+  <Step title="Extract the file">
+    Extract the `.zip` to a permanent folder (do not delete — Chrome needs to read it)
   </Step>
   <Step title="Load into Chrome">
     1. Open `chrome://extensions`
-    2. Enable "Developer mode" in the top-right corner
+    2. Enable "Developer mode" (top right)
     3. Click "Load unpacked"
     4. Select the extracted folder
   </Step>
   <Step title="Pin to toolbar">
-    Click the puzzle icon 🧩 in the top-right corner of Chrome → find NoteFlow → click the 📌 pin icon
+    Click the puzzle icon 🧩 → find NoteFlow → click 📌 to pin
   </Step>
 </Steps>
 
 <Tip>
-  To update, repeat the steps above — overwrite the extracted folder, then click the refresh button on the `chrome://extensions` page.
+  To update, repeat the steps above and click the refresh button on `chrome://extensions`.
 </Tip>
 
 ## Build from Source
 
-For the latest development build or to contribute:
+For the latest development version or to contribute:
 
 <Steps>
-  <Step title="Clone the repository">
+  <Step title="Clone the repo">
     ```bash
-    git clone https://github.com/crazynomad/noteflow.git
-    cd noteflow
+    git clone https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools.git
+    cd NoteFlow_NoteBookLM-BiliBili-Tools
     pnpm install
     pnpm build
     ```
   </Step>
   <Step title="Load into Chrome">
     1. Open `chrome://extensions`
-    2. Enable "Developer mode" in the top-right corner
+    2. Enable "Developer mode"
     3. Click "Load unpacked"
-    4. Select the `dist/chrome-mv3` directory in the project
+    4. Select the `dist/chrome-mv3` directory
   </Step>
 </Steps>

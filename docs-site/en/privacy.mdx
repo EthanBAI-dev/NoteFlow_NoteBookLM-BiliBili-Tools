@@ -1,43 +1,62 @@
 ---
 title: 'Privacy Policy'
-description: 'NoteFlow Privacy Policy'
+description: 'NoteFlow privacy policy'
 ---
 
-## Overview
+## Data Collection
 
-NoteFlow is a free, open-source Chrome extension. **We do not collect, store, or transmit any personal data.**
+NoteFlow **does not collect, upload, or share any user data**. All operations run entirely in your local browser.
 
-## Data Processing
+## Data Storage
 
-All processing happens **locally in your browser**:
+The following data is stored in Chrome's local storage (`chrome.storage.local`) and is only used while the extension is running:
 
-- 🌐 **Web content** — Extracted and processed locally, never sent to any server
-- 📑 **Bookmark data** — Stored in Chrome's local storage, only on your device
-- 📜 **Import history** — Stored locally, never leaves your browser
-- 📡 **RSS feeds** — Fetched directly from source URLs by your browser
-- 🤖 **AI chat extraction** — Reads the current page's DOM, nothing is transmitted externally
+- **Import History**: URLs, titles, import timestamps, success/failure status
+- **Settings**: Language preference, auto-rename, and other preferences
+- **Notebook Cache**: Notebook titles and IDs (for Target Notebook selection)
 
-## Permissions Explained
+This data stays on your local machine and is automatically cleared when you uninstall the extension.
+
+## Network Requests
+
+NoteFlow only makes the following network requests:
+
+- **NotebookLM**: Sends user-selected URLs to `notebooklm.google.com` to create sources
+- **Bilibili API**: Queries video info and subtitle data
+- **YouTube API**: Fetches video listings and metadata
+- **Apple Podcasts / Xiaoyuzhou**: Fetches podcast info
+- **Chrome Web Store**: Checks for extension updates
+
+All requests use HTTPS encryption.
+
+## Third-party Services
+
+NoteFlow integrates with:
+
+- **Supabase**: Optional user authentication
+- **Google OAuth**: Multi-account switching
+
+## Permissions
 
 | Permission | Purpose |
 |---|---|
 | activeTab | Access the current tab to extract content |
-| storage | Local storage for bookmarks, settings, and history |
+| storage | Local storage for settings and history |
 | scripting | Inject content scripts to extract page content |
 | tabs | Detect supported platforms and locate NotebookLM tabs |
 | sidePanel | Open the Chrome side panel UI |
 | contextMenus | Right-click "Import to NotebookLM" menu |
-| downloads | Save generated PDF files |
+| downloads | Save generated files |
 | debugger | PDF export via `Page.printToPDF` |
 | offscreen | HTML-to-Markdown conversion |
 | identity | Google OAuth sign-in |
-| webRequest | YouTube InnerTube API tunnel requests |
+| webRequest | YouTube data requests |
 | webNavigation | Detect SPA page navigation changes |
 
 ## Open Source
 
-Full source code available for audit: [github.com/crazynomad/noteflow](https://github.com/crazynomad/noteflow)
+NoteFlow is fully open source. You can review the code at any time: [GitHub Repository](https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools)
 
 ## Contact
 
-For privacy-related questions, please open an issue on GitHub: [github.com/crazynomad/noteflow/issues](https://github.com/crazynomad/noteflow/issues)
+For privacy-related questions, please reach out via GitHub Issues.

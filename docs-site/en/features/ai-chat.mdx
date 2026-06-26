@@ -1,86 +1,37 @@
 ---
 title: 'AI Chat Import'
-description: 'Extract conversations from Claude, ChatGPT, and Gemini, then import into NotebookLM'
+description: 'Import Claude, ChatGPT, and Gemini conversations into NotebookLM'
 ---
 
-## The Problem
+## Feature
 
-You discussed a technical architecture with ChatGPT, did a deep dive on a research paper with Claude, and brainstormed ideas with Gemini. These conversations are knowledge, but NotebookLM can't import AI chats directly.
-
-## The Solution
+Open a Claude, ChatGPT, or Gemini conversation page. The NoteFlow side panel automatically extracts Q&A content.
 
 <Steps>
   <Step title="Open an AI chat page">
-    Open a conversation on Claude, ChatGPT, or Gemini in your browser.
+    Open a conversation on Claude, ChatGPT, or Gemini.
   </Step>
-  <Step title="Extract the conversation">
-    Open the NoteFlow side panel. The extension automatically detects the AI platform (Claude/ChatGPT/Gemini).
-
-    Conversation content is extracted automatically — no need to click anything. Expand the view to select Q&A pairs.
+  <Step title="Auto-extract">
+    The NoteFlow side panel detects the AI platform and automatically extracts Q&A pairs from the conversation.
   </Step>
-  <Step title="Select Q&A pairs">
-    Check the Q&A pairs you want to keep. Each pair shows a question summary and answer preview, so you can import only the valuable parts.
+  <Step title="Select Q&A (optional)">
+    Expand the conversation list and check the Q&A pairs you want to import. Selective import supported.
   </Step>
-  <Step title="Import">
-    Click "Import N Selected Q&A Pairs". The extension formats the conversation as structured Markdown and imports it into NotebookLM using the "Copied text" method.
+  <Step title="Import to NotebookLM">
+    Select your target notebook and click "Import to NotebookLM".
   </Step>
 </Steps>
 
 ## Supported Platforms
 
-| Platform | Domain | Status |
-|---|---|---|
-| Claude | `claude.ai` | Fully supported |
-| ChatGPT | `chatgpt.com` | Fully supported |
-| Gemini | `gemini.google.com` | Fully supported |
+| Platform | Description |
+|---|---|
+| Claude | `claude.ai/*` — auto-extract conversation content |
+| ChatGPT | `chatgpt.com/*` or `chat.openai.com/*` — auto-extract |
+| Gemini | `gemini.google.com/*` — auto-extract |
 
-## Import Format
+## Notes
 
-Content imported into NotebookLM is formatted as:
-
-```markdown
-# Conversation Title
-
-**Source**: Claude conversation
-**URL**: https://claude.ai/chat/xxx
-
----
-
-## Human
-Your question here...
-
-## Claude
-AI's response here...
-
----
-```
-
-## Share Cards
-
-Beyond importing into NotebookLM, you can also turn great conversations into **share cards** -- perfect for posting on social media.
-
-<Steps>
-  <Step title="Select Q&A pairs">
-    After extracting a conversation in the AI Chat tab, check the Q&A pairs you want to share.
-  </Step>
-  <Step title="Generate share card">
-    Click the "Generate Share Card" button to preview the card on a new page.
-  </Step>
-  <Step title="Export">
-    Click "Save JPEG" to export a high-resolution image. The dropdown menu also supports PNG, PDF, and copy to clipboard.
-  </Step>
-</Steps>
-
-**Card features:**
-- Warm book-style typography (Noto Serif SC serif font, cream background, rust-red accent color)
-- iPhone Dynamic Island safe area support (can be toggled off), great for mobile screenshot sharing
-- 3x Retina high-resolution rendering
-- Automatic Chinese/English layout adaptation
-
-<Tip>
-  **Selective import**: A long conversation often contains only a few gems. Use the checkbox feature to filter out small talk and keep only the best parts.
-</Tip>
-
-<Note>
-  Make sure you have a NotebookLM notebook open before importing.
-</Note>
+- The extension extracts conversation content directly from the page DOM via content scripts
+- Extracted content is imported into NotebookLM in Markdown format
+- Only visible conversation content is extracted — hidden portions are not included

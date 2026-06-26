@@ -1,60 +1,42 @@
 ---
 title: '网页导入'
-description: '导入任意网页、Substack、微信公众号、X.com 长文到 NotebookLM'
+description: '导入当前网页或所有打开的标签页到 NotebookLM'
 ---
 
-## 使用方式
+## 功能
 
-NoteFlow 会自动检测当前标签页类型，切换到对应的导入工具。如果当前是普通网页，会显示网页导入界面。
-
-### 单个导入
+NoteFlow 自动检测当前标签页类型。如果是普通网页，则显示网页导入界面。
 
 <Steps>
   <Step title="打开 NoteFlow 侧面板">
-    确保已打开一个 NotebookLM 笔记本，然后打开 NoteFlow 侧面板。
+    打开 NoteFlow 侧面板，扩展自动识别当前标签页。
   </Step>
-  <Step title="输入 URL">
-    在输入框中粘贴网页链接，或点击「刷新」按钮直接导入当前页面。
+  <Step title="查看页面信息">
+    侧面板顶部显示当前页面的标题和 URL，确认是你想要导入的页面。
+  </Step>
+  <Step title="选择标签页">
+    - **当前标签页**：默认选中，直接导入
+    - **所有标签页**：展开浏览器窗口列表，勾选需要导入的标签页
+    - 支持多窗口、多标签页同时选择
   </Step>
   <Step title="选择 Notebook 并导入">
-    在侧面板顶部选择目标 Notebook，点击「导入到 NotebookLM」。
+    在侧面板选择目标 Notebook，点击「导入到 NotebookLM」。
   </Step>
 </Steps>
 
-<Tip>
-  **更快捷**：在任意网页右键 →「导入到 NotebookLM」，一步完成。
-</Tip>
+## 快捷方式
 
-### 批量导入
+在任意网页上右键 →「导入到 NotebookLM」，无需打开侧面板。
 
-一次导入多个 URL。
+## 排除规则
 
-1. 在网页导入界面中输入多个 URL，每行一个
-2. 点击「批量导入」
-3. 扩展逐个导入，进度条实时显示
+扩展会自动排除有专用导入工具的平台，避免误操作：
 
-<Note>
-  也可以点击「导入所有打开的标签页」，自动获取当前所有标签页的 URL 并填入列表。
-</Note>
+- Bilibili、YouTube、Apple Podcasts、小宇宙 FM
+- ChatGPT、Claude、Gemini
+- NotebookLM 本身
 
-### 右键菜单
+## 注意事项
 
-浏览任意网页时：
-- **右键页面空白处** →「导入到 NotebookLM」→ 导入当前页面
-- **右键链接** →「导入到 NotebookLM」→ 导入链接目标页面
-
-## 特殊平台支持
-
-部分平台需要通过浏览器标签页渲染才能提取内容，NoteFlow 会自动处理：
-
-- **X.com (Twitter) 长文** — 自动识别 Article 格式，通过标签页渲染提取完整内容
-- **微信公众号** — 绕过反爬机制，浏览器内渲染后提取（详见 [微信公众号导入](/guides/wechat)）
-- **Substack** — 专门噪音过滤，精准提取正文（详见 [Substack 导入技巧](/guides/substack)）
-
-## 导入失败？
-
-如果某些 URL 导入失败，NoteFlow 会显示失败列表，支持一键重试。
-
-<Warning>
-  导入前请确保已打开一个 NotebookLM **笔记本页面**（不是首页）。
-</Warning>
+- 导入前请确保已打开一个 NotebookLM **笔记本页面**（不是首页）
+- 标签页列表仅显示 `http(s)://` 开头的页面

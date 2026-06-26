@@ -3,48 +3,35 @@ title: 'YouTube Import'
 description: 'Import YouTube videos, playlists, and channels into NotebookLM'
 ---
 
-## Problem
+## Feature
 
-YouTube is full of great tutorials and lectures that you want to organize in NotebookLM for knowledge management. But copying links one by one is tedious, and playlists and channels are even harder to handle.
-
-## The Solution
+Open a YouTube page in your browser. The NoteFlow side panel automatically detects it and shows the import interface.
 
 <Steps>
   <Step title="Open a YouTube page">
-    Open a video, playlist, or channel page on YouTube in your browser. The NoteFlow side panel will auto-detect the YouTube link.
+    Open a YouTube video, playlist, or channel page.
   </Step>
   <Step title="Auto-query">
-    Open the NoteFlow side panel — the extension automatically identifies the current YouTube page and displays results.
-    You can also paste a link manually and click "Query".
+    The side panel automatically identifies the current YouTube page and fetches the video list. You can also paste a link manually.
   </Step>
   <Step title="Select videos">
-    Playlists/channels show a video list. Check the videos you want to import. Supports "Load more" pagination and limiting to the most recent N videos.
+    Check the videos you want to import. Playlists/channels support "Load more" pagination.
   </Step>
   <Step title="Import to NotebookLM">
-    Click import, and the extension sends video URLs to NotebookLM in batches, which natively parses YouTube transcripts.
+    Click import. The extension sends video URLs to NotebookLM in batches, and NotebookLM natively parses the content.
   </Step>
 </Steps>
 
-## Supported Link Formats
+## Supported Page Types
 
-| Type | Example Format | Notes |
-|---|---|---|
-| Single video | `youtube.com/watch?v=xxx`, `youtu.be/xxx` | One-click import |
-| Playlist | `youtube.com/playlist?list=xxx` | Batch select and import |
-| Channel | `youtube.com/@username`, `youtube.com/channel/UCxxx` | Fetches channel video list |
-| Shorts | `youtube.com/shorts/xxx` | Same as single video |
-| Live | `youtube.com/live/xxx` | Same as single video |
+| Type | Description |
+|---|---|
+| Single video | `youtube.com/watch?v=xxx` or `youtu.be/xxx` |
+| Playlist | `youtube.com/playlist?list=xxx` |
+| Channel | `youtube.com/@xxx` or `youtube.com/channel/xxx` |
 
-## Import Limits
+## Notes
 
-- In playlist/channel mode, you can set "most recent N"
-- Leave empty to fetch all videos
-- Channel mode fetches the latest 15 via RSS; for more than 15, it automatically switches to the InnerTube API
-
-<Tip>
-  NotebookLM natively supports YouTube videos as sources. NoteFlow's value is batch import — add an entire playlist or channel's videos as sources in one go.
-</Tip>
-
-<Note>
-  What gets imported are YouTube video links. NotebookLM will automatically fetch the video's transcript (subtitles). If a video has no subtitles, NotebookLM may not be able to parse its content.
-</Note>
+- NotebookLM natively supports YouTube video parsing — the extension only sends video URLs
+- Batch import progress is shown in real time
+- SPA navigation is supported (YouTube single-page app route changes auto-trigger refreshes)

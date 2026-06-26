@@ -1,50 +1,39 @@
 ---
-title: '播客下载'
-description: '从 Apple Podcasts 和小宇宙下载音频，导入 NotebookLM'
+title: '播客导入'
+description: '导入 Apple Podcasts 或小宇宙 FM 节目到 NotebookLM'
 ---
 
-## 问题
+## 功能
 
-两小时的播客，靠手动总结太累。想让 NotebookLM 帮你生成笔记，但它不支持直接输入播客链接。
-
-## 解决方案
+NoteFlow 自动识别 Apple Podcasts 和小宇宙 FM 页面，下载音频并导入 NotebookLM。
 
 <Steps>
   <Step title="打开播客页面">
     在浏览器中打开 Apple Podcasts 或小宇宙的节目/单集页面。
   </Step>
   <Step title="自动识别">
-    NoteFlow 侧面板会自动识别播客页面，显示播客导入界面及节目/单集信息。
+    侧面板自动识别播客页面，显示节目信息和单集列表。
   </Step>
   <Step title="选择单集">
-    扩展会显示节目信息和单集列表。勾选要下载的单集。
+    勾选要下载的单集。默认全选。
   </Step>
   <Step title="下载音频">
-    点击「下载选中」，音频文件会保存到本地。
+    点击「下载选中」，音频文件保存到本地。
   </Step>
   <Step title="导入 NotebookLM">
-    将下载的音频文件拖入 NotebookLM 笔记本 → AI 自动生成完整笔记。
+    将下载的音频文件拖入 NotebookLM 笔记本，由 AI 自动生成完整笔记。
   </Step>
 </Steps>
 
 ## 支持的平台
 
-| 平台 | 链接格式 | 说明 |
-|---|---|---|
-| Apple Podcasts | `podcasts.apple.com/.../id123456` | 支持节目和单集链接 |
-| 小宇宙 | `xiaoyuzhoufm.com/episode/...` | 支持单集链接 |
-| 小宇宙 | `xiaoyuzhoufm.com/podcast/...` | 支持节目链接 |
+| 平台 | 说明 |
+|---|---|
+| Apple Podcasts | `podcasts.apple.com/*` — 自动识别节目和单集列表 |
+| 小宇宙 FM | `xiaoyuzhoufm.com/episode/*` 或 `xiaoyuzhoufm.com/podcast/*` — 支持节目/单集页面 |
 
-## 查询模式
+## 说明
 
-- **最新** — 显示最新发布的单集
-- **全部** — 显示所有单集（可能较多）
-- **集** — 按季度/专辑筛选
-
-<Tip>
-  下载后的音频文件通常是 `.m4a` 或 `.mp3` 格式，NotebookLM 都支持。
-</Tip>
-
-<Warning>
-  音频文件可能较大（一集 50-100MB），请确保有足够的磁盘空间和网络带宽。
-</Warning>
+- 播客音频文件通常较大（50-100MB），下载速度取决于你的网络
+- 音频下载到本地后，手动拖入 NotebookLM 即可
+- NotebookLM 会自动分析音频内容生成文字笔记

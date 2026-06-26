@@ -1,63 +1,49 @@
 ---
 title: 'NoteFlow'
-description: '将 Bilibili、YouTube、播客、AI 对话等内容批量导入 NotebookLM'
+description: 'B站、YouTube、播客、网页、AI 对话 — 一键批量导入 NotebookLM'
 ---
 
-# 将任何内容批量导入 NotebookLM 🚀
+# NoteFlow — 将多源内容一键导入 NotebookLM
 
-NotebookLM 是最强的 AI 知识工具，但把内容喂进去太痛苦了。
+NotebookLM 是最强的 AI 知识工具，但「把内容喂进去」这一步太痛苦了。NoteFlow 解决这个问题。
 
-**NoteFlow 解决这个问题。**
+打开 NoteFlow 侧面板，扩展自动检测当前页面类型，匹配对应的导入工具 — B站、YouTube、播客、网页、AI 对话，选中内容，点击导入，无需切换标签页。
 
 <CardGroup cols={3}>
-  <Card title="批量导入" icon="bolt">
-    B站视频字幕、YouTube 频道、播客单集、AI 对话、网页、文档站 — 一键批量导入
+  <Card title="自动站点识别" icon="magic">
+    打开任意页面，侧面板自动匹配对应的导入工具，无需手动切换标签
   </Card>
-  <Card title="自动识别站点" icon="magic">
-    打开任意页面，侧面板自动匹配对应导入工具，无需手动切换标签
+  <Card title="侧面板操作" icon="sidebar">
+    打开即用，选择目标 Notebook，一键导入到 NotebookLM
   </Card>
   <Card title="来源抢救" icon="wrench">
     自动检测导入失败和"假性成功"的来源，一键批量修复
   </Card>
 </CardGroup>
 
-## 支持导入的内容
+## 支持的导入来源
 
 | 类型 | 来源 |
 |---|---|
-| 🎬 Bilibili | 视频字幕提取、UP 主投稿、收藏夹、弹幕/评论 |
-| 🌐 网页 | 任意网页、Substack、微信公众号、X.com 长文 |
-| 📚 文档站 | Docusaurus、VitePress、MkDocs、GitBook、Mintlify 等 14+ 框架 |
-| ▶️ YouTube | 单个视频、播放列表、频道批量导入（支持分页加载） |
-| 🎙️ 播客 | Apple Podcasts、小宇宙 FM |
-| 🤖 AI 对话 | Claude、ChatGPT、Gemini — 自动提取 + 分享卡片 |
-| 📡 RSS | 任意 RSS/Atom 源 |
+| 🎬 **Bilibili** | 视频字幕提取、UP 主投稿、收藏夹、系列/合集；支持逐视频或合并导入、多种格式输出（TXT/MD/JSON/SRT） |
+| ▶️ **YouTube** | 单个视频、播放列表、频道批量导入，支持分页加载 |
+| 🎙️ **播客** | Apple Podcasts 与小宇宙 FM — 自动检测页面，下载音频到本地后导入 |
+| 🌐 **网页标签** | 导入当前标签页或所有打开的标签页，自动排除有专用导入工具的平台 |
+| 🤖 **AI 对话** | Claude、ChatGPT、Gemini — 自动提取问答对，选择需要的部分导入 |
 
 ## 核心亮点
 
-- **侧面板 UI** — 打开扩展即自动检测当前站点，匹配对应导入功能
-- **Google 多账号** — 支持切换 NotebookLM 的 Google 账号
-- **智能目标 Notebook** — 选择目标 Notebook，内容直接导入无需切换
-- **分享卡片** — 将 AI 对话生成为精美分享图片（JPEG/PNG/PDF）
+- **侧面板 UI** — 打开即检测当前站点，匹配对应导入工具
+- **Google 多账号切换** — 侧面板顶部切换 NotebookLM 的 Google 账号
+- **目标 Notebook 选择** — 选择目标笔记本，内容直接导入无需切换页面
 - **导入历史** — 查看所有导入记录，轻松重试
-- **新手引导** — 安装后 5 步引导，快速上手所有功能
-
-## 视频演示
-
-<CardGroup cols={2}>
-  <Card title="YouTube Demo" icon="youtube" href="https://youtu.be/9gPTuJZRHJk">
-    English demo video
-  </Card>
-  <Card title="Bilibili 演示" icon="play" href="https://www.bilibili.com/video/BV1QAPqzSEjJ/">
-    中文演示视频，完整功能介绍
-  </Card>
-</CardGroup>
+- **新手引导** — 安装后 5 步骤引导，快速上手
 
 ## 安全与隐私
 
 - ✅ 完全免费，无需注册登录
 - ✅ 纯客户端运行，不上传任何数据
-- ✅ [开源代码](https://github.com/crazynomad/noteflow)，可审计
+- ✅ [开源代码](https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools)，可审计
 - ✅ 中英双语界面，自动适配
 
 <Card title="立即开始" icon="rocket" href="/getting-started/install">

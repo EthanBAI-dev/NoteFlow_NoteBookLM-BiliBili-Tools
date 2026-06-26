@@ -3,64 +3,57 @@ title: 'Bilibili Import'
 description: 'Extract Bilibili video subtitles and import into NotebookLM'
 ---
 
-## The Problem
+## Feature
 
-Bilibili has tons of high-quality video tutorials and educational content, but NotebookLM doesn't support importing Bilibili videos.
-
-## The Solution
+Open a Bilibili video page, creator space, or favorites page in your browser. The NoteFlow side panel automatically detects it and shows the subtitle extraction interface.
 
 <Steps>
   <Step title="Open a Bilibili page">
-    Open a Bilibili video page, creator space, or favorites page in your browser.
+    Open a Bilibili video, creator space, or favorites page.
   </Step>
   <Step title="Auto-detect">
-    The NoteFlow side panel automatically detects the Bilibili page and shows video info with a subtitle extraction interface.
+    The side panel auto-detects the Bilibili page, displaying video info and subtitle status.
   </Step>
-  <Step title="Choose subtitle mode">
-    Three output modes available:
-    - **Per Video** — each video becomes its own document, imported individually
-    - **Merged** — multiple videos' subtitles merged into one document, takes only 1 source slot
-    - **ZIP Download** — download subtitles as a ZIP archive
+  <Step title="Select videos (optional)">
+    - Single video: auto-selected by default
+    - Multiple videos: check the ones you want, supports select/deselect all
+    - "Load more" pagination (100 per page)
   </Step>
   <Step title="Import to NotebookLM">
-    Select a mode and click import. The subtitles will appear in NotebookLM's source list automatically.
+    Click "Import to NotebookLM" and the selected subtitles appear in NotebookLM's source list.
   </Step>
 </Steps>
 
-## Supported Features
+## Supported Page Types
 
-| Feature | Description |
+| Type | Description |
 |---|---|
-| Video subtitle extraction | Auto-fetch CC subtitles / AI-generated captions |
-| Creator uploads | View all videos from a creator, batch select |
-| Favorites | Analyze all videos in a user's favorites |
-| Danmaku/comments (optional) | Extract representative danmaku and comments |
-| Per-video import | Each video as an independent NotebookLM source |
-| Merged import | Multiple videos merged into one document, saves quota |
-| ZIP download | Package subtitles for local download |
+| Single video | `bilibili.com/video/BVxxx` — auto-detect, supports multi-part videos |
+| Creator space | `bilibili.com/space/xxx` — list all uploaded videos |
+| Favorites | `bilibili.com/list/xxx` — analyze all videos in a favorites list |
+| Series/Seasons | Auto-detect video series, display all chapters |
 
-## Import Format
+## Output Formats
 
-Content imported into NotebookLM is formatted as:
+| Format | Description |
+|---|---|
+| `.txt` | Plain text with timestamps |
+| `.md` | Markdown format |
+| `.json` | Structured JSON (timestamps, text, BVID) |
+| `.srt` | SRT subtitle format |
 
-```markdown
-# Video Title
+## Export Modes
 
-**Source**: Bilibili
-**Creator**: Creator name
-**URL**: https://www.bilibili.com/video/BVxxxxxx
+| Mode | Description |
+|---|---|
+| **Download Single** | Click the TXT button next to each video to download its subtitle |
+| **Download Separate** | Select multiple videos, download as ZIP (each video as a separate file) |
+| **Download Merged** | Select multiple videos, merge into one file (ideal for tutorial series) |
 
----
+## Subtitle Status
 
-00:00:12 Subtitle text content
-00:00:15 Next subtitle line
-...
-```
-
-<Tip>
-  **Merged mode** is ideal for tutorial series — merge all subtitles from a collection into one document that takes just 1 source slot.
-</Tip>
+The extension automatically checks if a video has CC subtitles. Videos without subtitles show a notice and cannot be imported.
 
 <Note>
-  Subtitle extraction requires the video to have CC subtitles (AI-generated or uploaded by the creator). Videos without subtitles may not be extractable.
+  Merged mode is ideal for tutorial series — combine multiple videos' subtitles into one document that takes just 1 NotebookLM source slot.
 </Note>
