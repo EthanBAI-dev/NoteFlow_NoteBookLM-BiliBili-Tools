@@ -31,7 +31,6 @@ export default defineConfig({
       'scripting',
       'contextMenus',
       'downloads',
-      'debugger',
       'offscreen',
       'identity',
       'sidePanel',
@@ -49,15 +48,9 @@ export default defineConfig({
       'https://www.googleapis.com/*',
       'https://accounts.google.com/*',
     ],
-    oauth2: {
-      client_id: 'KAPTURE_OAUTH2_CLIENT_ID_PLACEHOLDER',
-      scopes: ['https://www.googleapis.com/auth/drive.file'],
-    },
+    // oauth2 is removed for now; will be re-added when Google Drive upload is ready
     side_panel: {
       default_path: 'sidepanel.html',
-    },
-    externally_connectable: {
-      matches: ['https://developer.chrome.com/*', 'http://localhost/*', 'https://*/*'],
     },
     icons: {
       '16': 'icons/icon-16.png',
