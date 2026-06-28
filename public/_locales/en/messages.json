@@ -4,7 +4,7 @@
     "description": "The name of the extension."
   },
   "extensionDescription": {
-    "message": "Batch import content from multiple sources into NotebookLM in one click. Supports Bilibili, YouTube, podcasts, AI chats, and any website URL.",
+    "message": "One-click batch import from YouTube, Bilibili, podcasts, AI chats, and articles straight into NotebookLM.",
     "description": "The description of the extension shown in Chrome Web Store and chrome://extensions."
   },
   "actionTitle": {
