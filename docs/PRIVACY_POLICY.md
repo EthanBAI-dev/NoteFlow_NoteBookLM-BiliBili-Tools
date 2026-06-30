@@ -53,7 +53,7 @@ You can clear all stored data by removing the extension.
 ## Open Source
 
 This extension is fully open source. You can audit the code at any time:
-https://github.com/crazynomad/noteflow
+https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools
 
 ## Children's Privacy
 
@@ -66,7 +66,7 @@ We may update this policy from time to time. Changes will be posted to this page
 ## Contact
 
 If you have questions about this privacy policy, please open an issue on GitHub:
-https://github.com/crazynomad/noteflow/issues
+https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools/issues
 
 ---
 

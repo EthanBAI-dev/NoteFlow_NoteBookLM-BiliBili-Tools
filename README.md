@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://github.com/EthanBAI-dev/NoteFlow_NoteBookLM-BiliBili-Tools">GitHub</a> •
   <a href="https://noteflow.mintlify.app">Docs</a> •
-  <a href="https://chromewebstore.google.com/detail/noteflow">Chrome Web Store</a> •
+  <a href="https://chromewebstore.google.com/detail/noteflow/fdfmlojhomggnppohcmidnmfmffnebcn">Chrome Web Store</a> •
   Open Source · Free · Client-Side Only
 </p>
 
@@ -61,7 +61,7 @@ A Chrome extension (Manifest V3) built with the WXT framework that batch-imports
 
 ### Chrome Web Store (Recommended)
 
-[Chrome Web Store →](https://chromewebstore.google.com/detail/noteflow)
+[Chrome Web Store →](https://chromewebstore.google.com/detail/noteflow/fdfmlojhomggnppohcmidnmfmffnebcn)
 
 ### Build from Source
 
